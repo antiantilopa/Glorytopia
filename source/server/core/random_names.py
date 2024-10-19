@@ -35,13 +35,11 @@ def random_funny_name():
             case "mu":
                 name += "mu"
             case "mi":
-                name += "memamomu"
+                name += "me"
             case "zi":
                 name += "ga"
-            case "ka":
-                name += "shka"
             case "he":
-                name += "hehe"
+                name += "he"
             case "ni":
                 name += "ger"
             case "ci":
