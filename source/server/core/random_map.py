@@ -73,4 +73,6 @@ def print_map(world):
            
             print(alph[j], end = " ")
         print()
-print_map(pangea(11, 11))
+
+if __name__ == "main":
+    print_map(pangea(11, 11))
