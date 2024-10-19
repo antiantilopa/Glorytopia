@@ -22,7 +22,7 @@ class UnitType:
     name: str
     health: int
     attack: float
-    diffence: float
+    defense: float
     movement: int
     attackrange: int
     cost: int
@@ -35,7 +35,7 @@ class UnitType:
                  name: str = "default", 
                  health: int = 0, 
                  attack: float = 0, 
-                 diffence: float = 0, 
+                 defense: float = 0, 
                  movement: int = 0, 
                  attackrange: int = 0, 
                  cost: int = 0, 
@@ -46,7 +46,7 @@ class UnitType:
         self.name = name
         self.health = health
         self.attack = attack
-        self.diffence = diffence
+        self.defense = defense
         self.movement = movement
         self.attackrange = attackrange
         self.cost = cost
@@ -57,7 +57,7 @@ class UnitTypes(Enum):
     warrior = UnitType("warrior", 
                     health = 0, 
                     attack = 0, 
-                    diffence = 0, 
+                    defense = 0, 
                     movement = 0, 
                     attackrange = 0, 
                     cost = 0, 
