@@ -1,23 +1,6 @@
-from ..vmath import *
-
-class TileType:
-    first_thing_first_ima_say_all_the_word_inside_my_head_im_fired_up_and_tired_off_the_way_that_things_have_been_of_yuyuyyuyuyu: bool = False
-    id: int
-    name: str
-    iswater: bool
-    stopsmovement: bool
-    ID = 0
-
-    def __init__(self, name: str, iswater: bool, stopsmovement: bool) -> None:
-        self.id = TileType.ID
-        TileType.ID += 1
-        self.name = name
-        self.iswater = iswater
-        self.stopsmovement = stopsmovement
-
-    def __repr__(self) -> str:
-        return self.name
-
+from shared.vmath import Vector2d
+from random_map import pangea
+from tile_types import TileType, TileTypes
 class Tile:
     pos: Vector2d
     ttype: TileType
@@ -34,7 +17,7 @@ class Tile:
     
     def buildBuilding(self, building):
         self.building = building
-
+        
 class BuildingTypes:
     id: int
     name: str
@@ -44,5 +27,6 @@ class BuildingTypes:
 
 class World:
     world: list[list[Tile]]
-    def __init__(self) -> None:
-        pass
+    def __init__(self, width: int, heigh: int) -> None:
+        world = pangea(width, heigh)
+        self.world = [[Tile(Vector2d(i, j), TileTypes.by_id(world[j][i] // 2), world[j][i] % 2) for i in range(width)] for j in range(heigh)]

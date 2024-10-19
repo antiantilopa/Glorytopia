@@ -1,6 +1,6 @@
-from tile import Tile 
+from tile import Tile
 from random_names import random_name_with_double as random_name
-from ..vmath import Vector2d
+from shared.vmath import Vector2d
 
 
 class City(Tile):

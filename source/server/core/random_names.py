@@ -32,14 +32,12 @@ def random_funny_name():
         match(syllable):
             case "po":
                 name += "pa"
-                break
             case "mu":
                 name += "mu"
             case "mi":
                 name += "memamomu"
             case "zi":
                 name += "ga"
-                break         
             case "ka":
                 name += "shka"
             case "he":
@@ -48,7 +46,6 @@ def random_funny_name():
                 name += "ger"
             case "ci":
                 name += "ty"
-                break
 
     return name
 
@@ -105,6 +102,5 @@ def random_name_with_double():
 
     return name
 
-
-for i in range(5):
+for i in range(7):
     print(random_funny_name())
