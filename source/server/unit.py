@@ -5,6 +5,10 @@ from core.tile import World, Tile
 from enum import Enum
 
 class Unit(UnitData):
+    units = []
+
+    def init(self):
+        Unit.units.append(self)
     
     def refresh(self):
         self.moved = False
