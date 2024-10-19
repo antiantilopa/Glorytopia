@@ -3,9 +3,10 @@ from shared.unit import UnitData
 from shared.vmath import Vector2d
 from core.tile import World, Tile
 from enum import Enum
+from math import floor, ceil
 
 class Unit(UnitData):
-    units = []
+    units: list["Unit"] = []
 
     def init(self):
         Unit.units.append(self)
@@ -58,33 +59,45 @@ class Unit(UnitData):
             e_poses.append(s_pos)
             s_poses.remove(s_pos)
     
-    def getAttacks(self, units: list["Unit"]) -> list["Unit"]:
+    def getAttacks(self) -> list["Unit"]:
         result = []
-        for unit in units:
-            if max((unit.pos - self.pos).x, (unit.pos - self.pos).y) <= self.utype.attackrange:
-                result.append(unit)
+        for unit in Unit.units:
+            if unit.owner != self.owner:
+                if max((unit.pos - self.pos).x, (unit.pos - self.pos).y) <= self.utype.attackrange:
+                    result.append(unit)
         return result
 
-    def getPossibleMoves(self, world: World, units: list["Unit"]) -> list[Vector2d]:
+    def getPossibleMoves(self, world: World) -> list[Vector2d]:
         if self.moved:
             if self.attacked:
                 return []
             if Abilities.dash in self.utype.abilities:
-                return [unit.pos for unit in self.getAttacks(units)]
+                return [unit.pos for unit in self.getAttacks()]
         else:
             result = self.getMovements(world)
             if not self.attacked:
-                result += [unit.pos for unit in self.getAttacks(units)]
+                result += [unit.pos for unit in self.getAttacks()]
             return result
+        
+    # calculates attack when self is attacker, and other is defender.
+    def calc_attack(self, other: "Unit", world: World):
 
-    def calc_attack(self):
-        # TODO calculate attack damage after all modifiers
-        raise NotImplementedError
+        defenseBonus = 1 # TODO 
+
+        attackForce = self.utype.attack * (self.health / self.utype.health)
+        defenseForce = other.utype.defense * (other.health / other.utype.health) * defenseBonus
+        totalDamage = attackForce + defenseForce
+        attackResult = ceil((attackForce / totalDamage) * self.utype.attack * 4.5)
+        defenseResult = floor((defenseForce / totalDamage) * other.utype.defense * 4.5)
+
+        other.recv_damage(attackResult)
+        if other.health > 0:
+            self.recv_damage(defenseResult)
+        else:
+            if self.utype.attackrange == 1:
+                self.pos = other.pos
     
-    def calc_defense(self):
-        # TODO calculate defense after all modifiers
-        raise NotImplementedError
-    
-    def calc_damage(self, damage: int):
-        # TODO apply damage to unit
-        raise NotImplementedError
+    def recv_damage(self, damage: int):
+        self.health -= damage
+        if self.health < 0:
+            self.health = 0
