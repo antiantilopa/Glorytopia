@@ -1,9 +1,10 @@
 from shared.unit_types import Abilities, UnitType
 from shared.unit import UnitData
 from shared.vmath import Vector2d
-from core.tile import World, Tile
+from core.globals import world
 from enum import Enum
 from math import floor, ceil
+from .core.tile import Tile
 
 class Unit(UnitData):
     units: list["Unit"] = []
@@ -16,10 +17,10 @@ class Unit(UnitData):
         self.moved = False
         self.attacked = False
 
-    def does_reach(self, pos: Vector2d, world: World):
+    def does_reach(self, pos: Vector2d):
         pass
     
-    def get_movements(self, world: World) -> list[Vector2d]:
+    def get_movements(self) -> list[Vector2d]:
         s_poses = [(self.pos, self.utype.movement)]
         e_poses = []
         def isIn(pos: Vector2d, array: list):

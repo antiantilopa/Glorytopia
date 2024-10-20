@@ -37,15 +37,15 @@ class Host:
         while True:
             await asyncio.sleep(1)
 
-async def main():
-    host = Host(1)
-    print("Server started", flush=True)
-    await host.handle_connections()
+# async def main():
+#     host = Host(1)
+#     print("Server started", flush=True)
+#     await host.handle_connections()
 
 
-loop = asyncio.get_event_loop()
+# loop = asyncio.get_event_loop()
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())
 
             

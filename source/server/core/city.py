@@ -4,27 +4,14 @@ from random_names import random_funny_name as random_name
 from shared.vmath import Vector2d
 from shared.tile_types import TileTypes
 from shared.unit_types import UnitType
+from shared.city import CityData
 
-class City:
-    name: str
-    level: int
-    population: int
-    fullness: int
-    forge: bool
-    walls: bool
-    domain: list[Tile]
-    pos: Vector2d
+class City(CityData):
+    cities: list["City"] = []
 
-    def __init__(self, pos: Vector2d, owner):
-        self.pos = pos
-        self.owner = owner
-        self.name = random_name()
-        self.level = 0
-        self.population = 0
-        self.fullness = 0
-        self.forge = 0
-        self.walls = 0
-        self.domain = [self]
+    def __init__(self, pos: Vector2d, owner: int):
+        CityData.__init__(self, pos, owner, random_name(), 1, 0, 0, False, False, [pos])
+        City.cities.append(self)
 
     def init_domain(self, world: World):
         for dx in (-1, 0, 1):
