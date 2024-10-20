@@ -5,7 +5,6 @@ class TechNode:
     buildings: list[0]
     achievments: list[0]
     harvestables: list[0]
-    effects: list[0]
     defence: list[0]
 
     def __init__(self,

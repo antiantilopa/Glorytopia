@@ -1,4 +1,4 @@
-from shared.unit_types import Abilities
+from shared.unit_types import Abilities, UnitType
 from shared.unit import UnitData
 from shared.vmath import Vector2d
 from core.tile import World, Tile
@@ -8,7 +8,8 @@ from math import floor, ceil
 class Unit(UnitData):
     units: list["Unit"] = []
 
-    def init(self):
+    def __init__(self, utype: UnitType, owner: int, pos: Vector2d):
+        super().__init__(utype, owner, pos)
         Unit.units.append(self)
     
     def refresh(self):

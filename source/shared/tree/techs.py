@@ -1,4 +1,4 @@
-from tree import *
+from .tree import TechNode
 
 
 class Techs:
@@ -9,6 +9,5 @@ class Techs:
         buildings=[],
         achievments=[],
         harvestables=[],
-        effects=[],
         defence=[]
     )

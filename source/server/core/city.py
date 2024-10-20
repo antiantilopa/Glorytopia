@@ -5,7 +5,7 @@ from shared.vmath import Vector2d
 from shared.tile_types import TileTypes
 from shared.unit_types import UnitType
 
-class City(Tile):
+class City:
     name: str
     level: int
     population: int
@@ -13,9 +13,10 @@ class City(Tile):
     forge: bool
     walls: bool
     domain: list[Tile]
+    pos: Vector2d
 
     def __init__(self, pos: Vector2d, owner):
-        Tile.__init__(self, pos, TileTypes.plain, False)
+        self.pos = pos
         self.owner = owner
         self.name = random_name()
         self.level = 0
@@ -28,14 +29,14 @@ class City(Tile):
     def init_domain(self, world: World):
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
-                if world.isIn(self.pos + Vector2d(dx, dy)):
-                    if world.get(self.pos + Vector2d(dx, dy)).owner == -1:
-                        self.domain.append(world.get(self.pos + Vector2d(dx, dy)))
-                        world.get(self.pos + Vector2d(dx, dy)) = self.owner
+                if world.isIn(self.tile.pos + Vector2d(dx, dy)):
+                    if world.get(self.tile.pos + Vector2d(dx, dy)).owner == -1:
+                        self.domain.append(world.get(self.tile.pos + Vector2d(dx, dy)))
+                        world.get(self.tile.pos + Vector2d(dx, dy)).owner = self.owner
 
     def grow_population(self, count):
         self.population += count
 
     def create_unit(self, utype: UnitType):
-        pass
+        unit = Unit(utype, self.owner, self.pos)
     
