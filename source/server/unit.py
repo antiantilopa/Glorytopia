@@ -15,10 +15,10 @@ class Unit(UnitData):
         self.moved = False
         self.attacked = False
 
-    def doesReach(self, pos: Vector2d, world: World):
+    def does_reach(self, pos: Vector2d, world: World):
         pass
     
-    def getMovements(self, world: World) -> list[Vector2d]:
+    def get_movements(self, world: World) -> list[Vector2d]:
         s_poses = [(self.pos, self.utype.movement)]
         e_poses = []
         def isIn(pos: Vector2d, array: list):
@@ -59,7 +59,7 @@ class Unit(UnitData):
             e_poses.append(s_pos)
             s_poses.remove(s_pos)
     
-    def getAttacks(self) -> list["Unit"]:
+    def get_attacks(self) -> list["Unit"]:
         result = []
         for unit in Unit.units:
             if unit.owner != self.owner:
@@ -67,7 +67,7 @@ class Unit(UnitData):
                     result.append(unit)
         return result
 
-    def getPossibleMoves(self, world: World) -> list[Vector2d]:
+    def get_possible_moves(self, world: World) -> list[Vector2d]:
         if self.moved:
             if self.attacked:
                 return []
