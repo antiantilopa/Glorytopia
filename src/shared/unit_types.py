@@ -23,8 +23,8 @@ class UnitType:
     health: int
     attack: float
     defense: float
-    movement: int
-    attackrange: int
+    movement: float
+    attack_range: int
     cost: int
     water: bool
     abilities: list[int]
@@ -37,7 +37,7 @@ class UnitType:
                  attack: float = 0, 
                  defense: float = 0, 
                  movement: int = 0, 
-                 attackrange: int = 0, 
+                 attack_range: int = 0,
                  cost: int = 0, 
                  water: bool = False, 
                  abilities: list[int] = []) -> None:
@@ -48,7 +48,7 @@ class UnitType:
         self.attack = attack
         self.defense = defense
         self.movement = movement
-        self.attackrange = attackrange
+        self.attack_range = attack_range
         self.cost = cost
         self.water = water
         self.abilities = abilities
@@ -59,7 +59,7 @@ class UnitTypes(Enum):
                     attack = 0, 
                     defense = 0, 
                     movement = 0, 
-                    attackrange = 0, 
+                    attack_range = 0,
                     cost = 0, 
                     water = False, 
                     abilities = [])

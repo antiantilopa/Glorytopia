@@ -29,7 +29,7 @@ def random_funny_name():
         syllable = random.choice(syllables)
         name += syllable
         
-        match(syllable):
+        match syllable:
             case "po":
                 name += "pa"
             case "mu":
@@ -55,12 +55,12 @@ def random_sonorous_name():
         chances = random.random() * tchs[0], random.random() * tchs[1], random.random() * tchs[2]
         idx = 0
         for i in range(3):
-            if (chances[i] > chances[idx]):
+            if chances[i] > chances[idx]:
                 idx = i
 
         name += random.choice((consonants_2, vowels, consonants_1)[idx])
         
-        match (idx):
+        match idx:
             case 0:
                 tchs[0] *= 0
                 tchs[2] *= 0.7
@@ -71,7 +71,7 @@ def random_sonorous_name():
                 tchs[2] *= 0
 
         for i in range(3): 
-            if (i != idx): 
+            if i != idx:
                 tchs[i] = 1
 
     return name
@@ -89,7 +89,6 @@ def random_normal_name():
 def random_name_with_double():
     name = ""
 
-    a = 0
     for i in range(random.randint(3, 5)):
         is_vowel = round(i % 2)
         name += random.choice((consonants, vowels)[is_vowel])
@@ -100,5 +99,6 @@ def random_name_with_double():
 
     return name
 
-for i in range(7):
-    print(random_funny_name())
+if __name__ == "__main__":
+    for i in range(7):
+        print(random_funny_name())

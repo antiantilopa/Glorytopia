@@ -1,4 +1,3 @@
 from world import World
 
-
-world = World()
+world: None | World = None

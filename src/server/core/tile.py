@@ -1,13 +1,14 @@
-from random_map import pangea
 from shared.tile import TileData
-from shared.tile_types import TileType, TileTypes
+from shared.tile_types import TileType
+from pygame_tools_tafh.vmath import Vector2d
+
 
 class Tile(TileData):
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, pos: Vector2d, ttype: TileType, resources: bool):
+        super().__init__(pos, ttype, resources)
 
-    def buildBuilding(self, building):
+    def build_building(self, building):
         self.building = building
         
 class BuildingTypes:

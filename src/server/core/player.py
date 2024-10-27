@@ -3,5 +3,5 @@ class Player:
     money: int
     tree: ... # Tree
 
-    def __init__(self, id):
+    def __init__(self, id: int):
         self.id = id

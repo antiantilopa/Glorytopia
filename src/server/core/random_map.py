@@ -1,29 +1,29 @@
 import random, math
 
 
-def noise(ind, map, mn, mx):
-    for i in range(len(map) // ind + 1):
-        for j in range(len(map[0]) // ind + 1):
-            rand = random.randint(mn, mx)
+def noise(ind, mp: list[list[int]], min_value: int, max_value: int):
+    for i in range(len(mp) // ind + 1):
+        for j in range(len(mp[0]) // ind + 1):
+            rand = random.randint(min_value, max_value)
             for a in range(ind):
                 for b in range(ind):
-                    if a + i * ind < len(map) and b + j * ind < len(map[0]):
-                        map[a + i * ind][b + j * ind] += rand
+                    if a + i * ind < len(mp) and b + j * ind < len(mp[0]):
+                        mp[a + i * ind][b + j * ind] += rand
                         
-def pangea_noise(ind, map, mn, mx):
-    for i in range(len(map) // ind + 1):
-        for j in range(len(map[0]) // ind + 1):
-            divergence = (((len(map) // 2 - ind * i) ** 2 + (len(map) // 2 - ind * j) ** 2) / (len(map) / 7) ** 2 or 1)
-            rand = (random.random() * (mx - mn) + mn) / divergence
+def pangea_noise(ind, mp: list[list[int]], min_value: int, max_value: int):
+    for i in range(len(mp) // ind + 1):
+        for j in range(len(mp[0]) // ind + 1):
+            divergence = (((len(mp) // 2 - ind * i) ** 2 + (len(mp) // 2 - ind * j) ** 2) / (len(mp) / 7) ** 2 or 1)
+            rand = (random.random() * (max_value - min_value) + min_value) / divergence
             for a in range(ind):
                 for b in range(ind):
-                    if (a + i * ind < len(map) - 1 and b + j * ind < len(map[0]) - 1) and (a + i * ind > 0 and b + j * ind > 0):
-                        map[a + i * ind][b + j * ind] += rand
+                    if (a + i * ind < len(mp) - 1 and b + j * ind < len(mp[0]) - 1) and (a + i * ind > 0 and b + j * ind > 0):
+                        mp[a + i * ind][b + j * ind] += rand
 
 def antialiasing_map(mas: list) -> list:
     a = len(mas[0])
     b = len(mas)
-    nmas=[[0] * a for _ in range(b)]
+    nmas = [[0] * a for _ in range(b)]
     for y in range(len(nmas)):
         for x in range(len(nmas)):
             for dx in (-1, 0, 1):
@@ -34,8 +34,8 @@ def antialiasing_map(mas: list) -> list:
             nmas[y][x] /= 6 + 2 * math.sqrt(2)
     return nmas
 
-def pangea(width: int, heigh: int) -> list:
-    hydro_world = [[0] * width for i in range(heigh)]
+def pangea(width: int, height: int) -> list:
+    hydro_world = [[0] * width for i in range(height)]
     pangea_noise(1, hydro_world, 3, 6)
 
     for i in range(len(hydro_world)):
@@ -45,11 +45,11 @@ def pangea(width: int, heigh: int) -> list:
                 if not((i + idx < len(hydro_world) and j + idxj < len(hydro_world[i])) and (i + idx >= 0 and j + idxj >= 0)):
                     continue
                     
-                if (round(hydro_world[i + idx][j + idxj]) != 0):
+                if round(hydro_world[i + idx][j + idxj]) != 0:
                     cnt += 1
-            if (cnt <= 0):
+            if cnt <= 0:
                 hydro_world[i][j] = 0
-    for i in range(heigh):
+    for i in range(height):
         for j in range(width):
             if hydro_world[i][j] < 0.3:
                 hydro_world[i][j] = -1
@@ -58,19 +58,18 @@ def pangea(width: int, heigh: int) -> list:
             else:
                 hydro_world[i][j] = 1
 
-    terrain_mask = [[(hydro_world[i][j] > 0) * random.randint(0, 2) for j in range(width)] for i in range(heigh)]
+    terrain_mask = [[(hydro_world[i][j] > 0) * random.randint(0, 2) for j in range(width)] for i in range(height)]
 
-    resource_mask = [[int((random.random() > ((width / 2 - j) ** 2 + (heigh / 2 - i) ** 2) / (width / 2) ** 2) and random.random() > 0.6) for j in range(width)] for i in range(heigh)]
+    resource_mask = [[int((random.random() > ((width / 2 - j) ** 2 + (height / 2 - i) ** 2) / (width / 2) ** 2) and random.random() > 0.6) for j in range(width)] for i in range(height)]
 
-    world = [[resource_mask[i][j] + 2 * (hydro_world[i][j] + terrain_mask[i][j]) + 2   for j in range(width)] for i in range(heigh)]
+    world = [[resource_mask[i][j] + 2 * (hydro_world[i][j] + terrain_mask[i][j]) + 2   for j in range(width)] for i in range(height)]
 
     return world
 
-def print_map(world):
+def print_map(world: list[list[int]]):
     alph = "_~.:-+o8^M"
     for i in world:
         for j in i:
-           
             print(alph[j], end = " ")
         print()
 
