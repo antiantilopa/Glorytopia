@@ -2,7 +2,7 @@ import socket
 import asyncio
 from enum import Enum
 
-from source.shared.net import PlayerConn
+from src.shared.net import PlayerConn
 
 class GameStatus(Enum):
     IN_LOBBY = 0

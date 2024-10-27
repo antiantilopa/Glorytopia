@@ -7,7 +7,7 @@ class Serializable:
 
     def serialize(self) -> dict[str, str | int]:
         return {}
-    
+
     def to_bytes(self) -> bytes:
         return serialize(self.serialize())
 
@@ -39,7 +39,7 @@ class PlayerConn:
         self._listeners = {}
 
     def on(self, event: str, listener: Callable):
-        if (event not in self._listeners.keys()):
+        if event not in self._listeners.keys():
             self._listeners[event] = []
         self._listeners[event].append(listener)
 
@@ -67,7 +67,7 @@ class PlayerConn:
             key = self.read_string()
             tp = int.from_bytes(self.conn.recv(1), "big")
 
-            match(tp):
+            match tp:
                 case 0:
                     break
                 case 1:

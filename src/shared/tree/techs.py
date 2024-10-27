@@ -7,7 +7,7 @@ class Techs:
         cost=100,
         units=[],
         buildings=[],
-        achievments=[],
+        achievements=[],
         harvestables=[],
         defence=[]
     )

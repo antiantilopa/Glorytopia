@@ -2,9 +2,8 @@ from shared.unit_types import Abilities, UnitType
 from shared.unit import UnitData
 from shared.vmath import Vector2d
 from core.globals import world
-from enum import Enum
 from math import floor, ceil
-from .core.tile import Tile
+from core.tile import Tile
 
 class Unit(UnitData):
     units: list["Unit"] = []

@@ -5,7 +5,7 @@ from pygame_tools_tafh import Component, Vector2d
 class LabelComponent(Component):
 
     def __init__(self, text: str, color: tuple[int, int, int]):
-        self.font = pygame.font.Font("source/client/assets/Beyond Wonderland.ttf", 50)
+        self.font = pygame.font.Font("src/client/assets/Beyond Wonderland.ttf", 50)
         self.text = text
         self.scale_x = 1
         self.scale_y = 1

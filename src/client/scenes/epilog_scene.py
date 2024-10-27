@@ -1,5 +1,5 @@
 from pygame_tools_tafh import *
-from source.client.components.label import LabelComponent 
+from client.components.label import LabelComponent
 
 class EpilogScene(Scene):
 

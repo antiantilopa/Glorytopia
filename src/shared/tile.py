@@ -1,13 +1,13 @@
 from vmath import Vector2d
 
-from shared.tile_types import TileType
+from .tile_types import TileType
 
 
 class TileData:
     pos: Vector2d
     ttype: TileType
     resources: bool
-    hasroad: bool
+    has_road: bool
     owner: int
     building: ... #Building
 
@@ -16,5 +16,5 @@ class TileData:
         self.ttype = ttype
         self.resources = resources
         self.building = None
-        self.hasroad = False
+        self.has_road = False
         self.owner = -1
