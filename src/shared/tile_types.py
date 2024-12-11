@@ -21,7 +21,7 @@ class TileType:
     def __repr__(self) -> str:
         return self.name
 
-class TileTypes(Enum):
+class TileTypes:
     ocean = TileType(
         name = "ocean",
         is_water = True

@@ -14,8 +14,6 @@ def main():
     
     asyncio.run(engine.run(OpeningScene()))
     
-    
-
 
 if __name__ == "__main__":
     main()

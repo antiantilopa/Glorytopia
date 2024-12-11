@@ -63,7 +63,7 @@ class Unit(UnitData):
             e_poses.append(s_pos)
             s_poses.remove(s_pos)
 
-        return e_poses
+        return [i for i, j in e_poses]
     
     def get_attacks(self) -> list["Unit"]:
         result = []
