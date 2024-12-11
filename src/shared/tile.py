@@ -1,4 +1,4 @@
-from vmath import Vector2d
+from pygame_tools_tafh.vmath import Vector2d
 
 from .tile_types import TileType
 
