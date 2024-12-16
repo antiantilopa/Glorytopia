@@ -1,4 +1,4 @@
-from shared.vmath import Vector2d
+from pygame_tools_tafh import Vector2d
 from tile import Tile
 from shared.tile_types import TileTypes
 from .random_map import pangea

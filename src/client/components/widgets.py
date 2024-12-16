@@ -17,14 +17,15 @@ class LabelComponent(Component):
         self.color = color
         
     def draw(self, display: pygame.Surface):
-        cnt = 0
+        sum_height = 0
         for i in self.text.split("\n"):
+            # TODO: Rework it so center of whole passage will be at right center.
             text = self.font.render(i, True, self.color)
 
             text = pygame.transform.scale(text, (text.get_width() * self.scale_x, text.get_height() * self.scale_y))
             display.blit(text, text.get_rect(center=
-                (self.game_object.transform.position + Vector2d(0, 50 * cnt)).as_tuple()))
-            cnt += 1
+                (self.game_object.transform.position + Vector2d(0, sum_height)).as_tuple()))
+            sum_height += text.get_height()
 
 
 class ButtonComponent(Component):
@@ -53,7 +54,7 @@ class RectButtonComponent(ButtonComponent):
 
     def draw(self, display: pygame.Surface):
         if DEBUG:
-            top_left = (self.game_object.transform.position - self.size // 2)
+            top_left = (self.game_object.transform.position - self.size / 2)
             pygame.draw.rect(display, (200, 200, 200), (top_left.x, top_left.y, self.size.x, self.size.y), width=1)
 
 class CircleButtonComponent(ButtonComponent):
@@ -64,8 +65,6 @@ class CircleButtonComponent(ButtonComponent):
             return (center - position).norm() <= radius
 
         super().__init__(cmd, interception)
-
-
 
 class SpriteComponent(Component):
     path: str = ''

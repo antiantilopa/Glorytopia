@@ -1,6 +1,6 @@
 from shared.tile import TileData
 from shared.tile_types import TileType
-from pygame_tools_tafh.vmath import Vector2d
+from pygame_tools_tafh import Vector2d
 
 
 class Tile(TileData):

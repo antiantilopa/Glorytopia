@@ -1,6 +1,6 @@
 from shared.unit_types import Abilities, UnitType
 from shared.unit import UnitData
-from shared.vmath import Vector2d
+from pygame_tools_tafh import Vector2d
 from core.globals import world
 from math import floor, ceil
 from core.tile import Tile
