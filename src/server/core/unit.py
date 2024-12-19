@@ -1,7 +1,7 @@
 from shared.unit_types import Abilities, UnitType
 from shared.unit import UnitData
-from shared.vmath import Vector2d
-from .globals import world
+from pygame_tools_tafh import Vector2d
+from core.globals import world
 from math import floor, ceil
 from .tile import Tile
 
@@ -59,6 +59,7 @@ class Unit(UnitData):
                 s_poses.append((n_pos, next_mv))
             e_poses.append(s_pos)
             s_poses.remove(s_pos)
+
         return e_poses
     
     def get_attacks(self) -> list["Unit"]:

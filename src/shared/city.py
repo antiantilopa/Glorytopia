@@ -1,4 +1,4 @@
-from .vmath import Vector2d
+from pygame_tools_tafh import Vector2d
 
 
 class CityData:

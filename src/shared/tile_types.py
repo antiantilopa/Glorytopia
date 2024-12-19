@@ -1,5 +1,3 @@
-from enum import Enum
-
 class TileType:
     first_thing_first_ima_say_all_the_word_inside_my_head_im_fired_up_and_tired_off_the_way_that_things_have_been_of_yuyuyyuyuyu: bool = False
     id: int
@@ -20,7 +18,6 @@ class TileType:
 
     def __repr__(self) -> str:
         return self.name
-
 
 class BuildingType:
     id: int
@@ -51,6 +48,12 @@ class BuildingType:
     def __repr__(self) -> str:
         return self.name
 
+class Building:
+    level: int
+    btype: BuildingType
+
+    def __init__(self, btype: BuildingType) -> None:
+        self.btype = BuildingType
 
 class ResourceType:
     id: int
@@ -80,8 +83,9 @@ class TileTypes:
     )
 
     @staticmethod
-    def by_id(id: int) -> TileType:
-        return (TileTypes.ocean, TileTypes.water, TileTypes.plain, TileTypes.forest, TileTypes.mountain)[id]
+    def by_name(name: str) -> TileType:
+        return TileTypes.__dict__[name]
+        
 
 class BuildingTypes:
     destroy = BuildingType(
@@ -108,3 +112,4 @@ class BuildingTypes:
     @staticmethod
     def by_id(id: int) -> BuildingType:
         return NotImplemented
+    

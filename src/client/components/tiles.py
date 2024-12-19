@@ -1,8 +1,8 @@
-from pygame_tools_tafh import Component, Vector2d
+from pygame_tools_tafh import Component, SpriteComponent, Vector2d
 from shared.tile import TileData
 
 
-class TileComponent(Component):
+class TileComponent(SpriteComponent):
 
     position: Vector2d
 

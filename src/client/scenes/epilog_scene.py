@@ -1,31 +1,35 @@
 from pygame_tools_tafh import *
 from client.components.widgets import LabelComponent
 
-class EpilogScene(Scene):
+class TestEpilogScene(Scene):
 
     def load(self):
 
         star_text = """
-Turmoil has engulfed the
-Galactic Republic. The taxation
-of trade routes to outlying star
-systems is in dispute.
-
-Hoping to resolve the matter
-with a blockade of deadly
-battleships, the greedy Trade
-Federation has stopped all
-shipping to the small planet
-of Naboo.
-
-While the Congress of the
-Republic endlessly debates
-this alarming chain of events,
-the Supreme Chancellor has
-secretly dispatched two Jedi
-Knights, the guardians of
-peace and justice in the
-galaxy, to settle the conflict...."""
+        Turmoil has engulfed the
+        Galactic Republic. The taxation
+        of trade routes to outlying star
+        systems is in dispute.
+        
+        Hoping to resolve the matter
+        with a blockade of deadly
+        battleships, the greedy Trade
+        Federation has stopped all
+        shipping to the small planet
+        of Naboo.
+        
+        While the Congress of the
+        Republic endlessly debates
+        this alarming chain of events,
+        the Supreme Chancellor has
+        secretly dispatched two Jedi
+        Knights, the guardians of
+        peace and justice in the
+        galaxy, to settle the conflict....
+        """
+        help_label = GameObject("label")
+        help_label.add_component(LabelComponent("Hello!\nI am here to help you.\nHow can I help you?", (50, 255, 70)))
+        help_label.transform.position = Vector2d(200, 200)
 
         cnt = 0
         for txt in star_text.split("\n"):

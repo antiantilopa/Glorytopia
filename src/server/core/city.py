@@ -1,5 +1,5 @@
 from .random_names import random_funny_name as random_name
-from shared.vmath import Vector2d
+from pygame_tools_tafh import Vector2d
 from shared.unit_types import UnitType
 from shared.city import CityData
 from shared.tile_types import BuildingType
