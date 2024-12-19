@@ -4,7 +4,7 @@ from .unit import Unit
 from .city import City
 from shared.unit_types import UnitType
 from shared.tile_types import TileType, BuildingType, BuildingTypes
-from shared.vmath import Vector2d
+from pygame_tools_tafh import Vector2d
 
 # This file has to be NOT implemented in other files in core folder, except game.py!!!
 
