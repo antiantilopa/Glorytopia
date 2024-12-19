@@ -2,6 +2,8 @@ import pygame, os
 from pygame_tools_tafh import Component, Vector2d
 from typing import Callable
 
+DEBUG = True
+
 class LabelComponent(Component):
 
     def __init__(self, text: str, color: tuple[int, int, int]):
@@ -29,11 +31,44 @@ class ButtonComponent(Component):
         self.cmd = cmd
         self.interception = interception
         self.args = args
+        self.selected = False
+        self.pressed = False
 
     def update(self):
-        if pygame.mouse.get_pressed(3)[0]:
-            pos = Vector2d.from_tuple(pygame.mouse.get_pos())
-            if self.interception(self.game_object.transform.position, pos):
+        pos = Vector2d.from_tuple(pygame.mouse.get_pos())
+        if self.interception(self.game_object.transform.position, pos):
+            self.selected = True
+            if pygame.mouse.get_pressed(3)[0]:
                 self.cmd(self.args)
+                self.pressed = True
+            else:
+                self.pressed = False
+        else:
+            self.pressed = False
+            self.selected = False
 
+
+class RectButtonComponent(ButtonComponent):
+
+    def __init__(self, cmd: Callable, size: Vector2d, *args):
+        self.size = size
+        def interception(center: Vector2d, position: Vector2d) -> bool:
+            temp = (center - position).operation(size, lambda a, b: -b/2 <= a <= b/2)
+            return (bool(temp.x) and bool(temp.y))
+
+        super().__init__(cmd, interception)
+
+    def draw(self, display: pygame.Surface):
+        if DEBUG:
+            top_left = (self.game_object.transform.position - self.size // 2)
+            pygame.draw.rect(display, (200, 200, 200), (top_left.x, top_left.y, self.size.x, self.size.y), width=1)
+
+class CircleButtonComponent(ButtonComponent):
+
+    def __init__(self, cmd: Callable, radius: float, *args):
+        self.radius = radius
+        def interception(center: Vector2d, position: Vector2d) -> bool:
+            return (center - position).norm() <= radius
+
+        super().__init__(cmd, interception)
 

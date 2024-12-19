@@ -21,7 +21,44 @@ class TileType:
     def __repr__(self) -> str:
         return self.name
 
-class TileTypes(Enum):
+
+class BuildingType:
+    id: int
+    name: str
+    ttypes: list[TileType]
+    prev: "BuildingType"
+    cost: int
+    population: int
+    adjacent_bonus: "BuildingType|None"
+    ID = 0
+
+    def __init__(self, 
+                 name :str = "default",
+                 ttypes: list["TileTypes"] = [],
+                 prev: "BuildingType|None" = None,
+                 cost: int = 0,
+                 population: int = 0,
+                 adjacent_bonus: "BuildingType|None" = None) -> None:
+        self.id = BuildingType.ID
+        BuildingType.ID += 1
+        self.name = name
+        self.ttypes = ttypes
+        self.prev = prev
+        self.cost = cost
+        self.population = population
+        self.adjacent_bonus = adjacent_bonus
+    
+    def __repr__(self) -> str:
+        return self.name
+
+
+class ResourceType:
+    id: int
+    name: str
+    ttypes: list[TileType]
+
+
+class TileTypes:
     ocean = TileType(
         name = "ocean",
         is_water = True
@@ -45,3 +82,29 @@ class TileTypes(Enum):
     @staticmethod
     def by_id(id: int) -> TileType:
         return (TileTypes.ocean, TileTypes.water, TileTypes.plain, TileTypes.forest, TileTypes.mountain)[id]
+
+class BuildingTypes:
+    destroy = BuildingType(
+        name="destroy",
+        ttypes=[],
+        cost=5,
+        population=0
+    )
+    gold = BuildingType(
+        name="gold",
+        ttypes=[TileTypes.mountain],
+        cost=0,
+        population=0
+    )
+    mine = BuildingType(
+        name="mine",
+        ttypes=[TileTypes.mountain],
+        prev=gold,
+        cost=5,
+        population=2
+    )
+
+
+    @staticmethod
+    def by_id(id: int) -> BuildingType:
+        return NotImplemented

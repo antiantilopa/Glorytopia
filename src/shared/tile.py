@@ -1,20 +1,22 @@
-from vmath import Vector2d
+from pygame_tools_tafh.vmath import Vector2d
 
-from .tile_types import TileType
+from .tile_types import TileType, BuildingType, ResourceType
 
 
 class TileData:
     pos: Vector2d
     ttype: TileType
-    resources: bool
+    harvestables: bool
+    resource: ResourceType
     has_road: bool
     owner: int
-    building: ... #Building
+    building: BuildingType|None
 
-    def __init__(self, pos: Vector2d, ttype: TileType, resources: bool) -> None:
+    def __init__(self, pos: Vector2d, ttype: TileType, harvestables: bool, resource: ResourceType) -> None:
         self.pos = pos
         self.ttype = ttype
-        self.resources = resources
+        self.harvestables = harvestables
+        self.resource = resource
         self.building = None
         self.has_road = False
         self.owner = -1

@@ -4,6 +4,7 @@ from client.components.widgets import LabelComponent
 class EpilogScene(Scene):
 
     def load(self):
+
         star_text = """
 Turmoil has engulfed the
 Galactic Republic. The taxation

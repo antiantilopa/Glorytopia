@@ -1,3 +1,3 @@
-from world import World
+from .world import World
 
 world: None | World = None

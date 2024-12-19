@@ -73,5 +73,5 @@ def print_map(world: list[list[int]]):
             print(alph[j], end = " ")
         print()
 
-if __name__ == "main":
-    print_map(pangea(11, 11))
+if __name__ == "__main__":
+    print_map(pangea(31, 31))

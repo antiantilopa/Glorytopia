@@ -53,7 +53,7 @@ class UnitType:
         self.water = water
         self.abilities = abilities
 
-class UnitTypes(Enum):
+class UnitTypes:
     warrior = UnitType("warrior", 
                     health = 0, 
                     attack = 0, 
