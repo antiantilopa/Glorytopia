@@ -25,7 +25,16 @@ class City(CityData):
 
     def grow_population(self, count):
         self.population += count
-        # something about upgrading city... TODO
+        
+        population_need = self.population * 10
+        if(self.population >= population_need):
+            self.level_up()
+            self.population = 0
+
+    def level_up(self):
+        self.level +=1
+        #add something TODO
+
 
     def create_unit(self, utype: UnitType):
         if self.fullness < self.level + 1:
@@ -38,13 +47,13 @@ class City(CityData):
         return False
 
     def harvest(self, pos: Vector2d):
-        World.object.get(pos).resources = False
+        World.object.get(pos).resource = None
         self.grow_population(1)
         return True
-    
+
     def build(self, pos: Vector2d, btype: BuildingType):
         World.object.get(pos).building = btype
-        World.object.get(pos).resources = False
+        World.object.get(pos).resource = None
         self.grow_population(btype.population)
         for dx in (-1, 0, 1):
             for dy in (-1, 0, -1):

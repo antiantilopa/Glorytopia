@@ -1,9 +1,9 @@
 from pygame_tools_tafh import *
-from client.components.widgets import LabelComponent
+from pygame_tools_tafh import LabelComponent
 
 class TestEpilogScene(Scene):
 
-    def load(self):
+    def load(self, data):
 
         star_text = """
         Turmoil has engulfed the
@@ -27,9 +27,6 @@ class TestEpilogScene(Scene):
         peace and justice in the
         galaxy, to settle the conflict....
         """
-        help_label = GameObject("label")
-        help_label.add_component(LabelComponent("Hello!\nI am here to help you.\nHow can I help you?", (50, 255, 70)))
-        help_label.transform.position = Vector2d(200, 200)
 
         cnt = 0
         for txt in star_text.split("\n"):
@@ -38,7 +35,7 @@ class TestEpilogScene(Scene):
             label.transform.position = Vector2d(400, 300 + cnt * 50)
             scale = label.get_component(LabelComponent).scale_x = 2
             twn = Tweens()
-            twn.add(label.transform.position, "y", 300 + cnt * 50, -1000 + cnt * 50, -1, 20, 0)
+            twn.add(label.transform.position, "y", 300 + cnt * 50, -1000 + cnt * 50, 0, 20, 0)
 
             class ScaleManagerComponent(Component):
                 
@@ -47,8 +44,8 @@ class TestEpilogScene(Scene):
 
                 def update(self):
                     if (self.game_object.transform.position.y < 650 and not self.enabled):
-                        twn.add(self.game_object.get_component(LabelComponent), "scale_x", scale, 0.5, -1, 2, 0)
-                        twn.add(self.game_object.get_component(LabelComponent), "scale_y", scale, 0.5, -1, 2, 0)
+                        twn.add(self.game_object.get_component(LabelComponent), "scale_x", scale, 0.5, 0, 2, 0)
+                        twn.add(self.game_object.get_component(LabelComponent), "scale_y", scale, 0.5, 0, 2, 0)
                         self.enabled = True
 
             label.add_component(ScaleManagerComponent())

@@ -11,7 +11,8 @@ consonants_2 = ["w", "s", "f", "h", "j", "y"]
 def random_funny_name():
     name = ""
 
-    syllables = ["te", "tu", "ti", "to", "ta", "ra", 
+    syllables = [
+                "te", "tu", "ti", "to", "ta", "ra", 
                  "ru", "re", "ri", "ro", "pe", "po", 
                  "pu", "pi", "pa", "de", "du", "di",
                  "do", "da", "ke", "ku", "ki", "ko",
@@ -23,7 +24,7 @@ def random_funny_name():
                  "me", "mu", "mi", "mo", "ma", "he",
                  "sha", "she", "sho", "cha", "che", "cho",
                  "shu", "shi", "chu", "chi",
-                 "ne", "nu", "ni", "no", "na"]
+                 "ne", "nu", "ni", "no", "na"] + vowels
     
     for i in range(random.randint(2, 3)):
         syllable = random.choice(syllables)

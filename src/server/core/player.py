@@ -6,13 +6,12 @@ from shared.unit_types import UnitType
 from shared.tile_types import TileType, BuildingType, BuildingTypes
 from pygame_tools_tafh import Vector2d
 
-# This file has to be NOT implemented in other files in core folder, except game.py!!!
 
 class Player:
     
     id: int
     money: int
-    vision: list[list[bool]]
+    vision: list[list[int]]
     tree: list[TechNode]
     units: list[Unit]
     cities: list[City]
@@ -20,7 +19,7 @@ class Player:
     def __init__(self, id: int):
         self.id = id
         self.money = 5
-        self.vision = [[False for i in range(World.size.x)] for j in range(World.size.y)]
+        self.vision = [[0 for i in range(World.size.x)] for _ in range(World.size.y)]
         self.tree = []
         self.units = []
         self.cities = []
@@ -87,12 +86,14 @@ class Player:
             if utype in tech.units:
                 for city in self.cities:
                     if pos == city.pos:
-                        if city.create_unit(utype):
-                            self.money -= utype.cost
-                            return True
+                        if city.owner == self.id:
+                            if city.create_unit(utype):
+                                self.money -= utype.cost
+                                return True
+                            return False
                         return False
+                    return False
                 return False
-        
         return False
 
 

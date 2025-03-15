@@ -1,0 +1,16 @@
+What is done:
+1. Engine (thx to tafh)
+2. Serializator 
+3. map (proceduric generation)
+4. units
+...
+
+
+
+What needs to be done 
+1. Game logic (Just copy polytopia)
+2. Tree
+
+
+What should be done, but not right now
+1. Interface (I believe in anyone who will do that)
