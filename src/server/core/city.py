@@ -5,8 +5,7 @@ from shared.city import CityData
 from shared.tile_types import BuildingType
 
 from .world import World
-from .unit import Unit
-
+from . import unit as Unit
 
 class City(CityData):
     cities: list["City"] = []
@@ -32,16 +31,17 @@ class City(CityData):
             self.population = 0
 
     def level_up(self):
-        self.level +=1
+        self.level += 1
         #add something TODO
 
 
     def create_unit(self, utype: UnitType):
         if self.fullness < self.level + 1:
-            for unit in Unit.units:
-                if unit.pos == self.pos:
-                    return False
-            unit = Unit(utype, self.owner, self.pos)
+            if World.object.unit_mask[self.pos.inty()][self.pos.intx()]:
+                return False
+            World.object.unit_mask[self.pos.inty()][self.pos.intx()] = True
+            unit = Unit.Unit(utype, self.owner, self.pos)
+            # TODO add to some lists...
             self.fullness += 1
             return True
         return False

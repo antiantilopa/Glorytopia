@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class Abilities(Enum):
+class AbilityIndexes(Enum):
     carry = 0
     covert = 1
     creep = 2
@@ -16,7 +16,7 @@ class Abilities(Enum):
     splash = 11
     static = 12
     stiff = 13
-    
+
 class UnitType:
     id: int
     name: str
@@ -55,11 +55,11 @@ class UnitType:
 
 class UnitTypes:
     warrior = UnitType("warrior", 
-                    health = 0, 
-                    attack = 0, 
-                    defense = 0, 
-                    movement = 0, 
-                    attack_range = 0,
-                    cost = 0, 
+                    health = 10, 
+                    attack = 2, 
+                    defense = 2, 
+                    movement = 1, 
+                    attack_range = 1,
+                    cost = 2, 
                     water = False, 
-                    abilities = [])
+                    abilities = [AbilityIndexes.dash, AbilityIndexes.fortify])

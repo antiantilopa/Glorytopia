@@ -25,7 +25,7 @@ class BuildingType:
     id: int
     name: str
     ttypes: list[TileType]
-    prev: "BuildingType"
+    required_resource: "ResourceType|None"
     cost: int
     population: int
     adjacent_bonus: "BuildingType|None"
@@ -34,7 +34,7 @@ class BuildingType:
     def __init__(self, 
                  name :str = "default",
                  ttypes: list["TileTypes"] = [],
-                 prev: "BuildingType|None" = None,
+                 required_resource: "ResourceType|None" = None,
                  cost: int = 0,
                  population: int = 0,
                  adjacent_bonus: "BuildingType|None" = None) -> None:
@@ -42,7 +42,7 @@ class BuildingType:
         BuildingType.ID += 1
         self.name = name
         self.ttypes = ttypes
-        self.prev = prev
+        self.required_resource = required_resource
         self.cost = cost
         self.population = population
         self.adjacent_bonus = adjacent_bonus
@@ -61,6 +61,15 @@ class ResourceType:
     id: int
     name: str
     ttypes: list[TileType]
+
+    ID = 0
+
+    def __init__(self, name: str = "default", ttypes: list[TileType] = []) -> None:
+        self.id = ResourceType.ID
+        ResourceType.ID += 1
+        self.name = name
+        self.ttypes = ttypes
+        
 
 
 class TileTypes:
@@ -93,23 +102,40 @@ class TileTypes:
         return TileType.instances[id]
         
 
-class BuildingTypes:
-    destroy = BuildingType(
-        name="destroy",
-        ttypes=[],
-        cost=5,
-        population=0
+class ResourceTypes:
+    fruits = ResourceType(
+        name="fruits",
+        ttypes=[TileTypes.plain]
     )
-    gold = BuildingType(
-        name="gold",
-        ttypes=[TileTypes.mountain],
-        cost=0,
-        population=0
+    crops = ResourceType(
+        name="crops",
+        ttypes=[TileTypes.plain]
+    )
+    fish = ResourceType(
+        name="fish",
+        ttypes=[TileTypes.water, TileTypes.ocean]
+    )
+    metal = ResourceType(
+        name="metal",
+        ttypes=[TileTypes.mountain]
+    )
+    wild_animals = ResourceType(
+        name="wild_animals",
+        ttypes=[TileTypes.forest]
+    )
+
+class BuildingTypes:
+    farm = BuildingType(
+        name="farm",
+        ttypes=[TileTypes.plain],
+        required_resource=ResourceTypes.crops,
+        cost=5,
+        population=2
     )
     mine = BuildingType(
         name="mine",
         ttypes=[TileTypes.mountain],
-        prev=gold,
+        required_resource=ResourceTypes.metal,
         cost=5,
         population=2
     )
