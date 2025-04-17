@@ -38,13 +38,12 @@ class City(CityData):
     def create_unit(self, utype: UnitType):
         if self.fullness < self.level + 1:
             if World.object.unit_mask[self.pos.inty()][self.pos.intx()]:
-                return False
+                return None
             World.object.unit_mask[self.pos.inty()][self.pos.intx()] = True
-            unit = Unit.Unit(utype, self.owner, self.pos)
-            # TODO add to some lists...
+            unit = Unit.Unit(utype, self.owner, self.pos, self)
             self.fullness += 1
-            return True
-        return False
+            return unit
+        return None
 
     def harvest(self, pos: Vector2d):
         World.object.get(pos).resource = None

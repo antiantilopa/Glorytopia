@@ -2,6 +2,7 @@ from ..tile_types import ResourceType, BuildingType, TileType
 from ..unit_types import UnitType
 
 class TechNode:
+    id: int
     name: str
     cost: int
     parent: "TechNode|None"
@@ -11,6 +12,8 @@ class TechNode:
     achievements: list[0]
     harvestables: list[ResourceType]
     defence: list[TileType]
+
+    ID = 0
 
     def __init__(self,
                  name: str,
@@ -22,6 +25,8 @@ class TechNode:
                  achievements: list,
                  harvestables: list,
                  defence: list) -> None:
+        self.id = TechNode.ID
+        TechNode.ID += 1
         self.name = name
         self.cost = cost
         self.parent = parent

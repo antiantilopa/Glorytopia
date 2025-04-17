@@ -1,5 +1,5 @@
 from pygame_tools_tafh import Vector2d
-
+from serializator.net import flags_to_int
 
 class CityData:
     name: str
@@ -30,3 +30,6 @@ class CityData:
         self.forge = forge
         self.walls = walls
         self.domain = domain
+    
+    def to_serializable(self):
+        return [self.name, self.owner, self.pos.as_tuple(), self.level, self.population, self.fullness, [pos.as_tuple() for pos in self.domain], flags_to_int(self.forge, self.walls)]

@@ -69,8 +69,8 @@ class Abilities:
 class Unit(UnitData):
     units: list["Unit"] = []
 
-    def __init__(self, utype: UnitType, owner: int, pos: Vector2d):
-        super().__init__(utype, owner, pos)
+    def __init__(self, utype: UnitType, owner: int, pos: Vector2d, attached_city: "City.City"):
+        super().__init__(utype, owner, pos, attached_city)
         Unit.units.append(self)
     
     def refresh(self):
@@ -192,3 +192,9 @@ class Unit(UnitData):
         else:
             World.object.unit_mask[self.pos.y][self.pos.x] = 0
             self.pos = pos
+    
+    def heal(self):
+        if World.object.get(self.pos).owner == self.owner:
+            self.helth = max(self.health + 4, self.utype.health)
+        else:
+            self.helth = max(self.health + 2, self.utype.health)

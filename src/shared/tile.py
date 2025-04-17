@@ -18,3 +18,14 @@ class TileData:
         self.building = None
         self.has_road = False
         self.owner = -1
+
+    def to_serializable(self):
+        if self.resource is None:
+            resource_id = -1
+        else:
+            resource_id = self.resource.id
+        if self.building is None:
+            building_id = -1
+        else:
+            building_id = self.building.id
+        return [self.ttype.id, self.owner, self.pos.as_tuple(), resource_id, building_id, self.has_road]

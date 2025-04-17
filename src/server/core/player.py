@@ -91,7 +91,9 @@ class Player:
             if utype in tech.units:
                 for city in self.cities:
                     if pos == city.pos:
-                        if city.create_unit(utype):
+                        unit = city.create_unit(utype)
+                        if unit is not None:
+                            self.units.append(unit)
                             self.money -= utype.cost
                             return 0
                         return 7
@@ -130,11 +132,23 @@ class Player:
                 return 4
         return 11
 
-
-
     def update_vision(self):
         for city in self.cities:
             for dv in [Vector2d(i, j) for i in range(-2, 3) for j in range(-2, 3)]:
                 if World.object.is_in(city.pos + dv):
                     self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] = 1
+        for unit in self.units:
+            for dv in [Vector2d(i, j) for i in range(-1, 2) for j in range(-1, 2)]:
+                if World.object.is_in(unit.pos + dv):
+                    self.vision[(unit.pos + dv).inty()][(unit.pos + dv).intx()] = 1
         
+    def start_turn(self):
+        for unit in self.units:
+            unit.refresh()
+        for city in self.cities:
+            self.money += city.level + city.forge
+    
+    def end_turn(self):
+        for unit in self.units:
+            if not unit.moved and not unit.attacked:
+                unit.heal() 
