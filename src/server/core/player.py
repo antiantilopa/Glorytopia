@@ -81,7 +81,7 @@ class Player:
                         return True
                 return False
         return False
-    
+
     def create_unit(self, pos: Vector2d, utype: UnitType):
         if World.object.is_in(pos) == False:
             return 1
@@ -132,16 +132,21 @@ class Player:
                 return 4
         return 11
 
-    def update_vision(self):
+    def update_vision(self) -> list[Vector2d]:
+        changed = []
         for city in self.cities:
             for dv in [Vector2d(i, j) for i in range(-2, 3) for j in range(-2, 3)]:
                 if World.object.is_in(city.pos + dv):
+                    if self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] == 0:
+                        changed.append(city.pos + dv)
                     self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] = 1
         for unit in self.units:
             for dv in [Vector2d(i, j) for i in range(-1, 2) for j in range(-1, 2)]:
                 if World.object.is_in(unit.pos + dv):
+                    if self.vision[(unit.pos + dv).inty()][(unit.pos + dv).intx()] == 0:
+                        changed.append(unit.pos + dv)
                     self.vision[(unit.pos + dv).inty()][(unit.pos + dv).intx()] = 1
-        
+        return changed
     def start_turn(self):
         for unit in self.units:
             unit.refresh()

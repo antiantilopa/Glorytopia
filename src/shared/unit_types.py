@@ -1,7 +1,4 @@
-from enum import Enum
-
-
-class AbilityIndexes(Enum):
+class AbilityIndexes:
     carry = 0
     covert = 1
     creep = 2
@@ -63,3 +60,13 @@ class UnitTypes:
                     cost = 2, 
                     water = False, 
                     abilities = [AbilityIndexes.dash, AbilityIndexes.fortify])
+
+    objs = [
+        warrior
+    ]
+
+    def by_id(id: int):
+        for utype in UnitTypes.objs:
+            if utype.id == id:
+                return utype
+        raise KeyError(id)
