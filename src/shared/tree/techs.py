@@ -37,15 +37,9 @@ class Techs:
         defence=[]
     )
 
-    objs = [
-        base,
-        organization,
-        farming
-    ]
-
     @staticmethod
     def by_id(id: int) -> TechNode:
-        for tech in Techs.objs:
+        for tech in TechNode.techs:
             if tech.id == id:
                 return tech
         raise KeyError(id)

@@ -3,6 +3,7 @@ from serializator.data_format import Format
 from serializator.net import flags_to_int
 from server.core import *
 from server.respondings.server import Server
+from shared.error_codes import ErrorCodes
 
 respond = Respond("GAME")
 
@@ -122,10 +123,9 @@ def eve_game_mov_unit(self: Server, addr: Address, message: tuple[tuple[int, int
         self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"The unit is not yours")))
         return
     result = self.players[addr].move_unit(moving_unit, Vector2d.from_tuple(pos2))
-    if result is False:
+    if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"The unit cannot move to the given position")))
         return
-    
     vision_changes = self.players[addr].update_vision()
     if len(vision_changes) != 0:
         update_vision(self, addr, vision_changes)
@@ -142,28 +142,93 @@ def eve_game_mov_unit(self: Server, addr: Address, message: tuple[tuple[int, int
             second = moving_unit.to_serializable()
         if len(first) + len(second) > 0:
             self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [first, second]))
-
+    self.the_game.remove_dead_units()
         
 
 @respond.event("CREATE_UNIT")
 def eve_game_create_unit(self: Server, addr: Address, message: tuple[tuple[int, int], int]):
     if addr == self.order[self.now_playing_player_index]:
-        try:
-            result = self.players[addr].create_unit(Vector2d.from_tuple(message[0]), UnitTypes.warrior)
-            if result == 0:
-                unit = None
-                for u in Unit.units:
-                    if u.pos.x == message[0][0] and u.pos.y == message[0][1]:
-                        unit = u
-                        break
-                for player_addr in self.players:
-                    if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
-                        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [[], unit.to_serializable()]))
-        except Exception as e:
-            print(e)
-            print("Error in creating unit")
+        result = self.players[addr].create_unit(Vector2d.from_tuple(message[0]), UnitTypes.warrior)
+        if result == ErrorCodes.SUCCESS:
+            unit = None
+            for u in Unit.units:
+                if u.pos.x == message[0][0] and u.pos.y == message[0][1]:
+                    unit = u
+                    break
+            for player_addr in self.players:
+                if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
+                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [[], unit.to_serializable()]))
+        else:
+            self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Cannot create unit: {result.name}")))
     else:
         self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Not your move right now.")))
+
+@respond.event("CONQUER_CITY")
+def eve_game_conquer_city(self: Server, addr: Address, message: tuple[tuple[int, int]]):
+    if addr == self.order[self.now_playing_player_index]:
+        result = self.players[addr].conquer_city(Vector2d.from_tuple(message[0]))
+        if result == ErrorCodes.SUCCESS:
+            city = None
+            for c in City.cities:
+                if c.pos.x == message[0][0] and c.pos.y == message[0][1]:
+                    city = c
+                    break
+            for player_addr in self.players:
+                if self.players[player_addr].vision[city.pos.y][city.pos.x]:
+                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
+        else:
+            self.send_to_addr(addr, Format.error("GAME/CONQUER_CITY", (f"Cannot conquer city: {result.name}")))
+    else:
+        self.send_to_addr(addr, Format.error("GAME/CONQUER_CITY", (f"Not your move right now.")))
+
+@respond.event("BUY_TECH")
+def eve_game_buy_tech(self: Server, addr: Address, message: tuple[int]):
+    if addr == self.order[self.now_playing_player_index]:
+        if message[0] < 0 or message[0] >= len(TechNode.techs):
+            self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH.name}")))
+            return 
+        tech = TechNode.by_id(message[0])
+        result = self.players[addr].buy_tech(tech)
+        if result != ErrorCodes.SUCCESS:
+            self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {result.name}")))
+        else:
+            self.send_to_addr(addr, Format.event("GAME/UPDATE/TECH", [tech.id]))
+    else:
+        self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Not your move right now.")))
+
+@respond.event("HARVEST")
+def eve_game_harvest(self: Server, addr: Address, message: tuple[tuple[int, int]]):
+    if addr == self.order[self.now_playing_player_index]:
+        pos = Vector2d.from_tuple(message[0])
+        result = self.players[addr].harvest(pos)
+        if result != ErrorCodes.SUCCESS:
+            self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Cannot harvest: {result.name}")))
+            return
+        for player_addr in self.players:
+            if self.players[player_addr].vision[pos.inty()][pos.intx()]:
+                self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [self.the_game.world.object.get(pos).to_serializable()]))
+        for city in self.players[addr].cities:
+            if pos in city.domain:
+                for player_addr in self.players:
+                    if self.players[player_addr].vision[city.pos.y][city.pos.x]:
+                        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
+                break
+    else:
+        self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Not your move right now.")))
+
+@respond.event("BUILD")
+def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], int]):
+    if addr == self.order[self.now_playing_player_index]:
+        pos = Vector2d.from_tuple(message[0])
+        result = self.players[addr].build(pos, BuildingTypes.by_id(message[1]))
+        if result != ErrorCodes.SUCCESS:
+            self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Cannot build: {result.name}")))
+            return
+        for player_addr in self.players:
+            if self.players[player_addr].vision[pos.inty()][pos.intx()]:
+                self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [self.the_game.world.object.get(pos).to_serializable()]))
+    else:
+        self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Not your move right now.")))
 
 @respond.event("END_TURN")
 def game_end_turn(self: Server, addr: Address, message: tuple):

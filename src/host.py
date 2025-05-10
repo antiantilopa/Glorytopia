@@ -8,7 +8,7 @@ import socket, time, random
 
 
 
-random.seed(0)
+# random.seed(0)
 
 password = input("input password for admin: ")
 

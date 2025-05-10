@@ -14,6 +14,7 @@ class TechNode:
     defence: list[TileType]
 
     ID = 0
+    techs: list["TechNode"] = []
 
     def __init__(self,
                  name: str,
@@ -36,3 +37,11 @@ class TechNode:
         self.achievements = achievements
         self.harvestables = harvestables
         self.defence = defence
+        TechNode.techs.append(self)
+    
+    @staticmethod
+    def by_id(id: int) -> "TechNode":
+        for tech in TechNode.techs:
+            if tech.id == id:
+                return tech
+        raise KeyError(id)

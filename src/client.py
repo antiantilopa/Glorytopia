@@ -101,7 +101,7 @@ def game_start(self, message):
 def print_world(self, message: list[tuple[int, int, tuple[int, int], int, int, bool]]):
     global world
     for tile in message:
-        world[tile[2][1]][tile[2][0]] = (tile[0], tile[3])
+        world[tile[2][1]][tile[2][0]] = (tile[0], tile[3], tile[4])
 
 @mc.respond.info("GAME/UNITS")
 def print_units(self, message: list[tuple[int, int, tuple[int, int], int, int]]):
@@ -164,6 +164,28 @@ def update_unit(self, message: tuple[tuple|tuple[int, int], tuple|tuple[int, int
     if len(message[1]) != 0:
         unit = message[1]
         units.append(unit)
+
+@mc.respond.event("GAME/UPDATE/CITY")
+def update_city(self, message: tuple[tuple[str, int, tuple[int, int], int]]):
+    
+    i = 0
+    while i < len(cities):
+        city = cities[i]
+        if city[2] == message[0][2]:
+            cities.pop(i)
+            i -= 1
+        i += 1
+    
+    city = message[0]
+    cities.append(city)
+
+@mc.respond.event("GAME/UPDATE/TILE")
+def update_tile(self, message: tuple[tuple[int, int, tuple[int, int], int, int]]):
+    world[message[0][2][1]][message[0][2][0]] = (message[0][0], message[0][3], message[0][4])
+
+@mc.respond.event("GAME/UPDATE/TECH")
+def update_tech(self, message: tuple[int]):
+    print(f"techs = {message[0]}")
 
 def console(name):
     a = input("> ")
@@ -236,6 +258,10 @@ def main_cycle():
         (200, 200, 50),
         (100, 50, 50),
     )
+    colors_for_buildings = (
+        (100, 50, 50),
+        (200, 200, 50),
+    )
     colors_for_cities = (
         (200, 10, 10), 
         (10, 200, 10), 
@@ -261,10 +287,27 @@ def main_cycle():
                     mc.sock.close()
                     exit()
                 elif event.type == pg.KEYDOWN:
+                    if event.key == pg.K_q:
+                        mc.send(Format.request("GAME/UNITS", []))
+                        mc.send(Format.request("GAME/CITIES", []))
+                        mc.send(Format.request("GAME/WORLD", []))
                     if event.key == pg.K_SPACE:
                         mc.send(Format.event("GAME/END_TURN", []))
                     if event.key == pg.K_e:
                         mc.send(Format.event("GAME/CREATE_UNIT", [selected, 0]))
+                    if event.key == pg.K_r:
+                        mc.send(Format.event("GAME/CONQUER_CITY", [selected]))
+                    if event.key == pg.K_t:
+                        mc.send(Format.event("GAME/HARVEST", [selected]))
+                    if event.key == pg.K_f:
+                        mc.send(Format.event("GAME/BUILD", [selected, 0]))
+                    if event.key == pg.K_0:
+                        mc.send(Format.event("GAME/BUY_TECH", [0]))
+                    if event.key == pg.K_1:
+                        mc.send(Format.event("GAME/BUY_TECH", [1]))
+                    if event.key == pg.K_2:
+                        mc.send(Format.event("GAME/BUY_TECH", [2]))
+
                 elif event.type == pg.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         selected = (event.pos[0] // 50, event.pos[1] // 50)
@@ -282,6 +325,8 @@ def main_cycle():
                         pg.draw.rect(screen, colors_for_tiles[world[y][x][0]], (x * 50, y * 50, 50, 50))
                         if world[y][x][1] != -1:
                             pg.draw.circle(screen, colors_for_resources[world[y][x][1]], ((x + 0.5) * 50, (y + 0.5) * 50), 15)
+                        if world[y][x][2] != -1:
+                            pg.draw.rect(screen, colors_for_buildings[world[y][x][2]], (x * 50 + 10, y * 50 + 10, 30, 30))
             for city in cities:
                 pg.draw.circle(screen, colors_for_cities[city[1]], ((city[2][0] + 0.5) * 50, (city[2][1] + 0.5) * 50), 20)
 
