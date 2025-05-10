@@ -13,62 +13,57 @@ def validate_ip(ip: str) -> bool:
         return False
 
 Address = tuple[str, int]
+Route = tuple[str, str]
 
 class Respond:
-    routes: dict[Address, Callable[["Host", Address, Any], Any]]
+    default: str
+    routes: dict[Route, Callable[["Host", Address, Any], Any]]
     at_connect: Callable[["Host", socket.socket, Address], bool]
     at_disconnect: Callable[["Host", Address], Any]
 
-    def __init__(self):
+    def __init__(self, default: str = ""):
+        self.default = default
         self.routes = {}
 
     def request(self, route: str|None = None):
-        if route is not None:
-            def decor(func):
-                self.routes[(REQUEST, route)] = func
-                return func
-            return decor
-        else:
-            def decor(func):
-                self.routes[REQUEST] = func
-                return func
-            return decor
+        if route is None:
+            route = ""
+        if self.default != "":
+            route = self.default + "/" + route
+        def decor(func):
+            self.routes[(REQUEST, route)] = func
+            return func
+        return decor
 
     def info(self, route: str|None = None):
-        if route is not None:
-            def decor(func):
-                self.routes[(INFO, route)] = func
-                return func
-            return decor
-        else:
-            def decor(func):
-                self.routes[INFO] = func
-                return func
-            return decor
+        if route is None:
+            route = ""
+        if self.default != "":
+            route = self.default + "/" + route
+        def decor(func):
+            self.routes[(INFO, route)] = func
+            return func
+        return decor
     
     def event(self, route: str|None = None):
-        if route is not None:
-            def decor(func):
-                self.routes[(EVENT, route)] = func
-                return func
-            return decor
-        else:
-            def decor(func):
-                self.routes[EVENT] = func
-                return func
-            return decor
+        if route is None:
+            route = ""
+        if self.default != "":
+            route = self.default + "/" + route
+        def decor(func):
+            self.routes[(EVENT, route)] = func
+            return func
+        return decor
 
     def error(self, route: str|None = None):
-        if route is not None:
-            def decor(func):
-                self.routes[(ERROR, route)] = func
-                return func
-            return decor
-        else:
-            def decor(func):
-                self.routes[ERROR] = func
-                return func
-            return decor
+        if route is None:
+            route = ""
+        if self.default != "":
+            route = self.default + "/" + route
+        def decor(func):
+            self.routes[(ERROR, route)] = func
+            return func
+        return decor
     
     def connection(self):
         def decor(func):
@@ -81,6 +76,15 @@ class Respond:
             self.at_disconnect = func
             return func
         return decor
+
+    def merge(self, other: "Respond"):
+        for route, func in other.routes.items():
+            if route not in self.routes:
+                self.routes[route] = func
+            else:
+                raise ValueError(f"Route {route} already exists in the current Respond object.")
+
+
 
 class Host:
     conns: dict[Address, socket.socket]
@@ -96,7 +100,7 @@ class Host:
 
     def routing_respond(self, addr: Address, message: Any):
         route = tuple((message[0], message[1]))
-        default_route = message[0]
+        default_route = (message[0], "")
         if route in self.respond.routes:
             self.respond.routes[route](self, addr, message[2])
         elif default_route in self.respond.routes:

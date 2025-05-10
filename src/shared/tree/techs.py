@@ -36,3 +36,10 @@ class Techs:
         harvestables=[],
         defence=[]
     )
+
+    @staticmethod
+    def by_id(id: int) -> TechNode:
+        for tech in TechNode.techs:
+            if tech.id == id:
+                return tech
+        raise KeyError(id)

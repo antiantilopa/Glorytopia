@@ -24,11 +24,12 @@ class City(CityData):
 
     def grow_population(self, count):
         self.population += count
+        population_need = self.level + 1
         
-        population_need = self.population * 10
-        if(self.population >= population_need):
+        while self.population >= population_need:
             self.level_up()
-            self.population = 0
+            self.population -= population_need
+            population_need = self.level + 1
 
     def level_up(self):
         self.level += 1

@@ -1,7 +1,8 @@
 from pygame_tools_tafh.vmath import Vector2d
 
-from .tile_types import TileType, BuildingType, ResourceType
+from .tile_types import TileType, TileTypes, BuildingType, BuildingTypes, ResourceType, ResourceTypes
 
+SerializedTile = tuple[int, int, tuple[int, int], int, int, bool]
 
 class TileData:
     pos: Vector2d
@@ -29,3 +30,10 @@ class TileData:
         else:
             building_id = self.building.id
         return [self.ttype.id, self.owner, self.pos.as_tuple(), resource_id, building_id, self.has_road]
+
+    def from_serializable(serializable: SerializedTile) -> "TileData":
+        tdata = TileData(Vector2d.from_tuple(serializable[2]), TileTypes.by_id(serializable[0]), ResourceTypes.by_id(serializable[3]))
+        tdata.owner = serializable[1]
+        tdata.building = BuildingTypes.by_id(serializable[4])
+        tdata.has_road = serializable[5]
+        return tdata

@@ -4,7 +4,6 @@ class TileType:
     name: str
     is_water: bool
     stops_movement: bool
-    instances: list["TileType"] = []
     ID = 0
 
     def __init__(self, 
@@ -13,7 +12,6 @@ class TileType:
                  stops_movement: bool = 0) -> None:
         self.id = TileType.ID
         TileType.ID += 1
-        TileType.instances.append(self)
         self.name = name
         self.is_water = is_water
         self.stops_movement = stops_movement
@@ -93,13 +91,24 @@ class TileTypes:
         stops_movement = True
     )
 
+    objs = [
+        ocean,
+        water,
+        plain,
+        forest,
+        mountain
+    ]
+
     @staticmethod
     def by_name(name: str) -> TileType:
         return TileTypes.__dict__[name]
     
     @staticmethod
     def by_id(id: int) -> TileType:
-        return TileType.instances[id]
+        for ttype in TileTypes.objs:
+            if ttype.id == id:
+                return ttype
+        raise KeyError(id)
         
 
 class ResourceTypes:
@@ -124,6 +133,21 @@ class ResourceTypes:
         ttypes=[TileTypes.forest]
     )
 
+    objs = [
+        fruits,
+        crops,
+        fish,
+        metal,
+        wild_animals
+    ]
+
+    @staticmethod
+    def by_id(id: int) -> ResourceType:
+        for rtype in ResourceTypes.objs:
+            if rtype.id == id:
+                return rtype
+        raise KeyError(id)
+    
 class BuildingTypes:
     farm = BuildingType(
         name="farm",
@@ -140,8 +164,14 @@ class BuildingTypes:
         population=2
     )
 
-
+    objs = [
+        farm,
+        mine
+    ]
     @staticmethod
     def by_id(id: int) -> BuildingType:
-        return NotImplemented
+        for btype in BuildingTypes.objs:
+            if btype.id == id:
+                return btype
+        raise KeyError(id)
     

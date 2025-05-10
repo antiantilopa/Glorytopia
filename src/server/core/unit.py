@@ -12,7 +12,7 @@ class Ability:
     abilities: dict[int, type["Ability"]] = {}
 
     def __init_subclass__(cls, ind: AbilityIndexes):
-        Ability.abilities[ind.value] = (cls)
+        Ability.abilities[ind] = (cls)
 
     @staticmethod
     def after_movement(unit: "Unit"):
@@ -27,8 +27,8 @@ class Ability:
         pass
 
     @staticmethod
-    def defence_bonus(unit: "Unit"):
-        pass
+    def defence_bonus(unit: "Unit") -> float:
+        return 1
 
     @staticmethod
     def additional_move(unit: "Unit"):
@@ -67,17 +67,19 @@ class Abilities:
         index = AbilityIndexes.stiff
 
 class Unit(UnitData):
+    attached_city: "City.City"
     units: list["Unit"] = []
 
     def __init__(self, utype: UnitType, owner: int, pos: Vector2d, attached_city: "City.City"):
-        super().__init__(utype, owner, pos, attached_city)
+        super().__init__(utype, owner, pos)
+        self.attached_city = attached_city
         Unit.units.append(self)
     
     def refresh(self):
         self.moved = False
         self.attacked = False
 
-    def get_movements(self) -> list[Vector2d]:
+    def get_movements(self) -> list[Vector2d, int]:
         s_poses = [[self.pos, self.utype.movement]]
         e_poses = []
 
@@ -98,11 +100,21 @@ class Unit(UnitData):
         while len(s_poses) != 0:
             s_pos = s_poses.pop(0)
             if s_pos[1] <= 0:
-                e_poses.append(s_pos)
+                if not World.object.unit_mask[s_pos[0].y][s_pos[0].x]:
+                    e_poses.append(s_pos)
                 continue
             for (dx, dy) in ((-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1)):
                 n_pos = s_pos[0] + Vector2d(dx, dy)
                 if not World.object.is_in(n_pos):
+                    continue
+                tmp = False
+                if World.object.unit_mask[n_pos.y][n_pos.x]:
+                    for unit in Unit.units:
+                        if unit.pos == n_pos:
+                            if unit.owner != self.owner:
+                                tmp = True
+                            break
+                if tmp is True:
                     continue
                 next_mv = get_mv(s_pos[1], World.object.get(n_pos))
                 if next_mv < 0:
@@ -120,7 +132,8 @@ class Unit(UnitData):
                 if World.object.get(n_pos).ttype.is_water != self.utype.water:
                     continue
                 s_poses.append([n_pos, next_mv])
-            e_poses.append(s_pos)
+            if World.object.unit_mask[s_pos[0].y][s_pos[0].x] is False:
+                e_poses.append(s_pos)
         return e_poses
     
     def get_attacks(self) -> list["Unit"]:
@@ -136,7 +149,7 @@ class Unit(UnitData):
             if self.attacked:
                 return []
             else:
-                return self.get_attacks()
+                return [unit.pos for unit in self.get_attacks()]
         else:
             result = [i[0] for i in self.get_movements()]
             if not self.attacked:
@@ -152,14 +165,28 @@ class Unit(UnitData):
         attack_force = self.utype.attack * (self.health / self.utype.health)
         defense_force = other.utype.defense * (other.health / other.utype.health) * defense_bonus
         total_damage = attack_force + defense_force
-        attack_result = ceil((attack_force / total_damage) * self.utype.attack * 4.5)
-        defense_result = floor((defense_force / total_damage) * other.utype.defense * 4.5)
+        attack_result = ((attack_force / total_damage) * self.utype.attack * 4.5)
+        defense_result = ((defense_force / total_damage) * other.utype.defense * 4.5)
+        print(f"attack: {attack_result}, defense: {defense_result}")
+
+
+        # Fucking python rounds it fucking wrong!
+        # 0.5 -> 0; 1.5 -> 2; 2.5 -> 2; 3.5 -> 4
+        # Fuck you, python :)
+        def round_to_nearest(x: float) -> int:
+            if x - floor(x) < 0.5:
+                return floor(x)
+            else:
+                return ceil(x)
+        attack_result = round_to_nearest(attack_result)
+        defense_result = round_to_nearest(defense_result)
 
         result = [0, 0]
         result[0] = attack_result
-        if other.health > 0:
+        if other.health > attack_result:
             if (self in other.get_attacks()) and not (AbilityIndexes.stiff in other.utype.abilities):
                 result[1] = defense_result
+        print(f"result: {result}")
         return result
     
     def recv_damage(self, damage: int):
@@ -178,6 +205,8 @@ class Unit(UnitData):
                     attack, defence = self.calc_attack(unit)
                     unit.recv_damage(attack)
                     self.recv_damage(defence)
+                    if self.health < 0:
+                        World.object.unit_mask[self.pos.y][self.pos.x] = 0
                     if unit.health <= 0 and self.utype.attack_range == 1:
                         World.object.unit_mask[self.pos.y][self.pos.x] = 0
                         self.pos = unit.pos
@@ -192,9 +221,10 @@ class Unit(UnitData):
         else:
             World.object.unit_mask[self.pos.y][self.pos.x] = 0
             self.pos = pos
+            World.object.unit_mask[self.pos.y][self.pos.x] = 1
     
     def heal(self):
         if World.object.get(self.pos).owner == self.owner:
-            self.helth = max(self.health + 4, self.utype.health)
+            self.health = min(self.health + 4, self.utype.health)
         else:
-            self.helth = max(self.health + 2, self.utype.health)
+            self.health = min(self.health + 2, self.utype.health)
