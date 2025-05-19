@@ -39,13 +39,6 @@ def at_disconnect(self: Server, addr: Address):
             self.order.remove(addr)
             for i in self.readiness:
                 self.readiness[i] = False
-
-@host.respond.event("MESSAGE")
-def message(self: Server, addr: Address, message: tuple[str]):
-    print(f"<{self.addrs_to_names[addr]}> {message[0]}")
-    for i in self.conns:
-        if i == addr: continue
-        self.send_to_addr(i, Format.event("MESSAGE", (self.addrs_to_names[addr], message[0])))
     
 @host.respond.request("ORDER")
 def req_order(self: Server, addr: Address, _: tuple):
@@ -81,7 +74,7 @@ try:
                     host.game_started = True
                     start_game()
             else:
-                timer = 1
+                timer = 10
         elif host.game_started:
             a = input()
             try:

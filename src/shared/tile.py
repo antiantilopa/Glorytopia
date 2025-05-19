@@ -31,6 +31,7 @@ class TileData:
             building_id = self.building.id
         return [self.ttype.id, self.owner, self.pos.as_tuple(), resource_id, building_id, self.has_road]
 
+    @staticmethod
     def from_serializable(serializable: SerializedTile) -> "TileData":
         tdata = TileData(Vector2d.from_tuple(serializable[2]), TileTypes.by_id(serializable[0]), ResourceTypes.by_id(serializable[3]))
         tdata.owner = serializable[1]

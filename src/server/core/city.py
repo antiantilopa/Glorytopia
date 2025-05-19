@@ -11,7 +11,7 @@ class City(CityData):
     cities: list["City"] = []
 
     def __init__(self, pos: Vector2d, owner: int):
-        CityData.__init__(self, pos, owner, random_name(), 1, 0, 0, False, False, [pos])
+        CityData.__init__(self, pos, owner, random_name(), 1, 0, 0, False, False, False, [pos])
         City.cities.append(self)
 
     def init_domain(self):
@@ -54,17 +54,18 @@ class City(CityData):
     def build(self, pos: Vector2d, btype: BuildingType):
         World.object.get(pos).building = btype
         World.object.get(pos).resource = None
-        self.grow_population(btype.population)
+        if btype.adjacent_bonus is None:
+            self.grow_population(btype.population)
         for dx in (-1, 0, 1):
             for dy in (-1, 0, -1):
                 if dx == dy == 0: continue
                 if World.object.is_in(pos + Vector2d(dx, dy)):
                     if not (btype.adjacent_bonus is None):
                         if World.object.get(pos + Vector2d(dx, dy)).building == btype.adjacent_bonus:
-                            self.grow_population(1)
+                            self.grow_population(btype.population)
                     if not (World.object.get(pos + Vector2d(dx, dy)).building is None):
                         if World.object.get(pos + Vector2d(dx, dy)).building.adjacent_bonus == btype:
-                            self.grow_population(1)
+                            self.grow_population(World.object.get(pos + Vector2d(dx, dy)).building.population)
         return True
 
     def destroy(self, pos: Vector2d):

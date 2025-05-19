@@ -55,32 +55,32 @@ def req_game_cities(self: Server, addr: Address, message: list[tuple[int, int]])
                 break
     self.send_to_addr(addr, Format.info("GAME/CITIES", result))
 
-@respond.request("ME/TECHS")
+@respond.request("MY_TECHS")
 def req_game_me_techs(self: Server, addr: Address, message: tuple):
     result = [tech.id for tech in self.players[addr].techs]
-    self.send_to_addr(addr, Format.info("GAME/ME/TECHS", result))
+    self.send_to_addr(addr, Format.info("GAME/MY_TECHS", result))
 
-@respond.request("ME/CITIES")
+@respond.request("MY_CITIES")
 def req_game_me_cities(self: Server, addr: Address, message: tuple):
     result = [city.to_serializable() for city in self.players[addr].cities]
-    self.send_to_addr(addr, Format.info("GAME/ME/CITIES", result))
+    self.send_to_addr(addr, Format.info("GAME/MY_CITIES", result))
 
-@respond.request("ME/UNITS")
+@respond.request("MY_UNITS")
 def req_game_me_units(self: Server, addr: Address, message: tuple):
     result = [unit.to_serializable() for unit in self.players[addr].units]
-    self.send_to_addr(addr, Format.info("GAME/ME/UNITS", result))
+    self.send_to_addr(addr, Format.info("GAME/MY_UNITS", result))
 
-@respond.request("ME/VISION")
+@respond.request("MY_VISION")
 def req_game_me_vision(self: Server, addr: Address, message: tuple[None]):
     result = []
     for row in self.players[addr].vision:
         result.append(flags_to_int(*row))
-    self.send_to_addr(addr, Format.info("GAME/ME/VISION", result))
+    self.send_to_addr(addr, Format.info("GAME/MY_VISION", result))
 
-@respond.request("ME/MONEY")
+@respond.request("MY_MONEY")
 def req_game_me_cities(self: Server, addr: Address, message: tuple):
     result = [self.players[addr].money]
-    self.send_to_addr(addr, Format.info("GAME/ME/MONEY", result))
+    self.send_to_addr(addr, Format.info("GAME/MY_MONEY", result))
 
 def update_vision(self: Server, addr: Address, changed_poss: list[Vector2d]):
     new_unit_poss = []
@@ -148,7 +148,7 @@ def eve_game_mov_unit(self: Server, addr: Address, message: tuple[tuple[int, int
 @respond.event("CREATE_UNIT")
 def eve_game_create_unit(self: Server, addr: Address, message: tuple[tuple[int, int], int]):
     if addr == self.order[self.now_playing_player_index]:
-        result = self.players[addr].create_unit(Vector2d.from_tuple(message[0]), UnitTypes.warrior)
+        result = self.players[addr].create_unit(Vector2d.from_tuple(message[0]), UnitTypes.by_id(message[1]))
         if result == ErrorCodes.SUCCESS:
             unit = None
             for u in Unit.units:
@@ -232,15 +232,12 @@ def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], 
 
 @respond.event("END_TURN")
 def game_end_turn(self: Server, addr: Address, message: tuple):
-    for i in self.players:
-        for u in self.players[i].units:
-            print(u.pos, u.health)
     if addr == self.order[self.now_playing_player_index]:
         self.players[self.order[self.now_playing_player_index]].end_turn()
         self.now_playing_player_index += 1
         self.now_playing_player_index %= len(self.order)
         self.players[self.order[self.now_playing_player_index]].start_turn()
         for addr1 in self.conns:
-            self.send_to_addr(addr1, Format.info("GAME/END_TURN", (self.addrs_to_names[addr])))
+            self.send_to_addr(addr1, Format.event("GAME/END_TURN", (self.addrs_to_names[addr])))
     else:
         self.send_to_addr(addr, Format.error("GAME/END_TURN", (f"Not your move right now.")))

@@ -5,92 +5,95 @@ import socket, threading
 from typing import Any, Callable
 
 Address = tuple[str, int]
+Route = tuple[str, str]
 
-def default_main_cycle():
+
+def default_main_cycle(_):
         try:
             while True:
                 pass
         except KeyboardInterrupt:
             exit()
 
+class Respond:
+    default: str
+    routes: dict[Address, Callable[["Client", Any], Any]]
+    at_connect: Callable[["Client"], Any]
+    at_disconnect: Callable[["Client"], Any]
+
+    def __init__(self, default: str = ""):
+        self.routes = {}
+        self.default = default
+        self.at_connect = lambda client: None
+        self.at_disconnect = lambda client: None
+
+    def request(self, route: str|None = None):
+        if route is None:
+            route = ""
+        if self.default != "":
+            route = self.default + "/" + route
+        def decor(func):
+            self.routes[(REQUEST, route)] = func
+            return func
+        return decor
+
+    def info(self, route: str|None = None):
+        if route is None:
+            route = ""
+        if self.default != "":
+            route = self.default + "/" + route
+        def decor(func):
+            self.routes[(INFO, route)] = func
+            return func
+        return decor
+    
+    def event(self, route: str|None = None):
+        if route is None:
+            route = ""
+        if self.default != "":
+            route = self.default + "/" + route
+        def decor(func):
+            self.routes[(EVENT, route)] = func
+            return func
+        return decor
+
+    def error(self, route: str|None = None):
+        if route is None:
+            route = ""
+        if self.default != "":
+            route = self.default + "/" + route
+        def decor(func):
+            self.routes[(ERROR, route)] = func
+            return func
+        return decor
+    
+    def connection(self):
+        def decor(func):
+            self.at_connect = func
+            return func
+        return decor
+    
+    def disconnection(self):
+        def decor(func):
+            self.at_disconnect = func
+            return func
+        return decor
+
+    def merge(self, other: "Respond"):
+        for route, func in other.routes.items():
+            if route not in self.routes:
+                self.routes[route] = func
+            else:
+                raise ValueError(f"Route {route} already exists in the current Respond object.")
+
 class Client:
     sock: socket.socket
-    respond: "__Respond"
+    respond: "Respond"
 
     main_cycle: Callable[[None], None]
 
-    class __Respond:
-        routes: dict[Address, Callable[["Client", Any], Any]]
-        at_connect: Callable[["Client"], Any]
-        at_disconnect: Callable[["Client"], Any]
-
-        def __init__(self):
-            self.routes = {}
-            self.at_connect = lambda client: None
-            self.at_disconnect = lambda client: None
-
-        def request(self, route: str|None = None):
-            if route is not None:
-                def decor(func):
-                    self.routes[(REQUEST, route)] = func
-                    return func
-                return decor
-            else:
-                def decor(func):
-                    self.routes[REQUEST] = func
-                    return func
-                return decor
-
-        def info(self, route: str|None = None):
-            if route is not None:
-                def decor(func):
-                    self.routes[(INFO, route)] = func
-                    return func
-                return decor
-            else:
-                def decor(func):
-                    self.routes[INFO] = func
-                    return func
-                return decor
-        
-        def event(self, route: str|None = None):
-            if route is not None:
-                def decor(func):
-                    self.routes[(EVENT, route)] = func
-                    return func
-                return decor
-            else:
-                def decor(func):
-                    self.routes[EVENT] = func
-                    return func
-                return decor
-
-        def error(self, route: str|None = None):
-            if route is not None:
-                def decor(func):
-                    self.routes[(ERROR, route)] = func
-                    return func
-                return decor
-            else:
-                def decor(func):
-                    self.routes[ERROR] = func
-                    return func
-                return decor
-        
-        def connection(self):
-            def decor(func):
-                self.at_connect = func
-                return func
-            return decor
-        
-        def disconnection(self):
-            def decor(func):
-                self.at_disconnect = func
-                return func
-            return decor
-
     def __init__(self):
-        self.respond = Client.__Respond()
+        self.respond = Respond()
         self.main_cycle = default_main_cycle
 
     def init(self):
@@ -103,8 +106,10 @@ class Client:
             self.respond.routes[route](self, message[2])
         elif default_route in self.respond.routes:
             self.respond.routes[default_route](self, message[2])
+        else:
+            print(f"cant find route {message[0]}/{message[1]}")
 
-    def set_main_cycle(self, func: Callable):
+    def set_main_cycle(self, func: Callable[["Client"], None]):
         self.main_cycle = func
         return func
 
@@ -125,10 +130,12 @@ class Client:
             while True:
                 message = Serializator.decode_with_batching(self.sock)
                 self.routing_respond(message)
-        except:
+        except Exception as e:
+            print(f"error occured: {e}")
             self.respond.at_disconnect(self)
 
     def start(self):
         t = threading.Thread(target=self.await_message)
         t.start()
-        self.main_cycle()
+        t = threading.Thread(target=self.main_cycle, args=[self])
+        t.start()

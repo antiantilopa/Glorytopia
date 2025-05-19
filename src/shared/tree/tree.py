@@ -12,20 +12,22 @@ class TechNode:
     achievements: list[0]
     harvestables: list[ResourceType]
     defence: list[TileType]
+    accessable: list[TileType]
 
     ID = 0
     techs: list["TechNode"] = []
 
     def __init__(self,
-                 name: str,
-                 cost: int,
-                 parent: "TechNode|None",
-                 tier: int,
-                 units: list,
-                 buildings: list,
-                 achievements: list,
-                 harvestables: list,
-                 defence: list) -> None:
+                 name: str = "default",
+                 cost: int = 4,
+                 parent: "TechNode|None" = None,
+                 tier: int = 0,
+                 units: list[UnitType] = [],
+                 buildings: list[BuildingType] = [],
+                 achievements: list[0] = [],
+                 harvestables: list[ResourceType] = [],
+                 defence: list[TileType] = [],
+                 accessable: list[TileType] = []) -> None:
         self.id = TechNode.ID
         TechNode.ID += 1
         self.name = name
@@ -37,6 +39,7 @@ class TechNode:
         self.achievements = achievements
         self.harvestables = harvestables
         self.defence = defence
+        self.accessable = accessable
         TechNode.techs.append(self)
     
     @staticmethod

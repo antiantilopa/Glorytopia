@@ -23,6 +23,7 @@ class UnitData:
     def to_serializable(self) -> SerializedUnit:
         return [self.utype.id, self.owner, self.pos.as_tuple(), self.health, flags_to_int(self.moved, self.attacked)]
 
+    @staticmethod
     def from_serializable(serializable: SerializedUnit) -> "UnitData":
         udata = UnitData(UnitTypes.by_id(serializable[0]), serializable[1], Vector2d.from_tuple(serializable[2]))
         udata.health = serializable[3]

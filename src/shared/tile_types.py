@@ -4,8 +4,9 @@ class TileType:
     name: str
     is_water: bool
     stops_movement: bool
-    ID = 0
 
+    ID = 0
+    ttypes: list["TileType"] = []
     def __init__(self, 
                  name: str = "default", 
                  is_water: bool = 0,
@@ -15,6 +16,7 @@ class TileType:
         self.name = name
         self.is_water = is_water
         self.stops_movement = stops_movement
+        TileType.ttypes.append(self)
 
     def __repr__(self) -> str:
         return self.name
@@ -27,8 +29,9 @@ class BuildingType:
     cost: int
     population: int
     adjacent_bonus: "BuildingType|None"
-    ID = 0
 
+    ID = 0
+    btypes: list["BuildingType"] = []
     def __init__(self, 
                  name :str = "default",
                  ttypes: list["TileTypes"] = [],
@@ -44,16 +47,10 @@ class BuildingType:
         self.cost = cost
         self.population = population
         self.adjacent_bonus = adjacent_bonus
+        BuildingType.btypes.append(self)
     
     def __repr__(self) -> str:
         return self.name
-
-class Building:
-    level: int
-    btype: BuildingType
-
-    def __init__(self, btype: BuildingType) -> None:
-        self.btype = BuildingType
 
 class ResourceType:
     id: int
@@ -61,13 +58,14 @@ class ResourceType:
     ttypes: list[TileType]
 
     ID = 0
+    rtypes: list["ResourceType"] = []
 
     def __init__(self, name: str = "default", ttypes: list[TileType] = []) -> None:
         self.id = ResourceType.ID
         ResourceType.ID += 1
         self.name = name
         self.ttypes = ttypes
-        
+        ResourceType.rtypes.append(self)
 
 
 class TileTypes:
@@ -91,21 +89,13 @@ class TileTypes:
         stops_movement = True
     )
 
-    objs = [
-        ocean,
-        water,
-        plain,
-        forest,
-        mountain
-    ]
-
     @staticmethod
     def by_name(name: str) -> TileType:
         return TileTypes.__dict__[name]
     
     @staticmethod
     def by_id(id: int) -> TileType:
-        for ttype in TileTypes.objs:
+        for ttype in TileType.ttypes:
             if ttype.id == id:
                 return ttype
         raise KeyError(id)
@@ -133,21 +123,13 @@ class ResourceTypes:
         ttypes=[TileTypes.forest]
     )
 
-    objs = [
-        fruits,
-        crops,
-        fish,
-        metal,
-        wild_animals
-    ]
-
     @staticmethod
     def by_id(id: int) -> ResourceType:
-        for rtype in ResourceTypes.objs:
+        for rtype in ResourceType.rtypes:
             if rtype.id == id:
                 return rtype
         raise KeyError(id)
-    
+
 class BuildingTypes:
     farm = BuildingType(
         name="farm",
@@ -156,6 +138,13 @@ class BuildingTypes:
         cost=5,
         population=2
     )
+    windmill = BuildingType(
+        name="windmill",
+        ttypes=[TileTypes.plain],
+        adjacent_bonus=farm,
+        cost=5,
+        population=1
+    )
     mine = BuildingType(
         name="mine",
         ttypes=[TileTypes.mountain],
@@ -163,14 +152,43 @@ class BuildingTypes:
         cost=5,
         population=2
     )
+    forge = BuildingType(
+        name="forge",
+        ttypes=[TileTypes.plain],
+        adjacent_bonus=mine,
+        cost=5,
+        population=2
+    )
+    hut = BuildingType(
+        name="hut",
+        ttypes=[TileTypes.forest],
+        cost=3,
+        population=1
+    )
+    sawmill = BuildingType(
+        name="sawmill",
+        ttypes=[TileTypes.plain],
+        adjacent_bonus=hut,
+        cost=5,
+        population=1
+    )
+    port = BuildingType(
+        name="port",
+        ttypes=[TileTypes.water],
+        cost=7,
+        population=1
+    )
+    market = BuildingType(
+        name="market",
+        ttypes=[TileTypes.plain],
+        adjacent_bonus=port, # Not port! TODO
+        cost=5,
+        population=1
+    )
 
-    objs = [
-        farm,
-        mine
-    ]
     @staticmethod
     def by_id(id: int) -> BuildingType:
-        for btype in BuildingTypes.objs:
+        for btype in BuildingType.btypes:
             if btype.id == id:
                 return btype
         raise KeyError(id)

@@ -1,7 +1,7 @@
 from .world import World
 from shared.tree import TechNode, Techs
-from .unit import Unit
-from .city import City
+from . import unit as Unit
+from . import city as City
 from shared.unit_types import UnitType
 from shared.tile_types import TileType, BuildingType, BuildingTypes
 from shared.error_codes import ErrorCodes
@@ -14,8 +14,8 @@ class Player:
     money: int
     vision: list[list[int]]
     techs: list[TechNode]
-    units: list[Unit]
-    cities: list[City]
+    units: list["Unit.Unit"]
+    cities: list["City.City"]
 
     ID = 0
     players: list["Player"] = []
@@ -103,7 +103,7 @@ class Player:
                 return ErrorCodes.ERR_NOT_YOUR_CITY
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
-    def move_unit(self, unit: Unit, pos: Vector2d):
+    def move_unit(self, unit: "Unit.Unit", pos: Vector2d):
         if pos in unit.get_possible_moves():
             unit.move(pos)
             return ErrorCodes.SUCCESS
@@ -125,13 +125,13 @@ class Player:
             if unit.pos == pos:
                 if unit.attacked or unit.moved:
                     return ErrorCodes.ERR_UNIT_HAS_ALREADY_MOVED_OR_ATTACKED
-                for city in City.cities:
+                for city in City.City.cities:
                     if city.pos == pos:
                         if city.owner >= 0:
                             Player.players[city.owner].cities.remove(city)
                         city.owner = self.id
                         self.cities.append(city)
-                        if unit.attached_city.owner == self.id:
+                        if unit.attached_city is not None and unit.attached_city.owner == self.id:
                             unit.attached_city.fullness -= 1
                         unit.attached_city = city
                         city.fullness = 1
@@ -144,13 +144,20 @@ class Player:
     def update_vision(self) -> list[Vector2d]:
         changed = []
         for city in self.cities:
-            for dv in [Vector2d(i, j) for i in range(-2, 3) for j in range(-2, 3)]:
-                if World.object.is_in(city.pos + dv):
-                    if self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] == 0:
-                        changed.append(city.pos + dv)
-                    self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] = 1
+            for pos in city.domain:
+                if self.vision[pos.inty()][pos.intx()] == 0:
+                    changed.append(pos)
+                self.vision[pos.inty()][pos.intx()] = 1
+            if city.is_capital:
+                vision_range = 2
+                for dv in [Vector2d(i, j) for i in range(-vision_range, vision_range + 1) for j in range(-vision_range, vision_range + 1)]:
+                    if World.object.is_in(city.pos + dv):
+                        if self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] == 0:
+                            changed.append(city.pos + dv)
+                        self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] = 1
         for unit in self.units:
-            for dv in [Vector2d(i, j) for i in range(-1, 2) for j in range(-1, 2)]:
+            vision_range = unit.get_vision_range()
+            for dv in [Vector2d(i, j) for i in range(-vision_range, vision_range + 1) for j in range(-vision_range, vision_range + 1)]:
                 if World.object.is_in(unit.pos + dv):
                     if self.vision[(unit.pos + dv).inty()][(unit.pos + dv).intx()] == 0:
                         changed.append(unit.pos + dv)
@@ -161,7 +168,7 @@ class Player:
         for unit in self.units:
             unit.refresh()
         for city in self.cities:
-            self.money += city.level + city.forge
+            self.money += city.level + city.forge + city.is_capital
     
     def end_turn(self):
         for unit in self.units:

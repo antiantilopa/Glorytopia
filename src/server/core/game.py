@@ -21,8 +21,8 @@ class Game:
         self.players = [Player() for i in range(player_number)]
         for _ in range(((size.x - 2) * (size.y - 2)) // 16):
             self.place_random_city()
-        self.place_resources()
         self.place_players()
+        self.place_resources()
         for player in self.players:
             player.create_unit(player.cities[0].pos, UnitTypes.warrior)
             player.money += 2
@@ -124,6 +124,7 @@ class Game:
                 city.owner = player.id
                 player.cities.append(city)
                 city.init_domain()
+                city.is_capital = True
                 continue
             city_pos = get_city_nearby_pos(place, 1)
             if city_pos is not None:
@@ -133,6 +134,7 @@ class Game:
                 city.owner = player.id
                 player.cities.append(city)
                 city.init_domain()
+                city.is_capital = True
                 continue
             city_pos = get_city_nearby_pos(place, 2)
             if city_pos is not None:
@@ -142,6 +144,7 @@ class Game:
                 city.owner = player.id
                 player.cities.append(city)
                 city.init_domain()
+                city.is_capital = True
                 continue
             else:
                 World.object.get(place).ttype = TileTypes.plain
@@ -149,6 +152,7 @@ class Game:
                 World.object.cities_mask[place.y][place.x] = 1
                 player.cities.append(city)
                 city.init_domain()
+                city.is_capital = True
                 continue
     
     def remove_dead_units(self):
@@ -157,8 +161,15 @@ class Game:
             unit = Unit.units[i]
             if unit.health <= 0:
                 self.players[unit.owner].units.remove(unit)
+                World.object.unit_mask[unit.pos.inty()][unit.pos.intx()] = 0
+                for other in Unit.units:
+                    if other.pos == unit.pos:
+                        World.object.unit_mask[unit.pos.inty()][unit.pos.intx()] = 1
+                        break
                 Unit.units.remove(unit)
-                unit.attached_city.fullness -= 1
+                if unit.attached_city is not None and unit.attached_city.owner == unit.owner:
+                    unit.attached_city.fullness -= 1
                 i -= 1
+                del unit
             i += 1
     
