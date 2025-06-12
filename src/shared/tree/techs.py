@@ -4,7 +4,7 @@ from ..unit_types import UnitTypes
 
 class Techs:
     base = TechNode(
-        name="Base",
+        name="base",
         cost=0,
         parent=None,
         tier=0,
@@ -12,89 +12,89 @@ class Techs:
         accessable=[TileTypes.plain, TileTypes.forest]
     )
     organization = TechNode(
-        name="Organization",
+        name="organization",
         cost=4,
         parent=base,
         tier=1,
         harvestables=[ResourceTypes.fruits],
     )
     farming = TechNode(
-        name="Farming",
+        name="farming",
         cost=4,
         parent=organization,
         tier=2,
         buildings=[BuildingTypes.farm],
     )
     construction = TechNode(
-        name="Construction",
+        name="construction",
         cost=4,
         parent=farming,
         tier=3,
         buildings=[BuildingTypes.windmill],
     )
     strategy = TechNode(
-        name="Strategy",
+        name="strategy",
         cost=4,
         parent=organization,
         tier=2,
         units=[UnitTypes.defender],
     )
     diplomacy = TechNode(
-        name="Diplomacy",
+        name="diplomacy",
         cost=4,
         parent=strategy,
         tier=3,
         units=[UnitTypes.cloack],
     )
     riding = TechNode(
-        name="Riding",
+        name="riding",
         cost=4,
         parent=base,
         tier=1,
         units=[UnitTypes.rider],
     )
     free_spirit = TechNode(
-        name="Free Spirit",
+        name="free_Spirit",
         cost=4,
         parent=riding,
         tier=2,
     )
     chivalry = TechNode(
-        name="Chivalry",
+        name="chivalry",
         cost=4,
         parent=free_spirit,
         tier=3,
         units=[UnitTypes.knight],
     )
     roads = TechNode( # TODO
-        name="Roads",
+        name="roads",
         cost=4,
         parent=riding,
         tier=3,
     )
     trade = TechNode(
-        name="Trade",
+        name="trade",
         cost=4,
         parent=roads,
         tier=3,
         buildings=[BuildingTypes.market],
     )
     hunting = TechNode(
-        name="Hunting",
+        name="hunting",
         cost=4,
         parent=base,
         tier=1,
         harvestables=[ResourceTypes.wild_animals],
     )
     forestry = TechNode(
-        name="Forestry",
+        name="forestry",
         cost=4,
         parent=hunting,
         tier=2,
         buildings=[BuildingTypes.hut],
     )
     mathematics = TechNode(
-        name="Mathematics",
+        name="mathematics",
         cost=4,
         parent=forestry,
         tier=3,
@@ -102,7 +102,7 @@ class Techs:
         buildings=[BuildingTypes.sawmill],
     )
     archery = TechNode(
-        name="Archery",
+        name="archery",
         cost=4,
         parent=hunting,
         tier=2,
@@ -110,7 +110,7 @@ class Techs:
         defence=[TileTypes.forest]
     )
     spiritualism = TechNode(
-        name="Spiritualism",
+        name="spiritualism",
         cost=4,
         parent=archery,
         tier=3,
@@ -122,7 +122,7 @@ class Techs:
     )
     # TODO: water update is needed
     fishing = TechNode(
-        name="Fishing",
+        name="fishing",
         cost=4,
         parent=base,
         tier=1,
@@ -131,33 +131,33 @@ class Techs:
         accessable=[TileTypes.water]
     )
     aquaculture = TechNode(
-        name="Aquaculture",
+        name="aquaculture",
         cost=4,
         parent=fishing,
         tier=2,
     )
     aquatism = TechNode(
-        name="Aquatism",
+        name="aquatism",
         cost=4,
         parent=aquaculture,
         tier=3,
         defence=[TileTypes.water, TileTypes.ocean]
     )
     sailing = TechNode(
-        name="Sailing",
+        name="sailing",
         cost=4,
         parent=fishing,
         tier=2,
         accessable=[TileTypes.ocean]
     )
     navigation = TechNode(
-        name="Navigation",
+        name="navigation",
         cost=4,
         parent=sailing,
         tier=3,
     )
     climbing = TechNode(
-        name="Climbing",
+        name="climbing",
         cost=4,
         parent=base,
         tier=1,
@@ -165,27 +165,27 @@ class Techs:
         accessable=[TileTypes.mountain]
     )
     meditation = TechNode(
-        name="Meditation",
+        name="meditation",
         cost=4,
         parent=climbing,
         tier=2,
     )
     philosophy = TechNode(
-        name="Philosophy",
+        name="philosophy",
         cost=4,
         parent=meditation,
         tier=3,
         units=[UnitTypes.mindbender],
     )
     mining = TechNode(
-        name="Mining",
+        name="mining",
         cost=4,
         parent=climbing,
         tier=2,
         buildings=[BuildingTypes.mine],
     )
     smithery = TechNode(
-        name="Smithery",
+        name="smithery",
         cost=4,
         parent=mining,
         tier=3,

@@ -1,0 +1,52 @@
+{
+    "name": "Default Config",
+    "version": "1.0.0",
+    "description": "This is the default configuration file for the application.",
+    "author": "Your Name",
+    "textures": {
+        "default": "default.png",
+        "tiles":{
+            "plain": "plain.png",
+            "mountain": "mountain.png",
+            "forest": "forest.png",
+            "ocean": "ocean.png",
+            "water": "water.png"
+        },
+        "resources": {
+            "fruits": "fruits.png",
+            "crops": "crops.png",
+            "metal": "metal.png",
+            "fish": "fish.png",
+            "wild_animals": "wild_animals.png"
+        },
+        "buildings": {
+            "farm": "farm.png",
+            "mine": "mine.png",
+            "hut": "hut.png",
+            "sawmill": "sawmill.png",
+            "forge": "forge.png",
+            "windmill": "windmill.png"
+        },
+        "techs": {
+            "agriculture": "agriculture.png",
+            "mining": "mining.png",
+            "construction": "construction.png",
+            "fishing": "fishing.png",
+            "crafting": "crafting.png"
+        },
+        "units": {
+            "warrior": "era.png",
+            "archer": "archer.png",
+            "defender": "defender.png",
+            "swordsman": "swordsman.png",
+            "dagger": "dagger.png",
+            "rider": "rider.png",
+            "knight": "knight.png",
+            "catapult": "catapult.png",
+            "mindbender": "mindbender.png",
+            "cloack": "cloak.png",
+            "giant": "giant.png"
+        },
+        "city": "city.png"
+    }
+}

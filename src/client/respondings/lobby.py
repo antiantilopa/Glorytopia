@@ -31,9 +31,9 @@ def game_start(self: Client, message: tuple[int]):
         self.send(Format.request("GAME/CITIES", []))
         self.send(Format.request("GAME/UNITS", []))
         self.send(Format.request("GAME/ME/MONEY", []))
+        self.updated |= 2 ** UpdateCodes.GAME_START.value
     else:
         self.messages.append(("", str(message[0])))
-    self.updated |= 2 ** UpdateCodes.GAME_START
 
 @respond.info("READINESS")
 def info_readiness(self: Client, message: list[tuple[str, bool]]):

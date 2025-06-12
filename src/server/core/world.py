@@ -1,5 +1,5 @@
 from .tile import Tile
-from pygame_tools_tafh import Vector2d, is_in_box
+from engine_antiantilopa import Vector2d
 from shared.tile_types import TileTypes
 from .random_map import pangea
 
@@ -31,4 +31,4 @@ class World:
         return self.world[pos.inty()][pos.intx()]
 
     def is_in(self, pos: Vector2d) -> bool:
-        return is_in_box(pos, Vector2d(0, 0), self.size - Vector2d(1, 1))
+        return pos.is_in_box(Vector2d(0, 0), self.size - Vector2d(1, 1))

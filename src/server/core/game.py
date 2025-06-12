@@ -4,7 +4,7 @@ from .city import City
 from .unit import Unit
 from shared.tile_types import TileTypes, ResourceTypes
 from shared.unit_types import UnitTypes
-from pygame_tools_tafh import Vector2d, Angle
+from engine_antiantilopa import Vector2d, Angle
 from math import pi
 from random import randint
 
@@ -112,7 +112,7 @@ class Game:
         for player in self.players:
             angle = Angle(2 * pi * player.id / len(self.players))
 
-            place = angle.to_vector() * distance_to_center_of_map + World.object.size / 2
+            place = angle.to_vector2d() * distance_to_center_of_map + World.object.size / 2
 
             place.x = round(place.x)
             place.y = round(place.y)

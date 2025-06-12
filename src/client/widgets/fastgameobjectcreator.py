@@ -38,8 +38,9 @@ class Shape(Enum):
 class InGrid:
     grid: Vector2d
     pos: Vector2d
+    size: Vector2d
 
-    def __init__(self, grid: Vector2d|tuple[int, int], pos: Vector2d|tuple[int, int]):
+    def __init__(self, grid: Vector2d|tuple[int, int], pos: Vector2d|tuple[int, int], size: Vector2d|tuple[int, int] = Vector2d(1, 1)):
         if isinstance(grid, Vector2d):
             self.grid = grid
         else:
@@ -48,18 +49,23 @@ class InGrid:
             self.pos = pos
         else:
             self.pos = Vector2d.from_tuple(pos)
+        if isinstance(size, Vector2d):
+            self.size = size
+        else:
+            self.size = Vector2d.from_tuple(size)
 
     def get_pos(self, game_object: GameObject) -> Vector2d:
         c = game_object.parent.get_component(SurfaceComponent).size
-        l = Vector2d(c.x // self.grid.x, c.y // self.grid.y) // 2
-        r = Vector2d(c.x // self.grid.x, 0)
-        d = Vector2d(0, c.y // self.grid.y)
+        l = Vector2d(c.x / self.grid.x, c.y / self.grid.y) / 2
+        r = Vector2d(c.x / self.grid.x, 0)
+        d = Vector2d(0, c.y / self.grid.y)
         # r + d = 2l
-        return l + (r * self.pos.x) + (d * self.pos.y) - c // 2
-    
+        result = (l * self.size) + (r * self.pos.x) + (d * self.pos.y) - c / 2
+        return Vector2d(round(result.x), round(result.y))
+
     def get_size(self, game_object: GameObject) -> Vector2d:
         c = game_object.parent.get_component(SurfaceComponent).size
-        return Vector2d(c.x // self.grid.x, c.y // self.grid.y)
+        return Vector2d(c.x * self.size.x // self.grid.x, c.y * self.size.y // self.grid.y)
 
 def create_game_object(
         parent = GameObject.root,
@@ -70,7 +76,8 @@ def create_game_object(
         shape: Shape|None = None,
         width: int|None = None,
         radius: int|None = None,
-        margin: Vector2d = Vector2d(0, 0)) -> GameObject:
+        margin: Vector2d = Vector2d(0, 0),
+        layer: int = 1) -> GameObject:
     t = GameObject(tags)
     t.disable()
     parent.add_child(t)
@@ -88,14 +95,16 @@ def create_game_object(
     else:
         pos = Vector2d.from_tuple(at)
     if shape is not None:
+        if color is None: need_draw = False
+        else: need_draw = True
         if shape is Shape.RECTBORDER:
-            t.add_component(shape.value(size=size-margin*2, width=width))
+            t.add_component(shape.value(size=size-margin*2, width=width, need_draw=need_draw))
         elif shape is Shape.RECT:
-            t.add_component(shape.value(size=size-margin*2))
+            t.add_component(shape.value(size=size-margin*2, need_draw=need_draw))
         elif shape is Shape.CIRCLE:
-            t.add_component(shape.value(radius=radius))
+            t.add_component(shape.value(radius=radius, need_draw=need_draw))
     t.add_component(Transform(pos))
-    t.add_component(SurfaceComponent(size=size))
+    t.add_component(SurfaceComponent(size=size, layer=layer))
     t.enable()
     return t
 

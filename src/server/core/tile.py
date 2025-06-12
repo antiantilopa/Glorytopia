@@ -1,6 +1,6 @@
 from shared.tile import TileData
 from shared.tile_types import TileType, BuildingType, ResourceType
-from pygame_tools_tafh.vmath import Vector2d
+from engine_antiantilopa import Vector2d
 
 
 class Tile(TileData):

@@ -55,6 +55,7 @@ def start_game():
     for addr in host.order:
         host.players[addr] = host.the_game.players[host.order.index(addr)]
         host.send_to_addr(addr, Format.event("GAME/GAME_START", [0, host.order.index(addr)]))
+    host.send_to_addr(addr, Format.event("GAME/INIT", [(11, 11)]))
     symbol_terrain = "_~=+^"
     for i in range(host.the_game.world.size.y):
         for j in range(host.the_game.world.size.x):
@@ -67,14 +68,14 @@ try:
             if host.game_starting:
                 print(timer)
                 for addr in host.addrs_to_names:
-                    host.send_to_addr(addr, Format.event("GAME/GAME_START", [timer]))
+                    host.send_to_addr(addr, Format.event("LOBBY/GAME_START", [timer]))
                 timer -= 1
                 time.sleep(1)
                 if timer == 0:
                     host.game_started = True
                     start_game()
             else:
-                timer = 10
+                timer = 3
         elif host.game_started:
             a = input()
             try:

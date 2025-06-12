@@ -9,11 +9,11 @@ Route = tuple[str, str]
 
 
 def default_main_cycle(_):
-        try:
-            while True:
-                pass
-        except KeyboardInterrupt:
-            exit()
+    try:
+        while not Client.object.changing_main_cycle:
+            pass
+    except KeyboardInterrupt:
+        exit()
 
 class Respond:
     default: str
@@ -89,12 +89,18 @@ class Respond:
 class Client:
     sock: socket.socket
     respond: "Respond"
+    object: "Client" = None
 
     main_cycle: Callable[[None], None]
+    main_cycle_thread: threading.Thread
+    changing_main_cycle: bool
 
     def __init__(self):
         self.respond = Respond()
         self.main_cycle = default_main_cycle
+        self.main_cycle_thread = None
+        self.changing_main_cycle = False
+        Client.object = self
 
     def init(self):
         pass
@@ -133,9 +139,27 @@ class Client:
         except Exception as e:
             print(f"error occured: {e}")
             self.respond.at_disconnect(self)
+            raise e
 
     def start(self):
         t = threading.Thread(target=self.await_message)
         t.start()
         t = threading.Thread(target=self.main_cycle, args=[self])
+        self.main_cycle_thread = t
         t.start()
+    
+    def change_main_cycle(self, func: Callable[["Client"], None]):
+        self.changing_main_cycle = True
+        self.main_cycle = func
+        if self.main_cycle_thread is not None:
+            if threading.current_thread() != self.main_cycle_thread:
+                if self.main_cycle_thread.is_alive():
+                    self.main_cycle_thread.join()
+        old_main_cycle_thread = self.main_cycle_thread
+        self.changing_main_cycle = False
+        self.main_cycle_thread = threading.Thread(target=self.main_cycle, args=[self])
+        self.main_cycle_thread.start()
+        if old_main_cycle_thread is not None:
+            if threading.current_thread() == self.main_cycle_thread:
+                exit()
+        return func

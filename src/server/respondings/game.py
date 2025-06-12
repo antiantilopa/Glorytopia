@@ -7,6 +7,10 @@ from shared.error_codes import ErrorCodes
 
 respond = Respond("GAME")
 
+@respond.request("WORLD_SIZE")
+def req_game_world_size(self: Server, addr: Address, message: tuple):
+    self.send_to_addr(addr, Format.info("GAME/WORLD_SIZE", (self.the_game.world.size.as_tuple())))
+
 @respond.request("WORLD")
 def req_game_world(self: Server, addr: Address, message: list[tuple[int, int]]):
     if len(message) != 0:

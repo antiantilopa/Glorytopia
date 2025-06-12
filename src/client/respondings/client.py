@@ -11,6 +11,13 @@ class UpdateCodes(Enum):
     MESSAGE = 4
     GAME_START = 5
     INIT_NAMES = 6
+    INIT_WORLD = 7
+    UPDATE_UNIT = 8
+    UPDATE_CITY = 9
+    UPDATE_TILE = 10
+    UPDATE_TECH = 11
+    UPDATE_MONEY = 12
+    END_TURN = 13
 
 respond = Respond()
 @respond.event("DISCONNECT")
@@ -24,7 +31,8 @@ def disconnect(self: "Client", message: tuple[str]):
     self.updated |= 2 ** UpdateCodes.DISCONNECT.value
 
 class Client(SerClient):
-    object = None
+    object: "Client"
+
     def __init__(self):
         SerClient.__init__(self)
         self.respond.merge(respond)
@@ -37,11 +45,17 @@ class Client(SerClient):
         self.messages: list[tuple[str, str]] = []
         self.myname: str = ""
 
-        self.world: list[list[TileData]] = [[(0) for i in range(18)] for j in range(18)]
+        self.world_size = (0, 0)
+        self.world: list[list[TileData]] = [[]]
         self.units: list[UnitData] = []
         self.cities: list[CityData] = []
         self.techs: list[TechNode] = []
         self.money = 0
+
         self.updated = 0
-        Client.object = self
+        self.world_updates: list[tuple[int, int]] = []
+        self.units_updates: list[tuple[tuple[int, int], UnitData]] = []
+        self.cities_updates: list[CityData] = []
+        self.techs_updates: list[TechNode] = []
+        self.object = self
 

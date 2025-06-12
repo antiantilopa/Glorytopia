@@ -1,33 +1,51 @@
 from serializator.client import Respond
 from serializator.data_format import Format
-from .client import Client
+from .client import Client, UpdateCodes
 
 from shared import *
 
 respond = Respond("GAME")
 
-@respond.info("GAME/WORLD")
+@respond.info("WORLD")
 def get_world(self: Client, message: list[SerializedTile]):
     for sertile in message:
         tile = TileData.from_serializable(sertile)
         self.world[tile.pos.inty()][tile.pos.intx()] = tile
-
-@respond.info("GAME/UNITS")
+    for y in range(len(self.world)):
+        for x in range(len(self.world[y])):
+            if self.world[y][x] is not None:
+                self.world_updates.append((x, y))
+    self.updated |= 2 ** UpdateCodes.UPDATE_TILE.value
+    
+@respond.info("UNITS")
 def get_units(self: Client, message: list[SerializedUnit]):
-    units = []
+    for unit in self.units:
+        self.units_updates.append((unit.pos.as_tuple(), ()))
+    self.units = []
+    
     for serunit in message:
-        units.append(UnitData.from_serializable(serunit))
+        self.units.append(UnitData.from_serializable(serunit))
+        self.units_updates.append(((), UnitData.from_serializable(serunit)))
+    self.updated |= 2 ** UpdateCodes.UPDATE_UNIT.value
 
-@respond.info("GAME/CITIES")
+@respond.info("CITIES")
 def get_cities(self: Client, message: list[SerializedCity]):
     self.cities = []
     for sercity in message:
         self.cities.append(CityData.from_serializable(sercity))
+        self.cities_updates.append((CityData.from_serializable(sercity)))
+    self.updated |= 2 ** UpdateCodes.UPDATE_CITY.value
 
-@respond.info("GAME/MY_TECHS")
+@respond.info("MY_TECHS")
 def get_techs(self: Client, message: tuple[int]):
     self.techs = [TechNode.by_id(i) for i in message]
 
-@respond.info("GAME/MY_MONEY")
+@respond.info("MY_MONEY")
 def get_my_money(self: Client, message: list[int]):
     self.money = message[0]
+
+@respond.info("WORLD_SIZE")
+def init_game(self: Client, message: tuple[int, int]):
+    self.world_size = (message[0], message[1])
+    self.world = [[None for x in range(message[0])] for y in range(message[1])]
+    self.updated |= 2 ** UpdateCodes.INIT_WORLD.value

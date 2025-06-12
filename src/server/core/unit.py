@@ -1,7 +1,7 @@
 from shared.unit_types import AbilityIndexes, UnitType
 from shared.unit import UnitData
 from shared.tile_types import TileTypes
-from pygame_tools_tafh import Vector2d
+from engine_antiantilopa import Vector2d
 from .world import World
 from math import floor, ceil
 from .tile import Tile

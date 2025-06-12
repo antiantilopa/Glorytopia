@@ -1,4 +1,4 @@
-from pygame_tools_tafh.vmath import Vector2d
+from engine_antiantilopa import Vector2d
 
 from .tile_types import TileType, TileTypes, BuildingType, BuildingTypes, ResourceType, ResourceTypes
 
@@ -33,8 +33,12 @@ class TileData:
 
     @staticmethod
     def from_serializable(serializable: SerializedTile) -> "TileData":
-        tdata = TileData(Vector2d.from_tuple(serializable[2]), TileTypes.by_id(serializable[0]), ResourceTypes.by_id(serializable[3]))
+        tdata = TileData(
+            Vector2d.from_tuple(serializable[2]), 
+            TileTypes.by_id(serializable[0]), 
+            ResourceTypes.by_id(serializable[3]) if serializable[3] >= 0 else None
+        )
         tdata.owner = serializable[1]
-        tdata.building = BuildingTypes.by_id(serializable[4])
+        tdata.building = BuildingTypes.by_id(serializable[4]) if serializable[4] >= 0 else None
         tdata.has_road = serializable[5]
         return tdata

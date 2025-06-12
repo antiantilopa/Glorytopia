@@ -5,7 +5,7 @@ from . import city as City
 from shared.unit_types import UnitType
 from shared.tile_types import TileType, BuildingType, BuildingTypes
 from shared.error_codes import ErrorCodes
-from pygame_tools_tafh import Vector2d
+from engine_antiantilopa import Vector2d
 
 
 class Player:

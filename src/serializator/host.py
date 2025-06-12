@@ -107,6 +107,7 @@ class Host:
             self.respond.routes[default_route](self, addr, message[2])
         else:
             self.send_to_addr(addr, Format.error("ROUTING", [f"route {message[0]}/{message[1]} was not found"]))
+            print(f"Route {addr[0]}:{message[0]}/{message[1]} was not found in Respond routes.")
 
     def send_to_addr(self, addr: Address, message: Any):
         self.conns[addr].send(Serializator.encode(message))

@@ -1,4 +1,4 @@
-from pygame_tools_tafh import Vector2d
+from engine_antiantilopa import Vector2d
 from .unit_types import UnitType, UnitTypes
 from serializator.net import flags_to_int, int_to_flags
 
