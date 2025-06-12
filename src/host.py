@@ -80,8 +80,8 @@ try:
             a = input()
             try:
                 exec(a)
-            except:
-                print("error")
+            except Exception as e:
+                print(f"error: {e}")
 except KeyboardInterrupt:
     host.close_threads()
     host.close_connections()

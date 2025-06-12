@@ -54,7 +54,7 @@ class Techs:
         units=[UnitTypes.rider],
     )
     free_spirit = TechNode(
-        name="free_Spirit",
+        name="free_spirit",
         cost=4,
         parent=riding,
         tier=2,
