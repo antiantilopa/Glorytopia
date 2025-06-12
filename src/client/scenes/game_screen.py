@@ -9,18 +9,13 @@ import pygame as pg
 
 def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     scene = create_game_object(tags="game_screen", size=screen_size)
-    def deleteme(*_):
-        try:
-            print(eval(input()))
-        except Exception as e:
-            print(f"> [!ERROR] {e}")
-
-    scene.add_component(KeyBindComponent([pg.K_q], 0, 1, deleteme))
 
     create_game_object(scene, "game_screen:world_section", at=InGrid((12, 8), (0, 0), (8, 8)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2)
 
     info_section = create_game_object(scene, "game_screen:info_section", at=InGrid((12, 8), (8, 0), (4, 8)), shape=Shape.RECT)
     info_section.add_component(OnClickComponent([1, 0, 0], 0, 1, click))
+
+    money_label = create_label(info_section,tags="game_screen:info_section:money_label", text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 8), (0, 0), (1, 1)), color=ColorComponent.WHITE)
 
     load_textures()
 
@@ -60,7 +55,7 @@ def init():
                     
                     max_x = (world_width - view_width) / 2
                     max_y = (world_height - view_height) / 2
-
+                    
                     if pg.K_w in keys and current_pos.y < max_y:
                         g_obj.get_component(Transform).move(Vector2d(0, 20))
                     if pg.K_a in keys and current_pos.x < max_x:
@@ -95,6 +90,11 @@ def init():
                 self.updated &= ~(2 ** UpdateCodes.UPDATE_CITY.value)
                 for city in self.cities_updates:
                     create_city_game_object(city)
+
+            money_label = GameObject.get_group_by_tag("game_screen:info_section:money_label")[0]
+            money_label.get_component(LabelComponent).text = f"Money: {self.money}"
+            money_label.need_draw_set_true()
+            money_label.need_blit_set_true()
 
 if __name__ == "__main__":
     load()
