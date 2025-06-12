@@ -7,7 +7,7 @@
         "default": "default.png",
         "tiles":{
             "plain": "plain.png",
-            "mountain": "mountain.png",
+            "mountain": "sanzhar.png",
             "forest": "forest.png",
             "ocean": "ocean.png",
             "water": "water.png"
@@ -35,7 +35,7 @@
             "crafting": "crafting.png"
         },
         "units": {
-            "warrior": "warrior.png",
+            "warrior": "era.png",
             "archer": "archer.png",
             "defender": "defender.png",
             "swordsman": "swordsman.png",
