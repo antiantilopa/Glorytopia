@@ -8,6 +8,7 @@ from serializator.data_format import Format
 from shared import *
 import pygame as pg
 
+
 def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     scene = create_game_object(tags="game_screen", size=screen_size)
 
@@ -18,17 +19,27 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
 
     money_label = create_label(info_section,tags="game_screen:info_section:money_label", text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 8), (0, 0), (1, 1)), color=ColorComponent.WHITE)
 
+    
+    end_turn_button = create_game_object(info_section, "game_screen:info_section:end_turn_button", at=InGrid((1, 8), (0, 7), (1, 1)), size=(100, 40), color=(50, 150, 50), shape=Shape.RECT)
+    end_turn_label = create_label(end_turn_button, "game_screen:info_section:end_turn_label", text="End Turn", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
+    end_turn_button.add_component(OnClickComponent([1, 0, 0], 0, 1, end_turn_click))
+
     load_textures()
 
     return scene
-
-
 
 def click(g_obj: GameObject, keys: list[int], pos: Vector2d, *_):
     new = create_game_object(g_obj, "game_screen:info_section:click", at=pos, size=(20, 20), color=ColorComponent.RED, shape=Shape.CIRCLE, radius=10)
     new.add_component(SpriteComponent(size=Vector2d(20, 20), nickname="city"))
     print(f"> [!CLICK] {pos} {keys}")
 
+def end_turn_click(g_obj: GameObject, keys: list[int], pos: Vector2d, *_):
+    Client.object.send(Format.event("GAME/END_TURN", ()))
+    g_obj.get_component(ColorComponent).color = (30, 100, 30)
+    g_obj.need_draw_set_true()
+    g_obj.need_blit_set_true()
+    print("End turn clicked")
+    
 def init():
 
     @Client.object.check_update(UpdateCodes.INIT_WORLD)
@@ -97,6 +108,7 @@ def init():
         money_label.get_component(LabelComponent).text = f"Money: {self.money}"
         money_label.need_draw_set_true()
         money_label.need_blit_set_true()
+
 
     @Client.object.change_main_cycle
     def update(self: Client):
