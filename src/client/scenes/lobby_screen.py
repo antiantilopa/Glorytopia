@@ -66,83 +66,99 @@ def start_game():
     game_scene.enable()
 
 def init():
-    @Client.object.set_main_cycle
-    def update(self: Client):
+
+    @Client.object.check_update(UpdateCodes.JOIN)
+    def join():
+        self = Client.object
         ready_section = GameObject.get_group_by_tag("lobby_screen:ready_section")[0]
+        scene_size = GameObject.get_group_by_tag("lobby_screen")[0].get_component(SurfaceComponent).size
+        num = len(self.names) - 1
+        for i in range(len(GameObject.get_group_by_tag("lobby_screen:ready_section:name")), num + 1):
+            n = create_game_object(ready_section, ["lobby_screen:ready_section:name", str(i)], at=InGrid((1, 6), (0, i)), color=ColorComponent.WHITE, width=2, shape=Shape.RECTBORDER, margin=Vector2d(10, 3))
+            n.first_iteration()
+        for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name"):
+            if int(g.tags[1]) > num:
+                g.need_blit_set_true()
+                g.need_draw_set_true()
+                g.destroy()
+            else:
+                for child in g.childs:
+                    if "lobby_screen:ready_section:name:name_label" in child.tags:
+                        child.destroy()
+                        break
+                l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[int(g.tags[1])] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
+                l2 = create_label(g, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at = Position.RIGHT, color=ColorComponent.RED, margin=Vector2d(10, 3))
+                l1.first_iteration()
+                l2.first_iteration()
+        for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
+            g.get_component(LabelComponent).text = "X"
+            g.need_draw_set_true()
+            g.need_blit_set_true()
+
+    @Client.object.check_update(UpdateCodes.DISCONNECT)
+    def disconnect():
+        self = Client.object
+        num = len(self.names) - 1
+        scene_size = GameObject.get_group_by_tag("lobby_screen")[0].get_component(SurfaceComponent).size
+        for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name"):
+            if int(g.tags[1]) > num:
+                g.need_blit_set_true()
+                g.need_draw_set_true()
+                g.destroy()
+            else:
+                for child in g.childs:
+                    if "lobby_screen:ready_section:name:name_label" in child.tags:
+                        child.destroy()
+                        break
+                l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[num] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
+                l1.first_iteration()
+        for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
+            g.get_component(LabelComponent).text = "X"
+            g.need_draw_set_true()
+            g.need_blit_set_true()
+
+    @Client.object.check_update(UpdateCodes.READY)
+    def ready():
+        self = Client.object
+        for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
+            g.get_component(LabelComponent).text = ("X", "O")[int(self.readiness[self.names[int(g.parent.tags[1])]])]
+            g.need_draw_set_true()
+            g.need_blit_set_true()
+
+    @Client.object.check_update(UpdateCodes.INIT_NAMES)
+    def init_names():
+        self = Client.object
+        ready_section = GameObject.get_group_by_tag("lobby_screen:ready_section")[0]
+        scene_size = GameObject.get_group_by_tag("lobby_screen")[0].get_component(SurfaceComponent).size
+        for child in ready_section.childs:
+            child.destroy()
+        for num in range(len(self.names)):
+            n = create_game_object(ready_section, ["lobby_screen:ready_section:name", str(num)], at=InGrid((1, 6), (0, num)), color=ColorComponent.WHITE, width=2, shape=Shape.RECTBORDER, margin=Vector2d(10, 3))
+            l1 = create_label(n, tags="lobby_screen:ready_section:name:name_label", text = self.names[num], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[num] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
+            l2 = create_label(n, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at = Position.RIGHT, color=ColorComponent.RED, margin=Vector2d(10, 3))
+
+    @Client.object.check_update(UpdateCodes.MESSAGE)
+    def message():
+        self = Client.object
         message_section = GameObject.get_group_by_tag("lobby_screen:chat_section:message_section")[0]
         scene_size = GameObject.get_group_by_tag("lobby_screen")[0].get_component(SurfaceComponent).size
+        message_section.disable()
+        for child in message_section.childs:
+            child.get_component(Transform).move(Vector2d(0, -(message_section.get_component(SurfaceComponent).size.y // 15)))
+        for i in range(len(message_section.childs), len(self.messages)):
+            n = create_game_object(message_section, "lobby_screen:chat_section:mesage_section:message_box", at=InGrid((1, 15), (0, 14)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, margin = Vector2d(3, 3))
+            l = create_label(n, "lobby_screen:chat_section:mesage_section:message_box:message_label", at=Position.LEFT, text=f"{self.messages[i][0]}: {self.messages[i][1]}", font=pg.font.SysFont("consolas", scene_size.y // 40), color=ColorComponent.RED, margin=Vector2d(10, 2))
+        message_section.enable()
+
+    @Client.object.check_update(UpdateCodes.GAME_START)
+    def game_start():
+        threading.Thread(target=start_game).start()
+
+    @Client.object.set_main_cycle
+    def update(self: Client):
         while not self.changing_main_cycle:
-            if self.updated == 0:
-                continue
-            if self.updated & 2 ** UpdateCodes.JOIN.value:
-                self.updated &= ~(2 ** UpdateCodes.JOIN.value)
-                num = len(self.names) - 1
-                for i in range(len(GameObject.get_group_by_tag("lobby_screen:ready_section:name")), num + 1):
-                    n = create_game_object(ready_section, ["lobby_screen:ready_section:name", str(i)], at=InGrid((1, 6), (0, i)), color=ColorComponent.WHITE, width=2, shape=Shape.RECTBORDER, margin=Vector2d(10, 3))
-                    n.first_iteration()
-                for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name"):
-                    if int(g.tags[1]) > num:
-                        g.need_blit_set_true()
-                        g.need_draw_set_true()
-                        g.destroy()
-                    else:
-                        for child in g.childs:
-                            if "lobby_screen:ready_section:name:name_label" in child.tags:
-                                child.destroy()
-                                break
-                        l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[int(g.tags[1])] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
-                        l2 = create_label(g, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at = Position.RIGHT, color=ColorComponent.RED, margin=Vector2d(10, 3))
-                        l1.first_iteration()
-                        l2.first_iteration()
-                for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
-                    g.get_component(LabelComponent).text = "X"
-                    g.need_draw_set_true()
-                    g.need_blit_set_true()
-            if self.updated & 2 ** UpdateCodes.DISCONNECT.value:
-                self.updated &= ~(2 ** UpdateCodes.DISCONNECT.value)
-                num = len(self.names) - 1
-                for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name"):
-                    if int(g.tags[1]) > num:
-                        g.need_blit_set_true()
-                        g.need_draw_set_true()
-                        g.destroy()
-                    else:
-                        for child in g.childs:
-                            if "lobby_screen:ready_section:name:name_label" in child.tags:
-                                child.destroy()
-                                break
-                        l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[num] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
-                        l1.first_iteration()
-                for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
-                    g.get_component(LabelComponent).text = "X"
-                    g.need_draw_set_true()
-                    g.need_blit_set_true()
-            if self.updated & 2 ** UpdateCodes.READY.value:
-                self.updated &= ~(2 ** UpdateCodes.READY.value)
-                for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
-                    g.get_component(LabelComponent).text = ("X", "O")[int(self.readiness[self.names[int(g.parent.tags[1])]])]
-                    g.need_draw_set_true()
-                    g.need_blit_set_true()
-            if self.updated & 2 ** UpdateCodes.INIT_NAMES.value:
-                self.updated &= ~(2 ** UpdateCodes.INIT_NAMES.value)
-                for child in ready_section.childs:
-                    child.destroy()
-                for num in range(len(self.names)):
-                    n = create_game_object(ready_section, ["lobby_screen:ready_section:name", str(num)], at=InGrid((1, 6), (0, num)), color=ColorComponent.WHITE, width=2, shape=Shape.RECTBORDER, margin=Vector2d(10, 3))
-                    l1 = create_label(n, tags="lobby_screen:ready_section:name:name_label", text = self.names[num], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[num] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
-                    l2 = create_label(n, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at = Position.RIGHT, color=ColorComponent.RED, margin=Vector2d(10, 3))
-            if self.updated & 2 ** UpdateCodes.MESSAGE.value:
-                self.updated &= ~(2 ** UpdateCodes.MESSAGE.value)
-                message_section.disable()
-                for child in message_section.childs:
-                    child.get_component(Transform).move(Vector2d(0, -(message_section.get_component(SurfaceComponent).size.y // 15)))
-                for i in range(len(message_section.childs), len(self.messages)):
-                    n = create_game_object(message_section, "lobby_screen:chat_section:mesage_section:message_box", at=InGrid((1, 15), (0, 14)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, margin = Vector2d(3, 3))
-                    l = create_label(n, "lobby_screen:chat_section:mesage_section:message_box:message_label", at=Position.LEFT, text=f"{self.messages[i][0]}: {self.messages[i][1]}", font=pg.font.SysFont("consolas", scene_size.y // 40), color=ColorComponent.RED, margin=Vector2d(10, 2))
-                message_section.enable()
-            if self.updated & 2 ** UpdateCodes.GAME_START.value:
-                self.updated &= ~(2 ** UpdateCodes.GAME_START.value)
-                threading.Thread(target=start_game).start()
+            Client.object.check_updates()
+
 def launch():
     GameObject.get_group_by_tag("lobby_screen")[0].enable()
     e = Engine(Vector2d(1200, 800))
