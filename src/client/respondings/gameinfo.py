@@ -39,10 +39,13 @@ def get_cities(self: Client, message: list[SerializedCity]):
 @respond.info("MY_TECHS")
 def get_techs(self: Client, message: tuple[int]):
     self.techs = [TechNode.by_id(i) for i in message]
+    self.techs_updates = [TechNode.by_id(i) for i in message]
+    self.updated |= 2 ** UpdateCodes.UPDATE_TECH.value
 
 @respond.info("MY_MONEY")
 def get_my_money(self: Client, message: list[int]):
     self.money = message[0]
+    self.updated |= 2 ** UpdateCodes.UPDATE_MONEY.value
 
 @respond.info("WORLD_SIZE")
 def init_game(self: Client, message: tuple[int, int]):

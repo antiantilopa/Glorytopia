@@ -162,6 +162,7 @@ def eve_game_create_unit(self: Server, addr: Address, message: tuple[tuple[int, 
             for player_addr in self.players:
                 if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
                     self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [[], unit.to_serializable()]))
+            self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
         else:
             self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Cannot create unit: {result.name}")))
     else:
@@ -197,6 +198,7 @@ def eve_game_buy_tech(self: Server, addr: Address, message: tuple[int]):
             self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {result.name}")))
         else:
             self.send_to_addr(addr, Format.event("GAME/UPDATE/TECH", [tech.id]))
+            self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
     else:
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Not your move right now.")))
 
@@ -217,6 +219,7 @@ def eve_game_harvest(self: Server, addr: Address, message: tuple[tuple[int, int]
                     if self.players[player_addr].vision[city.pos.y][city.pos.x]:
                         self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
                 break
+        self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
     else:
         self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Not your move right now.")))
 
@@ -231,6 +234,8 @@ def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], 
         for player_addr in self.players:
             if self.players[player_addr].vision[pos.inty()][pos.intx()]:
                 self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [self.the_game.world.object.get(pos).to_serializable()]))
+        self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
+        
     else:
         self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Not your move right now.")))
 
@@ -241,6 +246,8 @@ def game_end_turn(self: Server, addr: Address, message: tuple):
         self.now_playing_player_index += 1
         self.now_playing_player_index %= len(self.order)
         self.players[self.order[self.now_playing_player_index]].start_turn()
+        self.send_to_addr(self.order[self.now_playing_player_index], Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
+
         for addr1 in self.conns:
             self.send_to_addr(addr1, Format.event("GAME/END_TURN", (self.addrs_to_names[addr])))
     else:

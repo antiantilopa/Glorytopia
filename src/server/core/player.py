@@ -129,6 +129,8 @@ class Player:
                     if city.pos == pos:
                         if city.owner >= 0:
                             Player.players[city.owner].cities.remove(city)
+                        else:
+                            city.init_domain()
                         city.owner = self.id
                         self.cities.append(city)
                         if unit.attached_city is not None and unit.attached_city.owner == self.id:

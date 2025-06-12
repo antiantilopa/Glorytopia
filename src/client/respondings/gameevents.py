@@ -61,6 +61,11 @@ def update_tech(self: Client, message: tuple[int]):
     self.techs.append(TechNode.by_id(message[0]))
     self.updated |= 2 ** UpdateCodes.UPDATE_TECH.value
 
+@respond.event("UPDATE/MONEY")
+def update_money(self: Client, message: tuple[int]):
+    self.money = message[0]
+    self.updated |= 2 ** UpdateCodes.UPDATE_MONEY.value
+
 @respond.event("END_TURN")
 def end_turn(self: Client, message: tuple[str]):
     self.now_playing += 1
