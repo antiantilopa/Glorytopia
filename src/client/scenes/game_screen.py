@@ -10,18 +10,13 @@ import pygame as pg
 
 def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     scene = create_game_object(tags="game_screen", size=screen_size)
-    def deleteme(*_):
-        try:
-            exec(input())
-        except Exception as e:
-            print(f"> [!ERROR] {e}")
-
-    scene.add_component(KeyBindComponent([pg.K_q], 0, 1, deleteme))
 
     create_game_object(scene, "game_screen:world_section", at=InGrid((12, 8), (0, 0), (8, 8)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2)
 
     info_section = create_game_object(scene, "game_screen:info_section", at=InGrid((12, 8), (8, 0), (4, 8)), shape=Shape.RECT)
     info_section.add_component(OnClickComponent([1, 0, 0], 0, 1, click))
+
+    money_label = create_label(info_section,tags="game_screen:info_section:money_label", text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 8), (0, 0), (1, 1)), color=ColorComponent.WHITE)
 
     load_textures()
 
@@ -45,13 +40,24 @@ def init():
         ui_lauer = create_game_object(world, "game_screen:world_section:world:ui_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=3)
         ui_lauer.add_component(OnClickComponent([1, 0, 0], 0, 1, click))
         def bind_keys(g_obj: GameObject, keys: list[int], *_):
-            if pg.K_w in keys:
+            current_pos = g_obj.get_component(Transform).pos
+                    
+            world_width = self.world_size[0] * 100
+            world_height = self.world_size[1] * 100
+            
+            view_width = 8 * (1200 / 12) 
+            view_height = 8 * (800 / 8)
+            
+            max_x = (world_width - view_width) / 2
+            max_y = (world_height - view_height) / 2
+            
+            if pg.K_w in keys and current_pos.y < max_y:
                 g_obj.get_component(Transform).move(Vector2d(0, 20))
-            if pg.K_a in keys:
+            if pg.K_a in keys and current_pos.x < max_x:
                 g_obj.get_component(Transform).move(Vector2d(20, 0))
-            if pg.K_s in keys:
+            if pg.K_s in keys and current_pos.y > -max_y:
                 g_obj.get_component(Transform).move(Vector2d(0, -20))
-            if pg.K_d in keys:
+            if pg.K_d in keys and current_pos.x > -max_x:
                 g_obj.get_component(Transform).move(Vector2d(-20, 0))
         world.add_component(KeyBindComponent([pg.K_w, pg.K_a, pg.K_s, pg.K_d], 1, 1, bind_keys))
 
@@ -91,6 +97,11 @@ def init():
         
         while not self.changing_main_cycle:
             Client.object.check_updates()
+
+            money_label = GameObject.get_group_by_tag("game_screen:info_section:money_label")[0]
+            money_label.get_component(LabelComponent).text = f"Money: {self.money}"
+            money_label.need_draw_set_true()
+            money_label.need_blit_set_true()
 
 if __name__ == "__main__":
     load()
