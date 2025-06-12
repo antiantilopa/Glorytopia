@@ -90,6 +90,14 @@ def init():
             create_city_game_object(city)
         self.cities_updates.clear()
 
+    @Client.object.check_update(UpdateCodes.UPDATE_MONEY)
+    def update_money():
+        self = Client.object
+        money_label = GameObject.get_group_by_tag("game_screen:info_section:money_label")[0]
+        money_label.get_component(LabelComponent).text = f"Money: {self.money}"
+        money_label.need_draw_set_true()
+        money_label.need_blit_set_true()
+
     @Client.object.change_main_cycle
     def update(self: Client):
         if not self.game_started:
@@ -97,11 +105,6 @@ def init():
         
         while not self.changing_main_cycle:
             Client.object.check_updates()
-
-            money_label = GameObject.get_group_by_tag("game_screen:info_section:money_label")[0]
-            money_label.get_component(LabelComponent).text = f"Money: {self.money}"
-            money_label.need_draw_set_true()
-            money_label.need_blit_set_true()
-
+            
 if __name__ == "__main__":
     load()
