@@ -50,13 +50,24 @@ def init():
                 ui_lauer = create_game_object(world, "game_screen:world_section:world:ui_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=3)
                 ui_lauer.add_component(OnClickComponent([1, 0, 0], 0, 1, click))
                 def bind_keys(g_obj: GameObject, keys: list[int], *_):
-                    if pg.K_w in keys:
+                    current_pos = g_obj.get_component(Transform).pos
+                    
+                    world_width = self.world_size[0] * 100
+                    world_height = self.world_size[1] * 100
+                    
+                    view_width = 8 * (1200 / 12) 
+                    view_height = 8 * (800 / 8)
+                    
+                    max_x = (world_width - view_width) / 2
+                    max_y = (world_height - view_height) / 2
+
+                    if pg.K_w in keys and current_pos.y < max_y:
                         g_obj.get_component(Transform).move(Vector2d(0, 20))
-                    if pg.K_a in keys:
+                    if pg.K_a in keys and current_pos.x < max_x:
                         g_obj.get_component(Transform).move(Vector2d(20, 0))
-                    if pg.K_s in keys:
+                    if pg.K_s in keys and current_pos.y > -max_y:
                         g_obj.get_component(Transform).move(Vector2d(0, -20))
-                    if pg.K_d in keys:
+                    if pg.K_d in keys and current_pos.x > -max_x:
                         g_obj.get_component(Transform).move(Vector2d(-20, 0))
                 world.add_component(KeyBindComponent([pg.K_w, pg.K_a, pg.K_s, pg.K_d], 1, 1, bind_keys))
 
