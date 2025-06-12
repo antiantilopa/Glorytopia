@@ -110,7 +110,7 @@ def init():
                     if "lobby_screen:ready_section:name:name_label" in child.tags:
                         child.destroy()
                         break
-                l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[num] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
+                l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[int(g.tags[1])] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
                 l1.first_iteration()
         for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
             g.get_component(LabelComponent).text = "X"

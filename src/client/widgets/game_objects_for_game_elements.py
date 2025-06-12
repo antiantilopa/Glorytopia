@@ -2,6 +2,7 @@ from engine_antiantilopa import *
 from shared import *
 from client.respondings.client import Client
 from .fastgameobjectcreator import *
+from .select import SelectComponent
 
 
 
@@ -36,7 +37,7 @@ def create_tile_game_object(pos: tuple[int, int]):
     new_tile = create_game_object(world, "game_screen:world_section:world:tile", at=InGrid(self.world_size, Vector2d(*pos)), shape=Shape.RECT, layer = 0)
     new_tile.add_component(TileComponent(self.world[pos[1]][pos[0]], Vector2d(*pos)))
     new_tile.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].ttype.name, size=Vector2d(100, 100)))
-    
+    new_tile.add_component(SelectComponent())
     if self.world[pos[1]][pos[0]].building is not None:
         building = create_game_object(world, "game_screen:world_section:world:tile:building", at=InGrid(self.world_size, Vector2d(*pos)), shape=Shape.RECT, layer = 1)
         building.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].building.name, size=Vector2d(100, 100)))
@@ -49,31 +50,28 @@ def create_tile_game_object(pos: tuple[int, int]):
 def create_unit_game_object(unit_data: UnitData):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
 
-    unit = create_game_object(unit_layer, f"game_screen:world_section:world:unit_layer:unit", at=InGrid(Client.object.world_size, unit_data.pos.as_tuple()), shape=Shape.RECT, layer=2)
+    unit = create_game_object(unit_layer, "game_screen:world_section:world:unit_layer:unit", at=InGrid(Client.object.world_size, unit_data.pos.as_tuple()), shape=Shape.RECT, layer=2)
     unit.add_component(UnitComponent(unit_data, unit_data.pos))
     unit.add_component(SpriteComponent(nickname=unit_data.utype.name, size=Vector2d(100, 100)))
+    unit.add_component(SelectComponent())
 
 def remove_unit_game_object(pos: tuple[int, int]):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
     for unit in unit_layer.childs:
         print(unit.get_component(PositionComponent).pos, Vector2d(*pos), pos)
         if unit.get_component(PositionComponent).pos == Vector2d(*pos):
-            print("FOUND")
             unit.need_blit_set_true()
             unit.destroy()
             break
-    print("WTF")
 
 def move_unit_game_object(pos: tuple[int, int], unit_data: UnitData):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
     for unit in unit_layer.childs:
         if unit.get_component(PositionComponent).pos == Vector2d(*pos):
-            print("found")
             unit.get_component(UnitComponent).unit_data = unit_data
             unit.get_component(UnitComponent).pos = unit_data.pos
             unit.get_component(Transform).set_pos(InGrid(Client.object.world_size, unit_data.pos).get_pos(unit_layer))
             break
-    print("wtf")
 
 def create_city_game_object(city_data: CityData):
     world = GameObject.get_game_object_by_tags("game_screen:world_section:world")
@@ -81,3 +79,4 @@ def create_city_game_object(city_data: CityData):
     city.add_component(CityComponent(city_data, city_data.pos))
     city.add_component(SpriteComponent(nickname="city", size=Vector2d(100, 100)))
     city.add_component(Transform(InGrid(Client.object.world_size, city_data.pos).get_pos(world)))
+    city.add_component(SelectComponent())

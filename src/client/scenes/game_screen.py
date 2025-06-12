@@ -4,6 +4,7 @@ from client.respondings.lobby import respond, UpdateCodes
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.game_objects_for_game_elements import *
 from client.widgets.texture_load import load_textures
+from client.widgets.select import SelectComponent
 from serializator.data_format import Format
 from shared import *
 import pygame as pg
@@ -15,12 +16,11 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     create_game_object(scene, "game_screen:world_section", at=InGrid((12, 8), (0, 0), (8, 8)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2)
 
     info_section = create_game_object(scene, "game_screen:info_section", at=InGrid((12, 8), (8, 0), (4, 8)), shape=Shape.RECT)
-    info_section.add_component(OnClickComponent([1, 0, 0], 0, 1, click))
 
     money_label = create_label(info_section,tags="game_screen:info_section:money_label", text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 8), (0, 0), (1, 1)), color=ColorComponent.WHITE)
 
     
-    end_turn_button = create_game_object(info_section, "game_screen:info_section:end_turn_button", at=InGrid((1, 8), (0, 7), (1, 1)), size=(100, 40), color=(50, 150, 50), shape=Shape.RECT)
+    end_turn_button = create_game_object(info_section, "game_screen:info_section:end_turn_button", at=InGrid((1, 8), (0, 7), (1, 1)), size=(100, 40), color=(50, 150, 50) if Client.object.names[0] == Client.object.myname else (30, 100, 30), shape=Shape.RECT)
     end_turn_label = create_label(end_turn_button, "game_screen:info_section:end_turn_label", text="End Turn", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
     end_turn_button.add_component(OnClickComponent([1, 0, 0], 0, 1, end_turn_click))
 
@@ -28,10 +28,41 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
 
     return scene
 
-def click(g_obj: GameObject, keys: list[int], pos: Vector2d, *_):
+def selecting(coords: Vector2d):
+    self = Client.object
+    if self.world[coords.inty()][coords.intx()] is None:
+        return
+    for uobj in GameObject.get_group_by_tag("game_screen:world_section:world:unit_layer:unit"):
+        if uobj.get_component(PositionComponent).pos == coords:
+            if uobj.get_component(SelectComponent).is_selected:
+                uobj.get_component(SelectComponent).deselect()
+                break
+            else:
+                uobj.get_component(SelectComponent).select()
+                return
+    for tile in GameObject.get_group_by_tag("game_screen:world_section:world:tile"):
+        if tile.get_component(PositionComponent).pos == coords:
+            if tile.get_component(SelectComponent).is_selected:
+                tile.get_component(SelectComponent).deselect()
+                break
+            else:
+                tile.get_component(SelectComponent).select()
+                return
+    
+
+def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector2d, *_):
     new = create_game_object(g_obj, "game_screen:info_section:click", at=pos, size=(20, 20), color=ColorComponent.RED, shape=Shape.CIRCLE, radius=10)
     new.add_component(SpriteComponent(size=Vector2d(20, 20), nickname="city"))
     print(f"> [!CLICK] {pos} {keys}")
+
+    coords = (pos + g_obj.get_component(SurfaceComponent).size // 2) // 100
+
+    if coords.x < 0 or coords.y < 0 or coords.x >= Client.object.world_size[0] or coords.y >= Client.object.world_size[1]:
+        return
+
+    else:
+        if keys[0]:  # Left click
+            selecting(coords)
 
 def end_turn_click(g_obj: GameObject, keys: list[int], pos: Vector2d, *_):
     Client.object.send(Format.event("GAME/END_TURN", ()))
@@ -49,7 +80,7 @@ def init():
         world = create_game_object(world_obj, "game_screen:world_section:world", size=Vector2d.from_tuple(self.world_size) * 100, color=(80, 80, 80), shape=Shape.RECT)
         unit_layer = create_game_object(world, "game_screen:world_section:world:unit_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=2)
         ui_lauer = create_game_object(world, "game_screen:world_section:world:ui_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=3)
-        ui_lauer.add_component(OnClickComponent([1, 0, 0], 0, 1, click))
+        ui_lauer.add_component(OnClickComponent([1, 0, 1], 0, 1, on_world_click))
         def bind_keys(g_obj: GameObject, keys: list[int], *_):
             current_pos = g_obj.get_component(Transform).pos
                     
@@ -109,6 +140,14 @@ def init():
         money_label.need_draw_set_true()
         money_label.need_blit_set_true()
 
+    @Client.object.check_update(UpdateCodes.END_TURN)
+    def end_turn():
+        self = Client.object
+        if self.names[self.now_playing] == self.myname:
+            end_turn_button = GameObject.get_group_by_tag("game_screen:info_section:end_turn_button")[0]
+            end_turn_button.get_component(ColorComponent).color = (50, 150, 50)
+            end_turn_button.need_draw_set_true()
+            end_turn_button.need_blit_set_true()
 
     @Client.object.change_main_cycle
     def update(self: Client):

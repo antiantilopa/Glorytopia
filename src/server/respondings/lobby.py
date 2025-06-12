@@ -23,6 +23,12 @@ def join(self: Server, addr: Address, name: tuple[str]):
 
 @respond.event("MESSAGE")
 def message(self: Server, addr: Address, message: tuple[str]):
+    if message[0] == "":
+        self.send_to_addr(addr, Format.error("LOBBY/MESSAGE", ["message cannot be empty."]))
+        return
+    if len(message[0]) > 50:
+        self.send_to_addr(addr, Format.error("LOBBY/MESSAGE", ["message is too long. 64 characters maximum."]))
+        return
     print(f"<{self.addrs_to_names[addr]}> {message[0]}")
     for i in self.conns:
         self.send_to_addr(i, Format.event("LOBBY/MESSAGE", (self.addrs_to_names[addr], message[0])))
