@@ -58,7 +58,6 @@ def create_unit_game_object(unit_data: UnitData):
 def remove_unit_game_object(pos: tuple[int, int]):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
     for unit in unit_layer.childs:
-        print(unit.get_component(PositionComponent).pos, Vector2d(*pos), pos)
         if unit.get_component(PositionComponent).pos == Vector2d(*pos):
             unit.need_blit_set_true()
             unit.destroy()
@@ -74,9 +73,8 @@ def move_unit_game_object(pos: tuple[int, int], unit_data: UnitData):
             break
 
 def create_city_game_object(city_data: CityData):
-    world = GameObject.get_game_object_by_tags("game_screen:world_section:world")
-    city = create_game_object(world, "game_screen:world_section:world:city", at=InGrid(Client.object.world_size, city_data.pos), shape=Shape.RECT, layer=1)
+    city_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:city_layer")
+    city = create_game_object(city_layer, ["game_screen:world_section:world:city_layer:city"], at=InGrid(Client.object.world_size, city_data.pos), shape=Shape.RECT, layer=100)
     city.add_component(CityComponent(city_data, city_data.pos))
     city.add_component(SpriteComponent(nickname="city", size=Vector2d(100, 100)))
-    city.add_component(Transform(InGrid(Client.object.world_size, city_data.pos).get_pos(world)))
     city.add_component(SelectComponent())

@@ -99,10 +99,15 @@ def update_vision(self: Server, addr: Address, changed_poss: list[Vector2d]):
                 new_city_poss.append(city.pos.as_tuple())
                 break
     req_game_me_vision(self, addr, [])
-    req_game_units(self, addr, new_unit_poss)
-    req_game_cities(self, addr, new_city_poss)
-    req_game_world(self, addr, [pos.as_tuple() for pos in changed_poss])
-    
+
+    for unit in Unit.units:
+        if unit.pos in changed_poss:   
+            self.send_to_addr(addr, Format.event("GAME/UPDATE/UNIT", [(), unit.to_serializable()]))
+    for city in City.cities:
+        if city.pos in changed_poss:
+            self.send_to_addr(addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
+    for pos in changed_poss:
+        self.send_to_addr(addr, Format.event("GAME/UPDATE/TILE", [self.the_game.world.get(pos).to_serializable()]))
 
 @respond.event("MOVE_UNIT")
 def eve_game_mov_unit(self: Server, addr: Address, message: tuple[tuple[int, int], tuple[int, int]]):
@@ -130,9 +135,6 @@ def eve_game_mov_unit(self: Server, addr: Address, message: tuple[tuple[int, int
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"The unit cannot move to the given position")))
         return
-    vision_changes = self.players[addr].update_vision()
-    if len(vision_changes) != 0:
-        update_vision(self, addr, vision_changes)
     if target_unit is not None:
         for player_addr in self.players:
             if self.players[player_addr].vision[pos2[1]][pos2[0]]:
@@ -146,6 +148,9 @@ def eve_game_mov_unit(self: Server, addr: Address, message: tuple[tuple[int, int
             second = moving_unit.to_serializable()
         if len(first) + len(second) > 0:
             self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [first, second]))
+    vision_changes = self.players[addr].update_vision()
+    if len(vision_changes) != 0:
+        update_vision(self, addr, vision_changes)
     self.the_game.remove_dead_units()
         
 

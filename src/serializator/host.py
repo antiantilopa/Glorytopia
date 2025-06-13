@@ -97,8 +97,12 @@ class Host:
         self.alive = True
         self.conns = {}
         self.respond = Respond()
+        with open("logs.txt", "w") as f:
+            f.write("LOGGING START\n")
 
     def routing_respond(self, addr: Address, message: Any):
+        with open("logs.txt", "a") as f:
+            f.write(f"RECV: {addr} -> {message[0]}/{message[1]}:{message[2]}\n")
         route = tuple((message[0], message[1]))
         default_route = (message[0], "")
         if route in self.respond.routes:
@@ -110,9 +114,13 @@ class Host:
             print(f"Route {addr[0]}:{message[0]}/{message[1]} was not found in Respond routes.")
 
     def send_to_addr(self, addr: Address, message: Any):
+        with open("logs.txt", "a") as f:
+            f.write(f"SEND: {addr} <- {message[0]}/{message[1]}:{message[2]}\n")
         self.conns[addr].send(Serializator.encode(message))
     
     def send_to_conn(self, conn: socket.socket, message: Any):
+        with open("logs.txt", "a") as f:
+            f.write(f"SEND: ?(send_to_conn used) <- {message[0]}/{message[1]}:{message[2]}\n")
         conn.send(Serializator.encode(message))
 
     def recv_from_addr(self, addr: Address) -> Any:

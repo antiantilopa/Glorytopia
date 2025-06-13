@@ -14,7 +14,6 @@ def update_unit(self: Client, message: tuple[tuple[int, int]|tuple, SerializedUn
         i = 0
         while i < len(self.units):
             unit = self.units[i]
-            print(unit.pos.as_tuple(), message[0], unit.pos.as_tuple() == message[0])
             if unit.pos == Vector2d.from_tuple(message[0]):
                 if len(message[1]) == 0:
                     self.units.pop(i)
@@ -31,7 +30,6 @@ def update_unit(self: Client, message: tuple[tuple[int, int]|tuple, SerializedUn
         return # means nothing changed. If we are here, then we have a bug.
     if len(message[1]) == 0: unit = ()
     self.units_updates.append((message[0], unit))
-    print(f"Unit updated: {message[0]} -> {unit.pos if isinstance(unit, UnitData) else unit}")
     self.updated |= 2 ** UpdateCodes.UPDATE_UNIT.value
 
 

@@ -13,12 +13,19 @@ import pygame as pg
 def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     scene = create_game_object(tags="game_screen", size=screen_size)
 
+    def deleteme(*_):
+        try:
+            exec(input())
+        except Exception as e:
+            print(f"error: {e}")
+
     create_game_object(scene, "game_screen:world_section", at=InGrid((12, 8), (0, 0), (8, 8)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2)
 
     info_section = create_game_object(scene, "game_screen:info_section", at=InGrid((12, 8), (8, 0), (4, 8)), shape=Shape.RECT)
 
     money_label = create_label(info_section,tags="game_screen:info_section:money_label", text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 8), (0, 0), (1, 1)), color=ColorComponent.WHITE)
 
+    info_section.add_component(KeyBindComponent([pg.K_q], 0, 1, deleteme))
     
     end_turn_button = create_game_object(info_section, "game_screen:info_section:end_turn_button", at=InGrid((1, 8), (0, 7), (1, 1)), size=(100, 40), color=(50, 150, 50) if Client.object.names[0] == Client.object.myname else (30, 100, 30), shape=Shape.RECT)
     end_turn_label = create_label(end_turn_button, "game_screen:info_section:end_turn_label", text="End Turn", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
@@ -27,6 +34,29 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     load_textures()
 
     return scene
+
+def reset_ui(*_):
+    self = Client.object
+
+    world = GameObject.get_game_object_by_tags("game_screen:world_section:world")
+    while len(world.childs) != 0:
+        world.childs[0].destroy()
+
+    unit_layer = create_game_object(world, "game_screen:world_section:world:unit_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=2)
+    ui_lauer = create_game_object(world, "game_screen:world_section:world:ui_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=3)
+    ui_lauer.add_component(OnClickComponent([1, 0, 1], 0, 1, on_world_click))
+    ui_lauer.add_component(KeyBindComponent([pg.K_r], 0, 1, reset_ui))
+
+    for x in range(Client.object.world_size[0]):
+        for y in range(Client.object.world_size[1]):
+            if Client.object.world[y][x] is not None:
+                create_tile_game_object((x, y))
+     
+    for city_data in Client.object.cities:
+        create_city_game_object(city_data)
+    
+    for unit_data in Client.object.units:
+        create_unit_game_object(unit_data)
 
 def selecting(coords: Vector2d):
     self = Client.object
@@ -65,13 +95,13 @@ def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector
             if not SelectComponent.selected.contains_component(UnitComponent):
                 return
             Client.object.send(Format.event("GAME/MOVE_UNIT", [SelectComponent.selected.get_component(UnitComponent).unit_data.pos.as_tuple(), coords.as_tuple()]))
+            SelectComponent.selected.get_component(SelectComponent).deselect()
 
 def end_turn_click(g_obj: GameObject, keys: list[int], pos: Vector2d, *_):
     Client.object.send(Format.event("GAME/END_TURN", ()))
     g_obj.get_component(ColorComponent).color = (30, 100, 30)
     g_obj.need_draw_set_true()
     g_obj.need_blit_set_true()
-    print("End turn clicked")
     
 def init():
 
@@ -80,9 +110,11 @@ def init():
         self = Client.object
         world_obj = GameObject.get_group_by_tag("game_screen:world_section")[0]
         world = create_game_object(world_obj, "game_screen:world_section:world", size=Vector2d.from_tuple(self.world_size) * 100, color=(80, 80, 80), shape=Shape.RECT)
-        unit_layer = create_game_object(world, "game_screen:world_section:world:unit_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=2)
-        ui_lauer = create_game_object(world, "game_screen:world_section:world:ui_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=3)
+        unit_layer = create_game_object(world, "game_screen:world_section:world:unit_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=3)
+        city_layer = create_game_object(world, "game_screen:world_section:world:city_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=2)
+        ui_lauer = create_game_object(world, "game_screen:world_section:world:ui_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=4)
         ui_lauer.add_component(OnClickComponent([1, 0, 1], 0, 1, on_world_click))
+        ui_lauer.add_component(KeyBindComponent([pg.K_r], 0, 1, reset_ui))
         def bind_keys(g_obj: GameObject, keys: list[int], *_):
             current_pos = g_obj.get_component(Transform).pos
                     
