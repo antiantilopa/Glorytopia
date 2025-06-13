@@ -160,6 +160,8 @@ class Serializator:
                 else:
                     raise ValueError(f"{obj} is too big or too small to be serialized... wth are you doing?")
         if isinstance(obj, float):
+            if obj.is_integer():
+                return Serializator.encode(int(obj))
             return Serializator.encode_to(obj, SerializationTypes.FLOAT)
         if isinstance(obj, tuple|list|set):
             return Serializator.encode_to(obj, SerializationTypes.LIST_BEGIN)

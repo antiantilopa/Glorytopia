@@ -51,10 +51,6 @@ def selecting(coords: Vector2d):
     
 
 def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector2d, *_):
-    new = create_game_object(g_obj, "game_screen:info_section:click", at=pos, size=(20, 20), color=ColorComponent.RED, shape=Shape.CIRCLE, radius=10)
-    new.add_component(SpriteComponent(size=Vector2d(20, 20), nickname="city"))
-    print(f"> [!CLICK] {pos} {keys}")
-
     coords = (pos + g_obj.get_component(SurfaceComponent).size // 2) // 100
 
     if coords.x < 0 or coords.y < 0 or coords.x >= Client.object.world_size[0] or coords.y >= Client.object.world_size[1]:
@@ -63,6 +59,12 @@ def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector
     else:
         if keys[0]:  # Left click
             selecting(coords)
+        elif keys[2]:  # Right click
+            if SelectComponent.selected is None:
+                return
+            if not SelectComponent.selected.contains_component(UnitComponent):
+                return
+            Client.object.send(Format.event("GAME/MOVE_UNIT", [SelectComponent.selected.get_component(UnitComponent).unit_data.pos.as_tuple(), coords.as_tuple()]))
 
 def end_turn_click(g_obj: GameObject, keys: list[int], pos: Vector2d, *_):
     Client.object.send(Format.event("GAME/END_TURN", ()))
