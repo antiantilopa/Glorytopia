@@ -54,8 +54,8 @@ class InGrid:
         else:
             self.size = Vector2d.from_tuple(size)
 
-    def get_pos(self, game_object: GameObject) -> Vector2d:
-        c = game_object.parent.get_component(SurfaceComponent).size
+    def get_pos(self, game_object: GameObject, surface_margin: Vector2d = Vector2d(0, 0)) -> Vector2d:
+        c = game_object.parent.get_component(SurfaceComponent).size - 2 * surface_margin
         l = Vector2d(c.x / self.grid.x, c.y / self.grid.y) / 2
         r = Vector2d(c.x / self.grid.x, 0)
         d = Vector2d(0, c.y / self.grid.y)
@@ -63,8 +63,8 @@ class InGrid:
         result = (l * self.size) + (r * self.pos.x) + (d * self.pos.y) - c / 2
         return Vector2d(round(result.x), round(result.y))
 
-    def get_size(self, game_object: GameObject) -> Vector2d:
-        c = game_object.parent.get_component(SurfaceComponent).size
+    def get_size(self, game_object: GameObject, surface_margin: Vector2d = Vector2d(0, 0)) -> Vector2d:
+        c = game_object.parent.get_component(SurfaceComponent).size - 2 * surface_margin
         return Vector2d(c.x * self.size.x // self.grid.x, c.y * self.size.y // self.grid.y)
 
 def create_game_object(
@@ -77,7 +77,8 @@ def create_game_object(
         width: int|None = None,
         radius: int|None = None,
         margin: Vector2d = Vector2d(0, 0),
-        layer: int = 1) -> GameObject:
+        layer: int = 1,
+        surface_margin: Vector2d = Vector2d(0, 0)) -> GameObject:
     t = GameObject(tags)
     t.disable()
     parent.add_child(t)
@@ -86,12 +87,12 @@ def create_game_object(
     if color is not None:
         t.add_component(ColorComponent(color))
     if isinstance(at, Position):
-        pos = Position.get_vector_pos(at, size, parent.get_component(SurfaceComponent).size)
+        pos = Position.get_vector_pos(at, size, parent.get_component(SurfaceComponent).size - 2 * surface_margin)
     elif isinstance(at, Vector2d):
         pos = at
     elif isinstance(at, InGrid):
-        pos = at.get_pos(t)
-        size = at.get_size(t)
+        pos = at.get_pos(t, surface_margin)
+        size = at.get_size(t, surface_margin)
     else:
         pos = Vector2d.from_tuple(at)
     if shape is not None:
@@ -116,24 +117,83 @@ def create_label(
         at: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
         color: tuple[int, int, int]|None = None,
         margin: Vector2d = Vector2d(0, 0)) -> GameObject:
+    if color is None:
+        raise ValueError("label have to have a color")
+    try:
+        t = GameObject(tags)
+        t.disable()
+        parent.add_child(t)
+        l = LabelComponent(text, font)
+        size = Vector2d.from_tuple(l.font.size(text))
+        t.add_component(l)
+        t.add_component(ColorComponent(color))
+        if isinstance(at, Position):
+            pos = Position.get_vector_pos(at, size, parent.get_component(SurfaceComponent).size - margin * 2)
+        elif isinstance(at, Vector2d):
+            pos = at
+        elif isinstance(at, InGrid):
+            pos = at.get_pos(t)
+            size = at.get_size(t)
+        else:
+            pos = Vector2d.from_tuple(at)
+        t.add_component(Transform(pos))
+        t.add_component(SurfaceComponent(size=size))
+        t.enable()
+        return t
+    except Exception as e:
+        t.destroy()
+        raise e
+
+def create_label_block(
+        parent = GameObject.root,
+        tags: list[str] = [],
+        text: str  = "",
+        font: pg.font.Font|None = None,
+        at: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
+        text_pos: Position = Position.CENTER,
+        color: tuple[int, int, int]|None = None,
+        margin: Vector2d = Vector2d(0, 0)) -> GameObject:
+    if color is None:
+        raise ValueError("label have to have a color.")
+    if text_pos not in (Position.LEFT, Position.CENTER, Position.RIGHT):
+        raise ValueError("text_pos have to be either LEFT, CENTER, or RIGHT.")
     t = GameObject(tags)
     t.disable()
     parent.add_child(t)
-    if color is not None:
-        t.add_component(ColorComponent(color))
-    l = LabelComponent(text, font)
-    size = Vector2d.from_tuple(l.font.size(text))
-    t.add_component(l)
+    if font is None:
+        font = pg.font.SysFont("consolas", 30)
+    max_length = 0
+    total_height = 0
+    for line in text.split("\n"):
+        length, height = font.size(line)
+        if length > max_length:
+            max_length = length
+        total_height += height
+    
+    size = Vector2d(max_length, total_height)
     if isinstance(at, Position):
         pos = Position.get_vector_pos(at, size, parent.get_component(SurfaceComponent).size - margin * 2)
     elif isinstance(at, Vector2d):
         pos = at
     elif isinstance(at, InGrid):
         pos = at.get_pos(t)
-        size = at.get_size(t)
     else:
         pos = Vector2d.from_tuple(at)
-    t.add_component(Transform(pos))
     t.add_component(SurfaceComponent(size=size))
+    t.add_component(Transform(pos))
+
+    for i in range(len(text.split("\n"))):
+        line = text.split("\n")[i]
+        if isinstance(tags, str):
+            new_tag = tags + ":label"
+        elif len(tags) == 0:
+            new_tag = "label"
+        else:
+            new_tag = tags[0] + ":label"
+        l = create_label(t, new_tag, line, font, Position.CENTER, color)
+        label_pos_x = Position.get_vector_pos(text_pos, Vector2d.from_tuple(font.size(line)), size).x
+        label_pos_y = InGrid((1, len(text.split("\n"))), (0, i), (1, 1)).get_pos(l).y
+        l.get_component(Transform).set_pos(Vector2d(label_pos_x, label_pos_y))
     t.enable()
     return t
+    

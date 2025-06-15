@@ -183,9 +183,14 @@ def eve_game_conquer_city(self: Server, addr: Address, message: tuple[tuple[int,
                 if c.pos.x == message[0][0] and c.pos.y == message[0][1]:
                     city = c
                     break
+            unit = None
+            for u in Unit.units:
+                if u.pos.x == message[0][0] and u.pos.y == message[0][1]:
+                    unit = u
             for player_addr in self.players:
                 if self.players[player_addr].vision[city.pos.y][city.pos.x]:
                     self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
+                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [unit.pos.as_tuple(), unit.to_serializable()]))
         else:
             self.send_to_addr(addr, Format.error("GAME/CONQUER_CITY", (f"Cannot conquer city: {result.name}")))
     else:
@@ -248,12 +253,21 @@ def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], 
 def game_end_turn(self: Server, addr: Address, message: tuple):
     if addr == self.order[self.now_playing_player_index]:
         self.players[self.order[self.now_playing_player_index]].end_turn()
+        for unit in self.players[self.order[self.now_playing_player_index]].units:
+            if not unit.attacked and not unit.moved:
+                for player_addr in self.players:
+                    if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
+                        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [unit.pos.as_tuple(), unit.to_serializable()]))
         self.now_playing_player_index += 1
         self.now_playing_player_index %= len(self.order)
         self.players[self.order[self.now_playing_player_index]].start_turn()
+        for unit in self.players[self.order[self.now_playing_player_index]].units:
+            for player_addr in self.players:
+                if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
+                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [unit.pos.as_tuple(), unit.to_serializable()]))
         self.send_to_addr(self.order[self.now_playing_player_index], Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
 
         for addr1 in self.conns:
-            self.send_to_addr(addr1, Format.event("GAME/END_TURN", (self.addrs_to_names[addr])))
+            self.send_to_addr(addr1, Format.event("GAME/END_TURN", [self.addrs_to_names[addr]]))
     else:
         self.send_to_addr(addr, Format.error("GAME/END_TURN", (f"Not your move right now.")))

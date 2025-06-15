@@ -23,8 +23,11 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
 
     info_section = create_game_object(scene, "game_screen:info_section", at=InGrid((12, 8), (8, 0), (4, 8)), shape=Shape.RECT)
 
-    money_label = create_label(info_section,tags="game_screen:info_section:money_label", text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 8), (0, 0), (1, 1)), color=ColorComponent.WHITE)
+    money_label = create_label(info_section, tags="game_screen:info_section:money_label", text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 8), (0, 0), (1, 1)), color=ColorComponent.WHITE)
 
+    selector_section = create_game_object(info_section, at=InGrid((1, 8), (0, 1), (1, 5)), shape=Shape.RECTBORDER, color=ColorComponent.WHITE, width=2, margin=Vector2d(5, 0), tags="game_screen:info_section:selector_section")
+    selector_image_section = create_game_object(selector_section, at=InGrid((4, 5), (0, 0), (1, 1)), surface_margin=Vector2d(7, 2), tags="game_screen:info_section:selector_section:selector_image_section")
+    selector_info_section = create_game_object(selector_section, at=InGrid((4, 5), (0, 1), (4, 4)), surface_margin=Vector2d(7, 2), tags="game_screen:info_section:selector_section:selector_info_section")
     info_section.add_component(KeyBindComponent([pg.K_q], 0, 1, deleteme))
     
     end_turn_button = create_game_object(info_section, "game_screen:info_section:end_turn_button", at=InGrid((1, 8), (0, 7), (1, 1)), size=(100, 40), color=(50, 150, 50) if Client.object.names[0] == Client.object.myname else (30, 100, 30), shape=Shape.RECT)
@@ -42,8 +45,9 @@ def reset_ui(*_):
     while len(world.childs) != 0:
         world.childs[0].destroy()
 
-    unit_layer = create_game_object(world, "game_screen:world_section:world:unit_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=2)
-    ui_lauer = create_game_object(world, "game_screen:world_section:world:ui_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=3)
+    unit_layer = create_game_object(world, "game_screen:world_section:world:unit_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=3)
+    city_layer = create_game_object(world, "game_screen:world_section:world:city_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=2)
+    ui_lauer = create_game_object(world, "game_screen:world_section:world:ui_layer", size=Vector2d.from_tuple(self.world_size) * 100, shape=Shape.RECT, layer=4)
     ui_lauer.add_component(OnClickComponent([1, 0, 1], 0, 1, on_world_click))
     ui_lauer.add_component(KeyBindComponent([pg.K_r], 0, 1, reset_ui))
 
@@ -79,6 +83,82 @@ def selecting(coords: Vector2d):
                 tile.get_component(SelectComponent).select()
                 return
     
+def selector_info_update():
+    selector_info_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_info_section")
+    selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
+
+    selector_image_section.disable()
+    selector_info_section.disable()
+
+    while len(selector_info_section.childs) != 0:
+        selector_info_section.childs[0].destroy()
+    while len(selector_image_section.childs) != 0:
+        selector_image_section.childs[0].destroy()
+
+    if SelectComponent.selected is None:
+        pass
+    elif SelectComponent.selected.contains_component(TileComponent):
+        img = create_game_object(selector_image_section, tags="game_screen:info_section:selector_section:selector_image_section:tile_image", at=InGrid((1, 1), (0, 0)), layer=0)
+        img.add_component(SpriteComponent(nickname=SelectComponent.selected.get_component(TileComponent).tile_data.ttype.name, size=Vector2d(100, 100)))
+        is_there_city = False
+        city_data = None
+        if SelectComponent.selected.get_component(TileComponent).tile_data.resource is not None:
+            r_img = create_game_object(selector_image_section, "game_screen:info_section:selector_section:selector_image_section:resource_image", at=InGrid((1, 1), (0, 0)), layer=1)
+            r_img.add_component(SpriteComponent(nickname=SelectComponent.selected.get_component(TileComponent).tile_data.resource.name, size=Vector2d(100, 100)))
+        elif  SelectComponent.selected.get_component(TileComponent).tile_data.building is not None:
+            r_img = create_game_object(selector_image_section, "game_screen:info_section:selector_section:selector_image_section:building_image", at=InGrid((1, 1), (0, 0)), layer=1)
+            r_img.add_component(SpriteComponent(nickname=SelectComponent.selected.get_component(TileComponent).tile_data.building.name, size=Vector2d(100, 100)))
+        else:
+            for city in Client.object.cities:
+                if city.pos == SelectComponent.selected.get_component(TileComponent).pos:
+                    r_img = create_game_object(selector_image_section, "game_screen:info_section:selector_section:selector_image_section:city_image", at=InGrid((1, 1), (0, 0)), layer=1)
+                    r_img.add_component(SpriteComponent(nickname="city", size=Vector2d(100, 100)))
+                    is_there_city = True
+                    city_data = city
+                    break
+        if not is_there_city:
+            tile_data = SelectComponent.selected.get_component(TileComponent).tile_data
+            text = "\n".join((
+                f"type: {tile_data.ttype.name}", 
+                f"owner: {Client.object.names[tile_data.owner] if tile_data.owner != -1 else None}", 
+                f"resorce: {tile_data.resource.name if tile_data.resource is not None else None}", 
+                f"building: {tile_data.building.name if tile_data.building is not None else None}",
+                f"pos: {tile_data.pos}", 
+            ))
+            create_label_block(selector_info_section, "game_screen:info_section:selector_section:selector_info_section:label_block", text, font=pg.font.SysFont("consolas", 20),  at=Position.LEFT_UP, text_pos=Position.LEFT, color=ColorComponent.RED)
+        else:
+            text = "\n".join((
+                f"city: {city_data.name}",
+                f"owner: {Client.object.names[city_data.owner] if city_data.owner != -1 else None}", 
+                f"level: {city_data.level}",
+                f"population: {city_data.population}/{city_data.level + 1}",
+                f"fullness: {city_data.fullness}",
+                f"income: +{city_data.level + city_data.is_capital + city_data.forge}",
+                f"pos: {city_data.pos}",
+                f"Capital" if city_data.is_capital else ""
+            ))
+            create_label_block(selector_info_section, "game_screen:info_section:selector_section:selector_info_section:label_block", text, font=pg.font.SysFont("consolas", 20),  at=Position.LEFT_UP, text_pos=Position.LEFT, color=ColorComponent.RED)
+
+    elif SelectComponent.selected.contains_component(UnitComponent):
+        unit_data = SelectComponent.selected.get_component(UnitComponent).unit_data
+
+        img = create_game_object(selector_image_section, "game_screen:info_section:selector_section:selector_image_section:image", at=InGrid((1, 1), (0, 0)))
+        img.add_component(SpriteComponent(nickname=unit_data.utype.name, size=Vector2d(100, 100)))
+        
+        text = "\n".join((
+            f"type: {unit_data.utype.name}",
+            f"owner: {Client.object.names[unit_data.owner] if unit_data.owner != -1 else None}", 
+            f"health: {unit_data.health}",
+            f"can_move?: {"no" if unit_data.moved else "yes"}",
+            f"can_attack?: {"no" if unit_data.attacked else "yes"}",
+            f"pos: {unit_data.pos}",
+        ))
+        create_label_block(selector_info_section, "game_screen:info_section:selector_section:selector_info_section:label_block", text, font=pg.font.SysFont("consolas", 20),  at=Position.LEFT_UP, text_pos=Position.LEFT, color=ColorComponent.RED)
+
+
+    selector_image_section.enable()
+    selector_info_section.enable()
+
 
 def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector2d, *_):
     coords = (pos + g_obj.get_component(SurfaceComponent).size // 2) // 100
@@ -89,6 +169,7 @@ def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector
     else:
         if keys[0]:  # Left click
             selecting(coords)
+            selector_info_update()
         elif keys[2]:  # Right click
             if SelectComponent.selected is None:
                 return
@@ -96,6 +177,7 @@ def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector
                 return
             Client.object.send(Format.event("GAME/MOVE_UNIT", [SelectComponent.selected.get_component(UnitComponent).unit_data.pos.as_tuple(), coords.as_tuple()]))
             SelectComponent.selected.get_component(SelectComponent).deselect()
+            selector_info_update()
 
 def end_turn_click(g_obj: GameObject, keys: list[int], pos: Vector2d, *_):
     Client.object.send(Format.event("GAME/END_TURN", ()))
