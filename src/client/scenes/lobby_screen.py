@@ -63,7 +63,7 @@ def start_game():
     scene.disable()
     game_scene = game_screen.load(scene.get_component(SurfaceComponent).size)
     game_screen.init()
-    game_scene.enable()
+    game_screen.start()
 
 def init():
 
@@ -86,8 +86,8 @@ def init():
                     if "lobby_screen:ready_section:name:name_label" in child.tags:
                         child.destroy()
                         break
-                l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[int(g.tags[1])] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
-                l2 = create_label(g, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at = Position.RIGHT, color=ColorComponent.RED, margin=Vector2d(10, 3))
+                l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[int(g.tags[1])] == Client.object.myname else ColorComponent.RED, margin=Vector2d(20, 3))
+                l2 = create_label(g, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at = Position.RIGHT, color=ColorComponent.RED, margin=Vector2d(20, 3))
                 l1.first_iteration()
                 l2.first_iteration()
         for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
@@ -110,7 +110,7 @@ def init():
                     if "lobby_screen:ready_section:name:name_label" in child.tags:
                         child.destroy()
                         break
-                l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[int(g.tags[1])] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
+                l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[int(g.tags[1])] == Client.object.myname else ColorComponent.RED, margin=Vector2d(20, 3))
                 l1.first_iteration()
         for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
             g.get_component(LabelComponent).text = "X"
@@ -134,8 +134,8 @@ def init():
             child.destroy()
         for num in range(len(self.names)):
             n = create_game_object(ready_section, ["lobby_screen:ready_section:name", str(num)], at=InGrid((1, 6), (0, num)), color=ColorComponent.WHITE, width=2, shape=Shape.RECTBORDER, margin=Vector2d(10, 3))
-            l1 = create_label(n, tags="lobby_screen:ready_section:name:name_label", text = self.names[num], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[num] == Client.object.myname else ColorComponent.RED, margin=Vector2d(10, 3))
-            l2 = create_label(n, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at = Position.RIGHT, color=ColorComponent.RED, margin=Vector2d(10, 3))
+            l1 = create_label(n, tags="lobby_screen:ready_section:name:name_label", text = self.names[num], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=ColorComponent.GREEN if self.names[num] == Client.object.myname else ColorComponent.RED, margin=Vector2d(20, 3))
+            l2 = create_label(n, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at = Position.RIGHT, color=ColorComponent.RED, margin=Vector2d(20, 3))
 
     @Client.object.check_update(UpdateCodes.MESSAGE)
     def message():

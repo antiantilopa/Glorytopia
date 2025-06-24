@@ -22,6 +22,10 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     scene.add_component(KeyBindComponent([pg.K_q], 0, 1, deleteme))
 
     create_game_object(scene, "game_screen:world_section", at=InGrid((12, 8), (0, 0), (8, 8)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2)
+    
+    techs_window = create_list_game_object(scene, "game_screen:techs_window", at=InGrid((1, 1), (0, 0), (1, 1)), color=(0, 70, 150), shape=Shape.RECT, axis=(1, 1), speed=Vector2d(25, 25), bound=1, layer=0)
+    techs_window.add_component(KeyBindComponent([pg.K_ESCAPE], 0, 1, close_techs_window))
+    techs_window.disable()
 
     info_section = create_game_object(scene, "game_screen:info_section", at=InGrid((12, 8), (8, 0), (4, 8)), shape=Shape.RECT)
 
@@ -37,6 +41,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
 
     techs_button = create_game_object(info_section, "game_screen:info_section:techs_button", at=InGrid((1, 8), (0, 6), (1, 1)), size=(100, 40), color=(0, 150, 250), shape=Shape.RECT)
     techs_label = create_label(techs_button, "game_screen:info_section:end_turn_label", text="Technology", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
+    techs_button.add_component(OnClickComponent([1, 0, 0], 0, 1, open_techs_window))
 
     load_textures()
 
@@ -153,15 +158,16 @@ def selector_info_update():
                 f"pos: {city_data.pos}",
                 f"Capital" if city_data.is_capital else ""
             ))
-            found = 0
-            for unit_data in Client.object.units:
-                if unit_data.pos == city_data.pos:
-                    found = 1
-                    break
-            if city_data.fullness != city_data.level + 1 and not found:
-                for tech in Client.object.techs:
-                    for utype in tech.units:
-                        buttons.append((f"{utype.name}:{utype.cost}", lambda *_: Client.object.send(Format.event("GAME/CREATE_UNIT", [city_data.pos.as_tuple(), utype.id]))))
+            if city_data.owner == Client.object.names.index(Client.object.myname):
+                found = 0
+                for unit_data in Client.object.units:
+                    if unit_data.pos == city_data.pos:
+                        found = 1
+                        break
+                if city_data.fullness != city_data.level + 1 and not found:
+                    for tech in Client.object.techs:
+                        for utype in tech.units:
+                            buttons.append((f"{utype.name}:{utype.cost}", lambda *_: Client.object.send(Format.event("GAME/CREATE_UNIT", [city_data.pos.as_tuple(), utype.id]))))
     elif SelectComponent.selected.contains_component(UnitComponent):
         unit_data = SelectComponent.selected.get_component(UnitComponent).unit_data
 
@@ -196,7 +202,6 @@ def selector_info_update():
         button.add_component(OnClickComponent((1, 0, 0), 0, 1, buttons[i][1]))
         create_label(button_sec, text=buttons[i][0], at=InGrid((10, 1), (1, 0), (9, 1)), margin=Vector2d(5, 0), color=ColorComponent.RED, tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_sec:label")
 
-
 def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector2d, *_):
     
     world_sec = GameObject.get_game_object_by_tags("game_screen:world_section")
@@ -219,6 +224,24 @@ def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector
             if not SelectComponent.selected.contains_component(UnitComponent):
                 return
             Client.object.send(Format.event("GAME/MOVE_UNIT", [SelectComponent.selected.get_component(UnitComponent).unit_data.pos.as_tuple(), coords.as_tuple()]))
+
+def open_techs_window(*_):
+    info_sec = GameObject.get_game_object_by_tags("game_screen:info_section")
+    tech_win = GameObject.get_game_object_by_tags("game_screen:techs_window")
+    world_sec = GameObject.get_game_object_by_tags("game_screen:world_section")
+
+    info_sec.disable()
+    world_sec.disable()
+    tech_win.enable()
+
+def close_techs_window(*_):
+    info_sec = GameObject.get_game_object_by_tags("game_screen:info_section")
+    tech_win = GameObject.get_game_object_by_tags("game_screen:techs_window")
+    world_sec = GameObject.get_game_object_by_tags("game_screen:world_section")
+
+    info_sec.enable()
+    world_sec.enable()
+    tech_win.disable()
 
 def end_turn_click(g_obj: GameObject, keys: list[int], pos: Vector2d, *_):
     Client.object.send(Format.event("GAME/END_TURN", ()))
@@ -314,5 +337,13 @@ def init():
         while not self.changing_main_cycle:
             Client.object.check_updates()
             
+
+def start():
+    scene=GameObject.get_game_object_by_tags("game_screen")
+    tech_win = GameObject.get_game_object_by_tags("game_screen:techs_window")
+
+    scene.enable()
+    tech_win.disable()
+
 if __name__ == "__main__":
     load()

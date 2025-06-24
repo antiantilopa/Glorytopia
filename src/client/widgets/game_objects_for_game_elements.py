@@ -36,7 +36,6 @@ def create_tile_game_object(pos: tuple[int, int]):
             i += 1
             continue
         elif tile_child.get_component(PositionComponent).pos == Vector2d(*pos):
-            print("destroid!")
             tile_child.destroy()
         else:
             i += 1

@@ -51,11 +51,10 @@ for r in host.respond.routes:
     print(r)
 
 def start_game():
-    host.the_game = Game(Vector2d(11, 11), len(host.addrs_to_names))
+    host.the_game = Game(Vector2d(20, 20), len(host.addrs_to_names))
     for addr in host.order:
         host.players[addr] = host.the_game.players[host.order.index(addr)]
         host.send_to_addr(addr, Format.event("GAME/GAME_START", [0, host.order.index(addr)]))
-    host.send_to_addr(addr, Format.event("GAME/INIT", [(11, 11)]))
     symbol_terrain = "_~=+^"
     for i in range(host.the_game.world.size.y):
         for j in range(host.the_game.world.size.x):

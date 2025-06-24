@@ -13,6 +13,7 @@ class TechNode:
     harvestables: list[ResourceType]
     defence: list[TileType]
     accessable: list[TileType]
+    childs: list["TechNode"]
 
     ID = 0
     techs: list["TechNode"] = []
@@ -40,6 +41,9 @@ class TechNode:
         self.harvestables = harvestables
         self.defence = defence
         self.accessable = accessable
+        self.childs = []
+        if parent is not None:
+            parent.childs.append(self)
         TechNode.techs.append(self)
     
     @staticmethod

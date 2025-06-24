@@ -57,11 +57,11 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
 
     return scene
 
-def launch():
-    load()
+def launch(screen_size: Vector2d = Vector2d(1200, 800)):
+    load(screen_size)
     scene = GameObject.get_group_by_tag("main_menu")[0]
 
-    e = Engine(Vector2d(1200, 800))
+    e = Engine(screen_size)
     scene.enable()
     e.run()
 

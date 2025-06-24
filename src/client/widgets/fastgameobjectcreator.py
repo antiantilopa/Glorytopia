@@ -246,6 +246,8 @@ def create_list_game_object(
     t.add_component(SurfaceComponent(size=size, layer=layer))
 
     def scroll(g_obj: GameObject, keys: list[int], *_):
+        if len(g_obj.childs) == 0:
+            return
         delta = Vector2d(0, 0)
         if axis[0]:
             if x_axis_keys[0] in keys:
@@ -259,8 +261,6 @@ def create_list_game_object(
             elif y_axis_keys[1] in keys:
                 delta = delta + speed * Vector2d(0, -1)
         if bound:
-            # TODO
-            # hint: think about the range in which the "scroller" can be. the range itself is minimal, when and only when the diff between leftest and rightest points equal to size
             if axis[0] and delta.x != 0:
                 g = max(g_obj.childs, key=lambda g: g.get_component(Transform).pos.x + g.get_component(SurfaceComponent).size.x/2)
                 b_r = (g_obj.get_component(SurfaceComponent).size.x / 2) - (g.get_component(Transform).pos.x + g.get_component(SurfaceComponent).size.x / 2)
