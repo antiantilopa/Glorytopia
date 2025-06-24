@@ -29,11 +29,17 @@ class CityComponent(PositionComponent):
 def create_tile_game_object(pos: tuple[int, int]):
     world = GameObject.get_game_object_by_tags("game_screen:world_section:world")
     self = Client.object
-    for tile_child in world.childs:
+    i = 0
+    while i < len(world.childs):
+        tile_child = world.childs[i]
         if not tile_child.contains_component(PositionComponent):
+            i += 1
             continue
-        if tile_child.get_component(PositionComponent).pos == Vector2d(*pos):
+        elif tile_child.get_component(PositionComponent).pos == Vector2d(*pos):
+            print("destroid!")
             tile_child.destroy()
+        else:
+            i += 1
     new_tile = create_game_object(world, "game_screen:world_section:world:tile", at=InGrid(self.world_size, Vector2d(*pos)), shape=Shape.RECT, layer = 0)
     new_tile.add_component(TileComponent(self.world[pos[1]][pos[0]], Vector2d(*pos)))
     new_tile.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].ttype.name, size=Vector2d(100, 100)))
@@ -62,6 +68,7 @@ def remove_unit_game_object(pos: tuple[int, int]):
             unit.need_blit_set_true()
             unit.destroy()
             break
+    unit_layer.need_draw = True
 
 def move_unit_game_object(pos: tuple[int, int], unit_data: UnitData):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
@@ -74,6 +81,12 @@ def move_unit_game_object(pos: tuple[int, int], unit_data: UnitData):
 
 def create_city_game_object(city_data: CityData):
     city_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:city_layer")
+    for city in city_layer.childs:
+        if city.contains_component(CityComponent):
+            if city.get_component(PositionComponent).pos == city_data.pos:
+                city.get_component(CityComponent).city_data = city_data
+                return
+
     city = create_game_object(city_layer, ["game_screen:world_section:world:city_layer:city"], at=InGrid(Client.object.world_size, city_data.pos), shape=Shape.RECT, layer=100)
     city.add_component(CityComponent(city_data, city_data.pos))
     city.add_component(SpriteComponent(nickname="city", size=Vector2d(100, 100)))

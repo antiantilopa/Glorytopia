@@ -19,6 +19,8 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
         except Exception as e:
             print(f"error: {e}")
 
+    scene.add_component(KeyBindComponent([pg.K_q], 0, 1, deleteme))
+
     create_game_object(scene, "game_screen:world_section", at=InGrid((12, 8), (0, 0), (8, 8)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2)
 
     info_section = create_game_object(scene, "game_screen:info_section", at=InGrid((12, 8), (8, 0), (4, 8)), shape=Shape.RECT)
@@ -28,11 +30,13 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     selector_section = create_game_object(info_section, at=InGrid((1, 8), (0, 1), (1, 5)), shape=Shape.RECTBORDER, color=ColorComponent.WHITE, width=2, margin=Vector2d(5, 0), tags="game_screen:info_section:selector_section")
     selector_image_section = create_game_object(selector_section, at=InGrid((4, 5), (0, 0), (1, 1)), surface_margin=Vector2d(7, 2), tags="game_screen:info_section:selector_section:selector_image_section")
     selector_info_section = create_game_object(selector_section, at=InGrid((4, 5), (0, 1), (4, 4)), surface_margin=Vector2d(7, 2), tags="game_screen:info_section:selector_section:selector_info_section")
-    info_section.add_component(KeyBindComponent([pg.K_q], 0, 1, deleteme))
     
     end_turn_button = create_game_object(info_section, "game_screen:info_section:end_turn_button", at=InGrid((1, 8), (0, 7), (1, 1)), size=(100, 40), color=(50, 150, 50) if Client.object.names[0] == Client.object.myname else (30, 100, 30), shape=Shape.RECT)
     end_turn_label = create_label(end_turn_button, "game_screen:info_section:end_turn_label", text="End Turn", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
     end_turn_button.add_component(OnClickComponent([1, 0, 0], 0, 1, end_turn_click))
+
+    techs_button = create_game_object(info_section, "game_screen:info_section:techs_button", at=InGrid((1, 8), (0, 6), (1, 1)), size=(100, 40), color=(0, 150, 250), shape=Shape.RECT)
+    techs_label = create_label(techs_button, "game_screen:info_section:end_turn_label", text="Technology", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
 
     load_textures()
 
@@ -87,17 +91,20 @@ def selector_info_update():
     selector_info_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_info_section")
     selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
 
-    selector_image_section.disable()
-    selector_info_section.disable()
-
     while len(selector_info_section.childs) != 0:
         selector_info_section.childs[0].destroy()
     while len(selector_image_section.childs) != 0:
         selector_image_section.childs[0].destroy()
+    selector_image_section.need_draw = True
+    selector_info_section.need_draw = True
 
     if SelectComponent.selected is None:
-        pass
-    elif SelectComponent.selected.contains_component(TileComponent):
+        return
+
+    buttons = []
+    text = ""
+    
+    if SelectComponent.selected.contains_component(TileComponent):
         img = create_game_object(selector_image_section, tags="game_screen:info_section:selector_section:selector_image_section:tile_image", at=InGrid((1, 1), (0, 0)), layer=0)
         img.add_component(SpriteComponent(nickname=SelectComponent.selected.get_component(TileComponent).tile_data.ttype.name, size=Vector2d(100, 100)))
         is_there_city = False
@@ -125,7 +132,16 @@ def selector_info_update():
                 f"building: {tile_data.building.name if tile_data.building is not None else None}",
                 f"pos: {tile_data.pos}", 
             ))
-            create_label_block(selector_info_section, "game_screen:info_section:selector_section:selector_info_section:label_block", text, font=pg.font.SysFont("consolas", 20),  at=Position.LEFT_UP, text_pos=Position.LEFT, color=ColorComponent.RED)
+            if tile_data.owner == Client.object.names.index(Client.object.myname):
+                if tile_data.resource is not None:
+                    for tech in Client.object.techs:
+                        if tile_data.resource in tech.harvestables:
+                            buttons.append(("harvest:2", lambda *_: Client.object.send(Format.event("GAME/HARVEST", [tile_data.pos.as_tuple()]))))
+                if tile_data.building is None:
+                    for tech in Client.object.techs:
+                        for btype in tech.buildings:
+                            if (tile_data.ttype in btype.ttypes) and ((btype.required_resource is None) or (btype.required_resource == tile_data.resource)):
+                                buttons.append((f"{btype.name}:{btype.cost}", lambda *_: Client.object.send(Format.event("GAME/BUILD", [tile_data.pos.as_tuple(), btype.id]))))
         else:
             text = "\n".join((
                 f"city: {city_data.name}",
@@ -137,8 +153,15 @@ def selector_info_update():
                 f"pos: {city_data.pos}",
                 f"Capital" if city_data.is_capital else ""
             ))
-            create_label_block(selector_info_section, "game_screen:info_section:selector_section:selector_info_section:label_block", text, font=pg.font.SysFont("consolas", 20),  at=Position.LEFT_UP, text_pos=Position.LEFT, color=ColorComponent.RED)
-
+            found = 0
+            for unit_data in Client.object.units:
+                if unit_data.pos == city_data.pos:
+                    found = 1
+                    break
+            if city_data.fullness != city_data.level + 1 and not found:
+                for tech in Client.object.techs:
+                    for utype in tech.units:
+                        buttons.append((f"{utype.name}:{utype.cost}", lambda *_: Client.object.send(Format.event("GAME/CREATE_UNIT", [city_data.pos.as_tuple(), utype.id]))))
     elif SelectComponent.selected.contains_component(UnitComponent):
         unit_data = SelectComponent.selected.get_component(UnitComponent).unit_data
 
@@ -153,14 +176,34 @@ def selector_info_update():
             f"can_attack?: {"no" if unit_data.attacked else "yes"}",
             f"pos: {unit_data.pos}",
         ))
-        create_label_block(selector_info_section, "game_screen:info_section:selector_section:selector_info_section:label_block", text, font=pg.font.SysFont("consolas", 20),  at=Position.LEFT_UP, text_pos=Position.LEFT, color=ColorComponent.RED)
+        if not (unit_data.moved or unit_data.attacked):
+            city_found = False
+            for city in Client.object.cities:
+                if city.pos == unit_data.pos:
+                    if city.owner == unit_data.owner:
+                        break
+                    else:
+                        city_found = True
+                        break
+            if city_found:
+                buttons.append(("Conquer city", lambda *_: Client.object.send(Format.event("GAME/CONQUER_CITY", [unit_data.pos.as_tuple()]))))
+    create_label_block(selector_info_section, "game_screen:info_section:selector_section:selector_info_section:label_block", text, font=pg.font.SysFont("consolas", 20),  at=Position.LEFT_UP, text_pos=Position.LEFT, color=ColorComponent.RED)
+    selector_info_buttons_section = create_list_game_object(selector_info_section, bound=1, at=InGrid((1, 5), (0, 2), (1, 3)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4), tags="game_screen:info_section:selector_section:selector_info_section:buttons_section")
 
-
-    selector_image_section.enable()
-    selector_info_section.enable()
+    for i in range(len(buttons)):
+        button_sec = create_game_object(selector_info_buttons_section, at=InGrid((1, 5), (0, i), (1, 1)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4), tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_section")
+        button = create_game_object(button_sec, at=InGrid((10, 1), (0, 0), (1, 1)), color=ColorComponent.GREEN, shape=Shape.RECT, tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_section:button")
+        button.add_component(OnClickComponent((1, 0, 0), 0, 1, buttons[i][1]))
+        create_label(button_sec, text=buttons[i][0], at=InGrid((10, 1), (1, 0), (9, 1)), margin=Vector2d(5, 0), color=ColorComponent.RED, tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_sec:label")
 
 
 def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector2d, *_):
+    
+    world_sec = GameObject.get_game_object_by_tags("game_screen:world_section")
+    world = GameObject.get_game_object_by_tags("game_screen:world_section:world")
+
+    if not Vector2d.is_in_box(pos + world.get_component(Transform).pos, -world_sec.get_component(SurfaceComponent).size // 2, world_sec.get_component(SurfaceComponent).size // 2):
+        return
     coords = (pos + g_obj.get_component(SurfaceComponent).size // 2) // 100
 
     if coords.x < 0 or coords.y < 0 or coords.x >= Client.object.world_size[0] or coords.y >= Client.object.world_size[1]:
@@ -169,15 +212,13 @@ def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector
     else:
         if keys[0]:  # Left click
             selecting(coords)
-            selector_info_update()
+            selector_info_update()  
         elif keys[2]:  # Right click
             if SelectComponent.selected is None:
                 return
             if not SelectComponent.selected.contains_component(UnitComponent):
                 return
             Client.object.send(Format.event("GAME/MOVE_UNIT", [SelectComponent.selected.get_component(UnitComponent).unit_data.pos.as_tuple(), coords.as_tuple()]))
-            SelectComponent.selected.get_component(SelectComponent).deselect()
-            selector_info_update()
 
 def end_turn_click(g_obj: GameObject, keys: list[int], pos: Vector2d, *_):
     Client.object.send(Format.event("GAME/END_TURN", ()))
@@ -222,12 +263,10 @@ def init():
     @Client.object.check_update(UpdateCodes.UPDATE_TILE)
     def update_tile():
         self = Client.object
-        world = GameObject.get_group_by_tag("game_screen:world_section:world")[0]
-        world.disable()
         for pos in self.world_updates:
             create_tile_game_object(pos)
         self.world_updates.clear()
-        world.enable()
+        selector_info_update()
 
     @Client.object.check_update(UpdateCodes.UPDATE_UNIT)
     def update_unit():
@@ -235,11 +274,12 @@ def init():
         for unit_change in self.units_updates:
             if len(unit_change[0]) == 0: 
                 create_unit_game_object(unit_change[1])
-            elif not isinstance(unit_change[1], UnitData):
+            elif (not isinstance(unit_change[1], UnitData)) or unit_change[1].health <= 0:
                 remove_unit_game_object(unit_change[0])
             else:
                 move_unit_game_object(unit_change[0], unit_change[1])
         self.units_updates.clear()
+        selector_info_update()
 
     @Client.object.check_update(UpdateCodes.UPDATE_CITY)
     def update_city():
@@ -247,6 +287,7 @@ def init():
         for city in self.cities_updates:
             create_city_game_object(city)
         self.cities_updates.clear()
+        selector_info_update()
 
     @Client.object.check_update(UpdateCodes.UPDATE_MONEY)
     def update_money():

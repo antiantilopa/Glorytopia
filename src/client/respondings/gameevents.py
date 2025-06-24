@@ -37,9 +37,9 @@ def update_unit(self: Client, message: tuple[tuple[int, int]|tuple, SerializedUn
 def update_city(self: Client, message: tuple[SerializedCity]):
     city = CityData.from_serializable(message[0])
     found = False
-    for c in self.cities:
-        if c.pos == city.pos:
-            c = city
+    for i in range(len(self.cities)):
+        if self.cities[i].pos == city.pos:
+            self.cities[i] = city
             found = True
             break
     if not found:
@@ -78,4 +78,5 @@ def game_start(self: Client, message: tuple[int]):
     self.send(Format.request("GAME/CITIES", []))
     self.send(Format.request("GAME/UNITS", []))
     self.send(Format.request("GAME/MY_MONEY", []))
+    self.send(Format.request("GAME/MY_TECHS", []))
     self.updated |= 2 ** UpdateCodes.GAME_START.value

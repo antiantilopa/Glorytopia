@@ -19,3 +19,8 @@ class SelectComponent(Component):
     def deselect(self):
         self.is_selected = False
         SelectComponent.selected = None
+    
+    def destroy(self):
+        if SelectComponent.selected == self.game_object:
+            self.deselect()
+        return super().destroy()

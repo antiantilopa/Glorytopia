@@ -197,3 +197,106 @@ def create_label_block(
     t.enable()
     return t
     
+def create_list_game_object(
+        parent = GameObject.root,
+        tags: list[str] = [],
+        at: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
+        size: Vector2d|tuple[int, int] = Vector2d(0, 0),
+        color: tuple[int, int, int]|None = None,
+        shape: Shape|None = None,
+        width: int|None = None,
+        radius: int|None = None,
+        margin: Vector2d = Vector2d(0, 0),
+        layer: int = 1,
+        surface_margin: Vector2d = Vector2d(0, 0), 
+        axis: tuple[bool, bool] = (0, 1), 
+        x_axis_keys: tuple[int, int] = (pg.K_LEFT, pg.K_RIGHT),
+        y_axis_keys: tuple[int, int] = (pg.K_UP, pg.K_DOWN),
+        speed: Vector2d = Vector2d(10, 10),
+        listen_for_hold: bool = True,
+        on_press: bool = True,
+        bound: bool = True) -> GameObject:
+
+    t = GameObject(tags)
+    t.disable()
+    parent.add_child(t)
+    if not isinstance(size, Vector2d):
+        size = Vector2d.from_tuple(size)
+    if color is not None:
+        t.add_component(ColorComponent(color))
+    if isinstance(at, Position):
+        pos = Position.get_vector_pos(at, size, parent.get_component(SurfaceComponent).size - 2 * surface_margin)
+    elif isinstance(at, Vector2d):
+        pos = at
+    elif isinstance(at, InGrid):
+        pos = at.get_pos(t, surface_margin)
+        size = at.get_size(t, surface_margin)
+    else:
+        pos = Vector2d.from_tuple(at)
+    if shape is not None:
+        if color is None: need_draw = False
+        else: need_draw = True
+        if shape is Shape.RECTBORDER:
+            t.add_component(shape.value(size=size-margin*2, width=width, need_draw=need_draw))
+        elif shape is Shape.RECT:
+            t.add_component(shape.value(size=size-margin*2, need_draw=need_draw))
+        elif shape is Shape.CIRCLE:
+            t.add_component(shape.value(radius=radius, need_draw=need_draw))
+    t.add_component(Transform(pos))
+    t.add_component(SurfaceComponent(size=size, layer=layer))
+
+    def scroll(g_obj: GameObject, keys: list[int], *_):
+        delta = Vector2d(0, 0)
+        if axis[0]:
+            if x_axis_keys[0] in keys:
+                delta = delta + speed * Vector2d(+1, 0)
+            elif x_axis_keys[1] in keys:
+                delta = delta + speed * Vector2d(-1, 0)
+
+        if axis[1]:
+            if y_axis_keys[0] in keys:
+                delta = delta + speed * Vector2d(0, +1)
+            elif y_axis_keys[1] in keys:
+                delta = delta + speed * Vector2d(0, -1)
+        if bound:
+            # TODO
+            # hint: think about the range in which the "scroller" can be. the range itself is minimal, when and only when the diff between leftest and rightest points equal to size
+            if axis[0] and delta.x != 0:
+                g = max(g_obj.childs, key=lambda g: g.get_component(Transform).pos.x + g.get_component(SurfaceComponent).size.x/2)
+                b_r = (g_obj.get_component(SurfaceComponent).size.x / 2) - (g.get_component(Transform).pos.x + g.get_component(SurfaceComponent).size.x / 2)
+                g = min(g_obj.childs, key=lambda g: g.get_component(Transform).pos.x - g.get_component(SurfaceComponent).size.x/2)
+                b_l = (-g_obj.get_component(SurfaceComponent).size.x / 2) - (g.get_component(Transform).pos.x - g.get_component(SurfaceComponent).size.x / 2)
+                if b_l - b_r > 0:
+                    if b_l < delta.x:
+                        delta.x = b_l
+                    if b_r > delta.x:
+                        delta.x = b_r
+                elif b_l - b_r < 0:
+                    if b_l > delta.x:
+                        delta.x = b_l
+                    if b_r < delta.x:
+                        delta.x = b_r
+            if axis[1] and delta.y != 0:
+                g = max(g_obj.childs, key=lambda g: g.get_component(Transform).pos.y + g.get_component(SurfaceComponent).size.y/2)
+                b_d = (g_obj.get_component(SurfaceComponent).size.y / 2) - (g.get_component(Transform).pos.y + g.get_component(SurfaceComponent).size.y / 2)
+                g = min(g_obj.childs, key=lambda g: g.get_component(Transform).pos.y - g.get_component(SurfaceComponent).size.y/2)
+                b_u = (-g_obj.get_component(SurfaceComponent).size.y / 2) - (g.get_component(Transform).pos.y - g.get_component(SurfaceComponent).size.y / 2)
+                if b_u - b_d > 0:
+                    if b_u < delta.y:
+                        delta.y = b_u
+                    if b_d > delta.y:
+                        delta.y = b_d
+                elif b_u - b_d < 0:
+                    if b_u > delta.y:
+                        delta.y = b_u
+                    if b_d < delta.y:
+                        delta.y = b_d
+            
+        if delta != Vector2d(0, 0):
+            for child in g_obj.childs:
+                child.get_component(Transform).move(delta)
+
+    t.add_component(KeyBindComponent((x_axis_keys + y_axis_keys), listen_for_hold, on_press, scroll))
+    t.enable()
+    return t
+    

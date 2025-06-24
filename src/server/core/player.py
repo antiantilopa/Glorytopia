@@ -127,11 +127,15 @@ class Player:
                     return ErrorCodes.ERR_UNIT_HAS_ALREADY_MOVED_OR_ATTACKED
                 for city in City.City.cities:
                     if city.pos == pos:
+                        if city.owner == unit.owner:
+                            return ErrorCodes.ERR_DEFAULT
                         if city.owner >= 0:
                             Player.players[city.owner].cities.remove(city)
                         else:
                             city.init_domain()
                         city.owner = self.id
+                        for pos in city.domain:
+                            World.object.get(pos).owner = city.owner
                         self.cities.append(city)
                         if unit.attached_city is not None and unit.attached_city.owner == self.id:
                             unit.attached_city.fullness -= 1

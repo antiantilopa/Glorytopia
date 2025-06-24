@@ -98,8 +98,6 @@ def update_vision(self: Server, addr: Address, changed_poss: list[Vector2d]):
             if city.pos == pos:
                 new_city_poss.append(city.pos.as_tuple())
                 break
-    req_game_me_vision(self, addr, [])
-
     for unit in Unit.units:
         if unit.pos in changed_poss:   
             self.send_to_addr(addr, Format.event("GAME/UPDATE/UNIT", [(), unit.to_serializable()]))
@@ -167,6 +165,7 @@ def eve_game_create_unit(self: Server, addr: Address, message: tuple[tuple[int, 
             for player_addr in self.players:
                 if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
                     self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [[], unit.to_serializable()]))
+                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [unit.attached_city.to_serializable()]))
             self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
         else:
             self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Cannot create unit: {result.name}")))
@@ -176,21 +175,32 @@ def eve_game_create_unit(self: Server, addr: Address, message: tuple[tuple[int, 
 @respond.event("CONQUER_CITY")
 def eve_game_conquer_city(self: Server, addr: Address, message: tuple[tuple[int, int]]):
     if addr == self.order[self.now_playing_player_index]:
+        unit = None
+        for u in Unit.units:
+            if u.pos.x == message[0][0] and u.pos.y == message[0][1]:
+                unit = u
+        city = None
+        for c in City.cities:
+            if c.pos.x == message[0][0] and c.pos.y == message[0][1]:
+                city = c
+                break
+
+        if unit is None:
+            return ErrorCodes.ERR_NOT_YOUR_UNIT
+        if city is None:
+            return ErrorCodes.ERR_NOT_A_CITY
+        prev_city = unit.attached_city
         result = self.players[addr].conquer_city(Vector2d.from_tuple(message[0]))
         if result == ErrorCodes.SUCCESS:
-            city = None
-            for c in City.cities:
-                if c.pos.x == message[0][0] and c.pos.y == message[0][1]:
-                    city = c
-                    break
-            unit = None
-            for u in Unit.units:
-                if u.pos.x == message[0][0] and u.pos.y == message[0][1]:
-                    unit = u
             for player_addr in self.players:
                 if self.players[player_addr].vision[city.pos.y][city.pos.x]:
                     self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
                     self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [unit.pos.as_tuple(), unit.to_serializable()]))
+                if self.players[player_addr].vision[prev_city.pos.y][prev_city.pos.x]:
+                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [prev_city.to_serializable()]))
+                for pos in city.domain:
+                    if self.players[player_addr].vision[pos.inty()][pos.intx()]:
+                        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [self.the_game.world.get(pos).to_serializable()]))
         else:
             self.send_to_addr(addr, Format.error("GAME/CONQUER_CITY", (f"Cannot conquer city: {result.name}")))
     else:
