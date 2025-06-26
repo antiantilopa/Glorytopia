@@ -1,5 +1,5 @@
 from engine_antiantilopa import *
-from ..widgets.shapes import RectBorderShapeComponent
+from ..widgets.shapes import RectBorderShapeComponent, LineComponent
 from enum import Enum
 import pygame as pg
 
@@ -144,6 +144,48 @@ def create_label(
         t.destroy()
         raise e
 
+def create_line_game_object(
+        parent = GameObject.root,
+        tags: list[str] = [],
+        at: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
+        to: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
+        color: tuple[int, int, int]|None = None,
+        width: int|None = None,
+        margin: Vector2d = Vector2d(0, 0),
+        layer: int = 1,
+        surface_margin: Vector2d = Vector2d(0, 0)) -> GameObject:
+    if color is None:
+        raise ValueError("label have to have a color")
+    try:
+        t = GameObject(tags)
+        t.disable()
+        parent.add_child(t)
+        t.add_component(ColorComponent(color))
+        if isinstance(at, Position):
+            start = Position.get_vector_pos(at, size, parent.get_component(SurfaceComponent).size - margin * 2)
+        elif isinstance(at, Vector2d):
+            start = at
+        elif isinstance(at, InGrid):
+            start = at.get_pos(t)
+        else:
+            start = Vector2d.from_tuple(to)
+        if isinstance(to, Position):
+            end = Position.get_vector_pos(to, size, parent.get_component(SurfaceComponent).size - margin * 2)
+        elif isinstance(to, Vector2d):
+            end = to
+        elif isinstance(to, InGrid):
+            end = to.get_pos(t)
+        else:
+            end = Vector2d.from_tuple(to)
+        size = Vector2d(abs((end - start).x), abs((end - start).y)) + Vector2d(width, width) if width is not None else Vector2d(1, 1)
+        t.add_component(LineComponent((start - end) / 2, (end - start) / 2, width=width if width is not None else 1))
+        t.add_component(Transform((start + end) / 2))
+        t.add_component(SurfaceComponent(size=size))
+        t.enable()
+        return t
+    except Exception as e:
+        t.destroy()
+        raise e
 def create_label_block(
         parent = GameObject.root,
         tags: list[str] = [],
