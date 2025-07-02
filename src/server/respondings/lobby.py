@@ -8,18 +8,45 @@ respond = Respond("LOBBY")
 def join(self: Server, addr: Address, name: tuple[str]):
     if self.game_started:
         self.send_to_addr(addr, Format.error("LOBBY/JOIN", ["this game has already started."]))
-        self.conns[addr].close()
         return
     if (name[0] in self.addrs_to_names.values()) or (name[0] == "") or not (name[0].isascii()):
         self.send_to_addr(addr, Format.error("LOBBY/JOIN", ["this name is already taken, or it is prohibited."]))
         return
     print(f"{name[0]} joined the game!")
     self.addrs_to_names[addr] = name[0]
+    self.names_to_addrs[name[0]] = addr
     self.readiness[addr] = False
     self.game_starting = False
     self.order.append(addr)
     for j in self.conns:
         self.send_to_addr(j, Format.event("LOBBY/JOIN", [self.addrs_to_names[addr]]))
+
+@respond.event("RECONNECT")
+def reconnect(self: Server, addr: Address, name_and_recovery: tuple[str, int]):
+    if not self.game_started:
+        self.send_to_addr(addr, Format.error("LOBBY/RECONNECT", ["this game has not started yet."]))
+        return
+    if addr in self.addrs_to_names:
+        self.send_to_addr(addr, Format.error("LOBBY/RECONNECT", ["you are already connected."]))
+        return
+    name, recovery_code = name_and_recovery
+    if name not in self.recovery_codes:
+        self.send_to_addr(addr, Format.error("LOBBY/RECONNECT", ["you are not registered in this game."]))
+        return
+    if self.recovery_codes[name] != recovery_code:
+        self.send_to_addr(addr, Format.error("LOBBY/RECONNECT", ["recovery code is not correct."]))
+        return
+    
+    self.recovery_codes.pop(name)
+    previous_addr = self.names_to_addrs[name]
+
+    self.addrs_to_names[addr] = self.addrs_to_names.pop(previous_addr)
+    self.players[addr] = self.players.pop(previous_addr)
+    self.readiness[addr] = self.readiness.pop(previous_addr)
+    self.order[self.order.index(previous_addr)] = addr
+    self.names_to_addrs[name] = addr
+    for j in self.conns:
+        self.send_to_addr(j, Format.event("LOBBY/RECONNECT", [self.addrs_to_names[addr]]))
 
 @respond.event("MESSAGE")
 def message(self: Server, addr: Address, message: tuple[str]):

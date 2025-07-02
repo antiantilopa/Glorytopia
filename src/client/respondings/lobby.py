@@ -11,7 +11,25 @@ def join(self: Client, message: tuple[str]):
         self.readiness[name] = False
     self.readiness[message[0]] = False
     self.names.append(message[0])
+    if message[0] == self.myname:
+        self.joined = True
     self.updated |= 2 ** UpdateCodes.JOIN.value
+
+@respond.error("JOIN")
+def join(self: Client, message: tuple[str]):
+    self.joined = False
+    print(f"Error while joining: {message[0]}")
+
+@respond.event("RECONNECT")
+def join(self: Client, message: tuple[str]):
+    if message[0] == self.myname:
+        self.joined = True
+        self.updated |= 2 ** UpdateCodes.RECONNECT.value
+
+@respond.error("RECONNECT")
+def join(self: Client, message: tuple[str]):
+    self.joined = False
+    print(f"Error while reconnecting: {message[0]}")
 
 @respond.event("READY")
 def ready(self: Client, message: tuple[str, int]):

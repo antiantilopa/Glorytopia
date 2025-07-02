@@ -154,7 +154,7 @@ def init():
     def game_start():
         threading.Thread(target=start_game).start()
 
-    @Client.object.set_main_cycle
+    @Client.object.change_main_cycle
     def update(self: Client):
         while not self.changing_main_cycle:
             Client.object.check_updates()

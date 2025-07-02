@@ -34,11 +34,20 @@ def at_disconnect(self: Server, addr: Address):
         if not self.game_started:
             for i in self.conns:
                 self.send_to_addr(i, Format.event("DISCONNECT", [self.addrs_to_names[addr]]))
+            self.names_to_addrs.pop(self.addrs_to_names[addr], None)
             self.addrs_to_names.pop(addr)
             self.readiness.pop(addr)
             self.order.remove(addr)
             for i in self.readiness:
                 self.readiness[i] = False
+        else:
+            for i in self.conns:
+                self.send_to_addr(i, Format.event("GAME/DISCONNECT", [self.addrs_to_names[addr]]))
+            print(f"{self.addrs_to_names[addr]} has disconnected from the game.")
+            recovery_code = random.randint(100000, 999999)
+            self.recovery_codes[self.addrs_to_names[addr]] = recovery_code
+            print(f"recovery code: {recovery_code}")
+            print("awaiting for players to reconnect...")
     
 @host.respond.request("ORDER")
 def req_order(self: Server, addr: Address, _: tuple):

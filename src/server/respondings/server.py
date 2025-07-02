@@ -10,6 +10,7 @@ class Server(Host):
         self.names_to_addrs: dict[str, Address] = {}
         self.addrs_to_names: dict[Address, str] = {}
         self.readiness: dict[Address, bool] = {}
+        self.recovery_codes: dict[str, int] = {}
         self.order: list[Address] = []
         self.admin_addr: Address = Address(("", 0))
         self.game_started = False

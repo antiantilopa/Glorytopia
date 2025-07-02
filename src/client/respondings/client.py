@@ -20,14 +20,16 @@ class UpdateCodes(Enum):
     UPDATE_TECH = 11
     UPDATE_MONEY = 12
     END_TURN = 13
+    RECONNECT = 14
 
 respond = Respond()
 @respond.event("DISCONNECT")
 def disconnect(self: "Client", message: tuple[str]):
+    if self.game_started:
+        print(f"{message[0]} disconnected from the game.")
+        return
     for name in self.readiness:
         self.readiness[name] = False
-    print(message)
-    print(self.names)
     self.readiness.pop(message[0])
     self.names.remove(message[0])
     self.updated |= 2 ** UpdateCodes.DISCONNECT.value
@@ -46,6 +48,7 @@ class Client(SerClient):
         self.order: dict[str, int] = {}
         self.messages: list[tuple[str, str]] = []
         self.myname: str = ""
+        self.joined = None
 
         self.world_size = (0, 0)
         self.world: list[list[TileData]] = [[]]

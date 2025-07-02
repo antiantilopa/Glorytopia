@@ -194,6 +194,7 @@ class Host:
                 return
             except Exception as e:
                 print(f"error occured with {addr}")
+                # SHOULD BE DELETED WHEN DEBUGGING IS DONE
                 self.conns[addr].close()
                 self.conns.pop(addr)
                 self.respond.at_disconnect(self, addr)
