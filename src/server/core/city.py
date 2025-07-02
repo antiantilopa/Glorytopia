@@ -35,7 +35,6 @@ class City(CityData):
         self.level += 1
         #add something TODO
 
-
     def create_unit(self, utype: UnitType):
         if self.fullness < self.level + 1:
             if World.object.unit_mask[self.pos.inty()][self.pos.intx()]:
@@ -59,7 +58,7 @@ class City(CityData):
         for dx in (-1, 0, 1):
             for dy in (-1, 0, -1):
                 if dx == dy == 0: continue
-                if World.object.is_in(pos + Vector2d(dx, dy)):
+                if (pos + Vector2d(dx, dy)) in self.domain:
                     if not (btype.adjacent_bonus is None):
                         if World.object.get(pos + Vector2d(dx, dy)).building == btype.adjacent_bonus:
                             self.grow_population(btype.population)

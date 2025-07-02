@@ -19,8 +19,12 @@ def update_unit(self: Client, message: tuple[tuple[int, int]|tuple, SerializedUn
                     self.units.pop(i)
                     unit = ()
                 else:
-                    self.units[i] = UnitData.from_serializable(message[1])
-                    unit = self.units[i]
+                    unit = UnitData.from_serializable(message[1])
+                    if unit.health <= 0:
+                        unit = ()
+                        self.units.pop(i)
+                    else:
+                        self.units[i] = unit
                 break
             i += 1
     elif len(message[1]) != 0:

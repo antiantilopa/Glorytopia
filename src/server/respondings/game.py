@@ -230,15 +230,20 @@ def eve_game_harvest(self: Server, addr: Address, message: tuple[tuple[int, int]
         if result != ErrorCodes.SUCCESS:
             self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Cannot harvest: {result.name}")))
             return
+        city = None
+        for c in self.players[addr].cities:
+            if pos in c.domain:
+                city = c
+                break
+        if city is None:
+            self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Something strange happened... this tile does not belong to any city...")))
+            return
+        
         for player_addr in self.players:
             if self.players[player_addr].vision[pos.inty()][pos.intx()]:
                 self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [self.the_game.world.object.get(pos).to_serializable()]))
-        for city in self.players[addr].cities:
-            if pos in city.domain:
-                for player_addr in self.players:
-                    if self.players[player_addr].vision[city.pos.y][city.pos.x]:
-                        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
-                break
+            if self.players[player_addr].vision[city.pos.y][city.pos.x]:
+                self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
         self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
     else:
         self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Not your move right now.")))
@@ -251,9 +256,19 @@ def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], 
         if result != ErrorCodes.SUCCESS:
             self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Cannot build: {result.name}")))
             return
+        city = None
+        for c in City.cities:
+            if pos in c.domain:
+                city = c
+                break
+        if city is None:
+            self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Something strange happened... this tile does not belong to any city...")))
+            return
         for player_addr in self.players:
             if self.players[player_addr].vision[pos.inty()][pos.intx()]:
                 self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [self.the_game.world.object.get(pos).to_serializable()]))
+            if self.players[player_addr].vision[city.pos.y][city.pos.x]:
+                self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
         self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
         
     else:
@@ -275,8 +290,7 @@ def game_end_turn(self: Server, addr: Address, message: tuple):
             for player_addr in self.players:
                 if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
                     self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [unit.pos.as_tuple(), unit.to_serializable()]))
-        self.send_to_addr(self.order[self.now_playing_player_index], Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
-
+        self.send_to_addr(self.order[self.now_playing_player_index], Format.event("GAME/UPDATE/MONEY", [self.players[self.order[self.now_playing_player_index]].money]))
         for addr1 in self.conns:
             self.send_to_addr(addr1, Format.event("GAME/END_TURN", [self.addrs_to_names[addr]]))
     else:

@@ -67,20 +67,6 @@ class Player:
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
     
     def destroy(self, pos: Vector2d):
-        if World.object.is_in(pos) == False:
-            return ErrorCodes.ERR_NOT_IN_WORLD
-        if World.object.get(pos).building is None:
-            return ErrorCodes.ERR_NOT_SUITABLE_BUILDING
-        if self.money < BuildingTypes.destroy.cost:
-            return ErrorCodes.ERR_NOT_ENOUGH_MONEY
-        for tech in self.techs:
-            if BuildingTypes.destroy in tech.buildings:
-                for city in self.cities:
-                    if pos in city.domain:
-                        city.destroy(pos)
-                        self.money -= BuildingTypes.destroy.cost
-                        return ErrorCodes.SUCCESS
-                return ErrorCodes.ERR_NOT_IN_DOMAIN
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
     def create_unit(self, pos: Vector2d, utype: UnitType):

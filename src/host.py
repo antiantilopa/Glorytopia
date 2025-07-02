@@ -51,7 +51,7 @@ for r in host.respond.routes:
     print(r)
 
 def start_game():
-    host.the_game = Game(Vector2d(20, 20), len(host.addrs_to_names))
+    host.the_game = Game(Vector2d(13, 13), len(host.addrs_to_names))
     for addr in host.order:
         host.players[addr] = host.the_game.players[host.order.index(addr)]
         host.send_to_addr(addr, Format.event("GAME/GAME_START", [0, host.order.index(addr)]))
@@ -61,6 +61,8 @@ def start_game():
             print(symbol_terrain[host.the_game.world[i][j].ttype.id], end = " ")
         print()
 
+
+
 try:
     while True:
         if not host.game_started:
@@ -68,6 +70,7 @@ try:
                 print(timer)
                 for addr in host.addrs_to_names:
                     host.send_to_addr(addr, Format.event("LOBBY/GAME_START", [timer]))
+                    host.send_to_addr(addr, Format.event("LOBBY/MESSAGE", ("GAME STARTS IN", f"{timer}...")))
                 timer -= 1
                 time.sleep(1)
                 if timer == 0:

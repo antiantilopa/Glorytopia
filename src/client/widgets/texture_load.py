@@ -37,7 +37,20 @@ def load_textures(texture_packs: list[str] = ["default"]):
         for type in types:
             if f":{type.name}" not in SpriteComponent.downloaded:
                 print(f"Texture for {name[:-1]} {type.name} not found in any texture pack!")
-                SpriteComponent(path + "default" + "/textures" + "/default.png", Vector2d(100, 100), nickname=type.name)
+                try:
+                    if name == "units":
+                        SpriteComponent(path + "default" + "/textures" + "/default_unit.png", Vector2d(100, 100), nickname=type.name)
+                    elif name == "techs":
+                        SpriteComponent(path + "default" + "/textures" + "/default_tech.png", Vector2d(100, 100), nickname=type.name)
+                    elif name == "tiles":
+                        SpriteComponent(path + "default" + "/textures" + "/default_tile.png", Vector2d(100, 100), nickname=type.name)
+                    elif name == "buildings":
+                        SpriteComponent(path + "default" + "/textures" + "/default_building.png", Vector2d(100, 100), nickname=type.name)
+                    elif name == "resources":
+                        SpriteComponent(path + "default" + "/textures" + "/default_resource.png", Vector2d(100, 100), nickname=type.name)
+                except FileNotFoundError:
+                    SpriteComponent(path + "default" + "/textures" + "/default.png", Vector2d(100, 100), nickname=type.name)
+                
     if ":city" not in SpriteComponent.downloaded:
         print("Texture for city not found in any texture pack!")
         SpriteComponent(path + "default" + "/textures" + "/default.png", Vector2d(100, 100), nickname="city")

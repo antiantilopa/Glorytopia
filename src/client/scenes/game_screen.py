@@ -31,7 +31,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
 
     create_game_object(scene, "game_screen:world_section", at=InGrid((12, 8), (0, 0), (8, 8)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2)
     
-    techs_window = create_list_game_object(scene, "game_screen:techs_window", at=InGrid((12, 8), (0, 0), (8, 8)), color=(0, 70, 150), shape=Shape.RECT, axis=(1, 1), speed=Vector2d(25, 25), bound=1, layer=0)
+    techs_window = create_list_game_object(scene, "game_screen:techs_window", at=InGrid((12, 8), (0, 0), (8, 8)), color=(0, 70, 150), shape=Shape.RECT, axis=(1, 1), speed=Vector2d(2500, 2500) // block_size, bound=1, layer=0, x_axis_keys=[pg.K_a, pg.K_d], y_axis_keys=[pg.K_w, pg.K_s])
     techs_window.add_component(KeyBindComponent([pg.K_ESCAPE], 0, 1, close_techs_window))
     create_tech_tree()
 
@@ -80,8 +80,18 @@ def reset_ui(*_):
     for city_data in Client.object.cities:
         create_city_game_object(city_data)
     
+    i = 0
+    while i < len(Client.object.units):
+        if Client.object.units[i].health <= 0:
+            Client.object.units.pop(i)
+        else:
+            i += 1
+
     for unit_data in Client.object.units:
-        create_unit_game_object(unit_data)
+        if unit_data.health > 0:
+            create_unit_game_object(unit_data)
+        else:
+            print("WTF! Unit with health <= 0 found in Client.object.units. It should not be there.")
 
 def selecting(coords: Vector2d):
     self = Client.object
@@ -216,14 +226,17 @@ def selector_info_update():
             if city.owner == Client.object.names.index(Client.object.myname):
                 my_cities_count += 1
         text = "\n".join((
-            f"name: {tech.name}",
-            f"owned" if tech in Client.object.techs else "not owned",
-            f"cost: {tech.cost + tech.tier * my_cities_count}",
-            f"tier: {tech.tier}",
+            f"name: {tech.name}    " + (f"owned" if tech in Client.object.techs else "not owned"),
+            f"cost: {tech.cost + tech.tier * my_cities_count}    " + f"tier: {tech.tier}",
+            (f"buildings: {', '.join([b.name for b in tech.buildings])}\n" if len(tech.buildings) > 0 else "") +
+            (f"units: {', '.join([u.name for u in tech.units])}\n" if len(tech.units) > 0 else "") +
+            (f"resources: {', '.join([r.name for r in tech.harvestables])}\n" if len(tech.harvestables) > 0 else "") +
+            (f"terrain: {', '.join([t.name for t in tech.accessable])}\n" if len(tech.accessable) > 0 else "") + 
+            (f"defecnces: {', '.join([t.name for t in tech.defence])}\n" if len(tech.defence) > 0 else "") + 
+            (f"achievements: {', '.join([a for a in tech.achievements])}\n" if len(tech.achievements) > 0 else "")
         ))
-        if tech.parent is not None:
-            if tech.parent in Client.object.techs:
-                buttons.append((f"buy:{tech.cost + tech.tier * my_cities_count}", lambda *_: Client.object.send(Format.event("GAME/BUY_TECH", [tech.id]))))
+        if (tech.parent is not None) and (tech.parent in Client.object.techs) and (tech not in Client.object.techs):
+            buttons.append((f"buy:{tech.cost + tech.tier * my_cities_count}", lambda *_: Client.object.send(Format.event("GAME/BUY_TECH", [tech.id]))))
     create_label_block(selector_info_section, "game_screen:info_section:selector_section:selector_info_section:label_block", text, font=pg.font.SysFont("consolas", block_size.y // 5),  at=Position.LEFT_UP, text_pos=Position.LEFT, color=ColorComponent.RED)
     selector_info_buttons_section = create_list_game_object(selector_info_section, bound=1, at=InGrid((1, 5), (0, 2), (1, 3)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4), tags="game_screen:info_section:selector_section:selector_info_section:buttons_section")
 
@@ -289,6 +302,7 @@ def init():
     def init_world():
         self = Client.object
         world_obj = GameObject.get_group_by_tag("game_screen:world_section")[0]
+        world_obj.disable()
         world = create_game_object(world_obj, "game_screen:world_section:world", size=Vector2d.from_tuple(self.world_size) * block_size, color=(80, 80, 80), shape=Shape.RECT)
         unit_layer = create_game_object(world, "game_screen:world_section:world:unit_layer", size=Vector2d.from_tuple(self.world_size) * block_size, shape=Shape.RECT, layer=3)
         city_layer = create_game_object(world, "game_screen:world_section:world:city_layer", size=Vector2d.from_tuple(self.world_size) * block_size, shape=Shape.RECT, layer=2)
@@ -309,14 +323,15 @@ def init():
             max_y = (world_height - view_height) / 2
             
             if pg.K_w in keys and current_pos.y < max_y:
-                g_obj.get_component(Transform).move(Vector2d(0, 20))
+                g_obj.get_component(Transform).move(Vector2d(0, 2000) // block_size)
             if pg.K_a in keys and current_pos.x < max_x:
-                g_obj.get_component(Transform).move(Vector2d(20, 0))
+                g_obj.get_component(Transform).move(Vector2d(2000, 0) // block_size)
             if pg.K_s in keys and current_pos.y > -max_y:
-                g_obj.get_component(Transform).move(Vector2d(0, -20))
+                g_obj.get_component(Transform).move(Vector2d(0, -2000) // block_size)
             if pg.K_d in keys and current_pos.x > -max_x:
-                g_obj.get_component(Transform).move(Vector2d(-20, 0))
+                g_obj.get_component(Transform).move(Vector2d(-2000, 0) // block_size)
         world.add_component(KeyBindComponent([pg.K_w, pg.K_a, pg.K_s, pg.K_d], 1, 1, bind_keys))
+        world_obj.enable()
 
     @Client.object.check_update(UpdateCodes.UPDATE_TILE)
     def update_tile():
@@ -355,6 +370,10 @@ def init():
         money_label.need_draw_set_true()
         money_label.need_blit_set_true()
 
+    @Client.object.check_update(UpdateCodes.UPDATE_TECH)
+    def update_tech():
+        selector_info_update()
+
     @Client.object.check_update(UpdateCodes.END_TURN)
     def end_turn():
         self = Client.object
@@ -372,7 +391,6 @@ def init():
         while not self.changing_main_cycle:
             Client.object.check_updates()
             
-
 def start():
     scene=GameObject.get_game_object_by_tags("game_screen")
     tech_win = GameObject.get_game_object_by_tags("game_screen:techs_window")
