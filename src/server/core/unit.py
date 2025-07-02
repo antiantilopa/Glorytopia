@@ -27,7 +27,7 @@ class Unit(UnitData, UpdatingObject):
         self.attacked = False
 
     def get_movements(self) -> list[Vector2d, int]:
-        s_poses = [[self.pos, self.utype.movement]]
+        s_poses: list[tuple[Vector2d, float]] = [(self.pos, self.utype.movement)]
         e_poses = []
 
         def is_in(pos: Vector2d, array: list[tuple[Vector2d, any]]) -> int:
@@ -83,7 +83,7 @@ class Unit(UnitData, UpdatingObject):
                         s_poses.append([n_pos, next_mv])
                     continue
                 s_poses.append([n_pos, next_mv])
-            if World.object.unit_mask[s_pos[0].y][s_pos[0].x] is False:
+            if World.object.unit_mask[s_pos[0].y][s_pos[0].x] == False:
                 e_poses.append(s_pos)
         return e_poses
     
