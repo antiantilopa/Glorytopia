@@ -114,6 +114,8 @@ class Host:
             print(f"Route {addr[0]}:{message[0]}/{message[1]} was not found in Respond routes.")
 
     def send_to_addr(self, addr: Address, message: Any):
+        if addr not in self.conns:
+            return
         with open("logs.txt", "a") as f:
             f.write(f"SEND: {addr} <- {message[0]}/{message[1]}:{message[2]}\n")
         self.conns[addr].send(Serializator.encode(message))

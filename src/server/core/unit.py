@@ -201,6 +201,10 @@ class Unit(UnitData, UpdatingObject):
         if self.attached_city is not None:
             self.attached_city.fullness -= 1
         World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 0
+        for unit in Unit.units:
+            if unit.pos == self.pos and unit != self:
+                World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 1
+                break
         Unit.units.remove(self)
         Player.Player.players[self.owner].units.remove(self)
         UpdatingObject.destroy(self)

@@ -65,8 +65,11 @@ def create_unit_game_object(unit_data: UnitData):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
     unit = create_game_object(unit_layer, "game_screen:world_section:world:unit_layer:unit", at=InGrid(Client.object.world_size, unit_data.pos.as_tuple()), shape=Shape.RECT, layer=2)
     unit.add_component(UnitComponent(unit_data, unit_data.pos))
-    unit.add_component(SpriteComponent(nickname=unit_data.utype.name, size=block_size))
     unit.add_component(SelectComponent())
+    sprite = create_game_object(unit, at=InGrid((1, 1), (0, 0)), layer=2, tags="game_screen:world_section:world:unit_layer:unit:sprite")
+    sprite.add_component(SpriteComponent(nickname=unit_data.utype.name, size=block_size))
+    health = create_game_object(unit, at=Position.LEFT_UP, size=block_size // 3, shape=Shape.CIRCLE, layer=3, color=ColorComponent.RED, radius=block_size.x // 6, tags="game_screen:world_section:world:unit_layer:unit:health")
+    create_label(health, text=f"{unit_data.health}", font=pg.font.SysFont("consolas", block_size.x // 4), color=ColorComponent.WHITE, tags="game_screen:world_section:world:unit_layer:unit:health")
 
 def remove_unit_game_object(pos: tuple[int, int]):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
@@ -84,6 +87,10 @@ def move_unit_game_object(pos: tuple[int, int], unit_data: UnitData):
             unit.get_component(UnitComponent).unit_data = unit_data
             unit.get_component(UnitComponent).pos = unit_data.pos
             unit.get_component(Transform).set_pos(InGrid(Client.object.world_size, unit_data.pos).get_pos(unit_layer))
+            for child in unit.childs:
+                if "game_screen:world_section:world:unit_layer:unit:health" in child.tags:
+                    child.childs[0].destroy()
+                    create_label(child, text=f"{unit_data.health}", font=pg.font.SysFont("consolas", block_size.x // 4), color=ColorComponent.WHITE, tags="game_screen:world_section:world:unit_layer:unit:health")
             break
 
 def create_city_game_object(city_data: CityData):

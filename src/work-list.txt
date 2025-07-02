@@ -9,4 +9,5 @@ What is done:
 
 
 What should be done right now
-1. Interface (I believe in anyone who will do that !)
+1. Interface (I believe in anyone who will do that !) (but nobody came...)
+2. Textures (thx to my brother)

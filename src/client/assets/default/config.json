@@ -2,7 +2,7 @@
     "name": "Default Config",
     "version": "1.0.0",
     "description": "This is the default configuration file for the application.",
-    "author": "Your Name",
+    "author": "Kamenov Madi Dauletovich",
     "textures": {
         "default": "default.png",
         "tiles":{

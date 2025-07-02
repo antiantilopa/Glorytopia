@@ -57,7 +57,10 @@ def update_tile(self: Server, tile: Tile):
 
 def update_updating_objects(self: Server):
     for unit in Unit.units:
-        if unit.updated:
+        if unit.health <= 0:
+            update_unit(self, unit)
+    for unit in Unit.units:
+        if unit.updated and unit.health > 0:
             update_unit(self, unit)
     for i in range(World.object.size.y):
         for j in range(World.object.size.x):
@@ -251,7 +254,7 @@ def eve_game_harvest(self: Server, addr: Address, message: tuple[tuple[int, int]
 
 @respond.event("BUILD")
 def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], int]):
-    if addr == self.order[self.now_playing_player_index]:
+    if addr != self.order[self.now_playing_player_index]:
         self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Not your move right now.")))
         return
     pos = Vector2d.from_tuple(message[0])

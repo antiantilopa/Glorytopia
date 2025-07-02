@@ -70,8 +70,6 @@ def start_game():
             print(symbol_terrain[host.the_game.world[i][j].ttype.id], end = " ")
         print()
 
-
-
 try:
     while True:
         if not host.game_started:
