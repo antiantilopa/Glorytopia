@@ -59,12 +59,18 @@ def update_tile(self: Client, message: tuple[SerializedTile]):
     self.updated |= 2 ** UpdateCodes.UPDATE_TILE.value
 
 @respond.event("UPDATE/TECH")
-def update_tech(self: Client, message: tuple[int]):
-    self.techs.append(TechNode.by_id(message[0]))
+def update_tech(self: Client, message: list[int]):
+    for i in range(len(message)):
+        tech = TechNode.by_id(message[i])
+        if tech in self.techs:
+            continue
+        self.techs.append(tech)
     self.updated |= 2 ** UpdateCodes.UPDATE_TECH.value
 
 @respond.event("UPDATE/MONEY")
 def update_money(self: Client, message: tuple[int]):
+    if self.money == message[0]:
+        return
     self.money = message[0]
     self.updated |= 2 ** UpdateCodes.UPDATE_MONEY.value
 

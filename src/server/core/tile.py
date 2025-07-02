@@ -1,12 +1,14 @@
 from shared.tile import TileData
 from shared.tile_types import TileType, BuildingType, ResourceType
 from engine_antiantilopa import Vector2d
+from .updating_object import UpdatingObject
 
 
-class Tile(TileData):
+class Tile(TileData, UpdatingObject):
     
     def __init__(self, pos: Vector2d, ttype: TileType, resources: ResourceType):
-        super().__init__(pos, ttype, resources)
+        UpdatingObject.__init__(self)
+        TileData.__init__(self, pos, ttype, resources)
 
     def build_building(self, building: BuildingType):
         self.building = building

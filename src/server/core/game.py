@@ -7,6 +7,7 @@ from shared.unit_types import UnitTypes
 from engine_antiantilopa import Vector2d, Angle
 from math import pi
 from random import randint
+from .updating_object import UpdatingObject
 
 
 def abs(x):
@@ -30,6 +31,11 @@ class Game:
 
         for unit in Unit.units:
             unit.refresh()
+        
+        for obj in UpdatingObject.objs:
+            obj.refresh_updated()
+        
+        self.players[0].start_turn()
     
     def place_random_city(self):
         for _ in range(500):
@@ -160,16 +166,7 @@ class Game:
         while i < len(Unit.units):
             unit = Unit.units[i]
             if unit.health <= 0:
-                self.players[unit.owner].units.remove(unit)
-                World.object.unit_mask[unit.pos.inty()][unit.pos.intx()] = 0
-                for other in Unit.units:
-                    if other.pos == unit.pos:
-                        World.object.unit_mask[unit.pos.inty()][unit.pos.intx()] = 1
-                        break
-                Unit.units.remove(unit)
-                if unit.attached_city is not None and unit.attached_city.owner == unit.owner:
-                    unit.attached_city.fullness -= 1
+                unit.destroy()
                 i -= 1
-                del unit
             i += 1
     

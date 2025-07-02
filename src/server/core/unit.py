@@ -1,4 +1,4 @@
-from shared.unit_types import AbilityIndexes, UnitType
+from shared.unit_types import UnitType
 from shared.unit import UnitData
 from shared.tile_types import TileTypes
 from engine_antiantilopa import Vector2d
@@ -7,184 +7,19 @@ from math import floor, ceil
 from .tile import Tile
 from . import city as City
 from . import player as Player
-from enum import Enum
+from .ability import Ability
+from .updating_object import UpdatingObject
 
-class Ability:
-    index: int
-    abilities: dict[int, type["Ability"]] = {}
-
-    def __init_subclass__(cls, ind: AbilityIndexes):
-        Ability.abilities[ind] = (cls)
-
-    @staticmethod
-    def after_movement(unit: "Unit"):
-        pass
-
-    @staticmethod
-    def after_attack(unit: "Unit", other: "Unit"):
-        pass
-
-    @staticmethod
-    def after_kill(unit: "Unit", other: "Unit"):
-        pass
-
-    @staticmethod
-    def defense_bonus(unit: "Unit") -> float:
-        return 1
-
-    @staticmethod
-    def additional_move(unit: "Unit"):
-        pass
-
-    @staticmethod
-    def retaliation_bonus(unit: "Unit", defense_result: int) -> int:
-        return defense_result
-
-    @staticmethod
-    def retaliation_mitigate(unit: "Unit", defense_result: int) -> int:
-        return defense_result
-
-    @staticmethod
-    def attack_bonus(unit: "Unit", attack_result: int) -> int:
-        return attack_result
-    
-    @staticmethod
-    def on_terrain_movement(unit: "Unit", tile: Tile, movement: int) -> int:
-        return 0
-    
-    @staticmethod
-    def get_vision_range(unit: "Unit") -> int:
-        return 0
-    
-    @staticmethod
-    def get_visibility(unit: "Unit") -> bool:
-        return 1
-    
-
-class Abilities:
-
-    class Dash(Ability, ind = AbilityIndexes.dash):
-
-        @staticmethod
-        def after_movement(unit):
-            unit.attacked = False
-    
-    class Fortify(Ability, ind = AbilityIndexes.fortify):
-
-        @staticmethod
-        def defense_bonus(unit):
-            res = 1
-            if World.object.cities_mask[unit.pos.y][unit.pos.x]:
-                res = 1.5
-                for city in City.City.cities:
-                    if city.pos == unit.pos:
-                        if city.walls is True:
-                            res = 2
-                        else:
-                            break
-            return res
-
-    class Escape(Ability, ind = AbilityIndexes.escape):
-
-        @staticmethod
-        def after_attack(unit: "Unit", _):
-            unit.moved = False
-
-    class Stiff(Ability, ind = AbilityIndexes.stiff):
-        index = AbilityIndexes.stiff
-    
-        @staticmethod
-        def retaliation_bonus(*_):
-            return 0
-
-    class Persist(Ability, ind = AbilityIndexes.persist):
-        index = AbilityIndexes.persist
-
-        @staticmethod
-        def after_kill(unit, other):
-            unit.attacked = False
-    
-    class Creep(Ability, ind = AbilityIndexes.creep):
-        index = AbilityIndexes.creep
-
-        @staticmethod
-        def on_terrain_movement(unit, tile, movement):
-            return movement - 1 * (1 - 0.5 * tile.has_road)
-    
-    class Scout(Ability, ind = AbilityIndexes.scout):
-        index = AbilityIndexes.scout
-
-        @staticmethod
-        def get_vision_range(unit):
-            return 2
-
-    class Hide(Ability, ind = AbilityIndexes.hide):
-        index = AbilityIndexes.hide
-
-        @staticmethod
-        def get_visibility(unit):
-            return 0
-    
-    class Infiltrate(Ability, ind = AbilityIndexes.infiltrate):
-        index = AbilityIndexes.infiltrate
-
-        def infiltrate(city: "City.City"):
-            pass
-            # TODO: implement infiltrate ability
-
-        @staticmethod
-        def after_movement(unit):
-            if World.cities_mask[unit.pos.y][unit.pos.x]:
-                for city in City.City.cities:
-                    if city.pos == unit.pos:
-                        if city.owner != unit.owner:
-                            unit.health = 0
-                            Abilities.Infiltrate.infiltrate(city)
-                            break
-                        else:
-                            break
-        
-        @staticmethod
-        def after_attack(unit, other):
-            if World.cities_mask[other.pos.y][other.pos.x]:
-                for city in City.City.cities:
-                    if city.pos == unit.pos:
-                        if city.owner != unit.owner:
-                            unit.health = 0
-                            Abilities.Infiltrate.infiltrate(city)
-                            break
-                        else:
-                            break
-    
-    class Convert(Ability, ind = AbilityIndexes.convert):
-        index = AbilityIndexes.convert
-
-        @staticmethod
-        def after_attack(unit, other):
-
-            if other.attached_city is not None and other.attached_city.owner == other.owner:
-                other.attached_city.fullness -= 1
-            other.attached_city = None
-            other.owner = unit.owner
-            other.attacked = True
-            other.moved = True
-        
-        @staticmethod
-        def retaliation_mitigate(unit, defense_result):
-            return 0
-    
-    class Heal(Ability, ind = AbilityIndexes.heal):
-        index = AbilityIndexes.heal
-
-        #TODO: implement heal ability
-
-class Unit(UnitData):
+class Unit(UnitData, UpdatingObject):
     attached_city: "City.City"
-    units: list["Unit"] = []
+    previous_pos: Vector2d
 
+    units: list["Unit"] = []
     def __init__(self, utype: UnitType, owner: int, pos: Vector2d, attached_city: "City.City"):
-        super().__init__(utype, owner, pos)
+        UpdatingObject.__init__(self)
+        UnitData.__init__(self, utype, owner, pos)
         self.attached_city = attached_city
+        self.previous_pos = Vector2d(-1, -1)
         Unit.units.append(self)
     
     def refresh(self):
@@ -320,8 +155,8 @@ class Unit(UnitData):
         if not (pos in self.get_possible_moves()):
             return 
         self.moved = True
+        self.attacked = True
         if World.object.unit_mask[pos.y][pos.x]:
-            self.attacked = True
             for unit in Unit.units:
                 if unit.pos == pos:
                     attack, defense = self.calc_attack(unit)
@@ -341,6 +176,8 @@ class Unit(UnitData):
             World.object.unit_mask[self.pos.y][self.pos.x] = 0
             self.pos = pos
             World.object.unit_mask[self.pos.y][self.pos.x] = 1
+            for ability in self.utype.abilities:
+                Ability.abilities[ability].after_movement(self)
     
     def heal(self):
         if World.object.get(self.pos).owner == self.owner:
@@ -359,3 +196,28 @@ class Unit(UnitData):
         for ability in self.utype.abilities:
             visibility = visibility and Ability.abilities[ability].get_visibility(self)
         return visibility
+    
+    def destroy(self):
+        if self.attached_city is not None:
+            self.attached_city.fullness -= 1
+        World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 0
+        Unit.units.remove(self)
+        Player.Player.players[self.owner].units.remove(self)
+        UpdatingObject.destroy(self)
+        del self
+    
+    def __setattr__(self, name, value):
+        if name == "previous_pos":
+            object.__setattr__(self, "previous_pos", value)
+            return
+        if name == "pos":
+            if hasattr(self, "pos"):
+                object.__setattr__(self, "previous_pos", self.pos)
+            else:
+                print(value)
+                object.__setattr__(self, "previous_pos", value)
+        return UpdatingObject.__setattr__(self, name, value)
+
+    def refresh_updated(self):
+        self.previous_pos = self.pos
+        return super().refresh_updated()

@@ -26,6 +26,56 @@ def req_game_world(self: Server, addr: Address, message: list[tuple[int, int]]):
                     result.append(self.the_game.world[j][i].to_serializable())
     self.send_to_addr(addr, Format.info("GAME/WORLD", result))
 
+def update_unit(self: Server, unit: Unit, previous_pos: Vector2d = None):
+    if previous_pos is None:
+        previous_pos = unit.previous_pos
+    for player_addr in self.players:
+        last = ()
+        prev = ()
+        if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
+            last = unit.to_serializable()
+        if unit.previous_pos == Vector2d(-1, -1):
+            prev = ()
+        elif self.players[player_addr].vision[previous_pos.y][previous_pos.x]:
+            prev = previous_pos.as_tuple()
+        if len(last) + len(prev) == 0:
+            continue
+        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [prev, last]))
+    unit.refresh_updated()
+
+def update_city(self: Server, city: City):
+    for player_addr in self.players:
+        if city is not None and self.players[player_addr].vision[city.pos.y][city.pos.x]:
+            self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
+    city.refresh_updated()
+
+def update_tile(self: Server, tile: Tile):
+    for player_addr in self.players:
+        if tile is not None and self.players[player_addr].vision[tile.pos.y][tile.pos.x]:
+            self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [tile.to_serializable()]))
+    tile.refresh_updated()
+
+def update_updating_objects(self: Server):
+    for unit in Unit.units:
+        if unit.updated:
+            update_unit(self, unit)
+    for i in range(World.object.size.y):
+        for j in range(World.object.size.x):
+            tile = World.object.get(Vector2d(j, i))
+            if tile.updated:
+                update_tile(self, tile)
+    for city in City.cities:
+        if city.updated:
+            update_city(self, city)
+    
+    for addr in self.players:
+        vision_changes = self.players[addr].update_vision()
+        if len(vision_changes) != 0:
+            update_vision(self, addr, vision_changes)
+        self.send_to_addr(addr, Format.event("GAME/UPDATE/TECH", [tech.id for tech in self.players[addr].techs]))
+        self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
+    self.the_game.remove_dead_units()
+
 @respond.request("UNITS")
 def req_game_units(self: Server, addr: Address, message: list[tuple[int, int]]):
     if len(message) != 0:
@@ -112,186 +162,118 @@ def eve_game_mov_unit(self: Server, addr: Address, message: tuple[tuple[int, int
     if addr != self.order[self.now_playing_player_index]:
         self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"Not your move right now.")))
         return
+    if World.object.unit_mask[message[0][1]][message[0][0]] == 0:
+        self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"There is no unit on the given position")))
+        return
+
     pos1 = message[0]
     pos2 = message[1]
     moving_unit: Unit = None
-    target_unit: Unit = None
     for unit in Unit.units:
         if unit.pos.x == pos1[0] and unit.pos.y == pos1[1]:
             moving_unit = unit
-        elif unit.pos.x == pos2[0] and unit.pos.y == pos2[1]:
-            target_unit = unit
-        if moving_unit is not None and target_unit is not None:
             break
-    if moving_unit is None:
-        self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"There is no unit on the given position")))
-        return
-    if moving_unit.owner != self.players[addr].id:
-        self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"The unit is not yours")))
-        return
+
     result = self.players[addr].move_unit(moving_unit, Vector2d.from_tuple(pos2))
     if result != ErrorCodes.SUCCESS:
-        self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"The unit cannot move to the given position")))
+        self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"Cannot move unit: {result.name}")))
         return
-    if target_unit is not None:
-        for player_addr in self.players:
-            if self.players[player_addr].vision[pos2[1]][pos2[0]]:
-                self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [pos2, target_unit.to_serializable()]))
-    for player_addr in self.players:
-        first = []
-        second = []
-        if self.players[player_addr].vision[pos1[1]][pos1[0]]:
-            first = pos1
-        if self.players[player_addr].vision[moving_unit.pos.y][moving_unit.pos.x]:
-            second = moving_unit.to_serializable()
-        if len(first) + len(second) > 0:
-            self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [first, second]))
-    vision_changes = self.players[addr].update_vision()
-    if len(vision_changes) != 0:
-        update_vision(self, addr, vision_changes)
-    self.the_game.remove_dead_units()
-        
 
+    update_updating_objects(self)
+        
 @respond.event("CREATE_UNIT")
 def eve_game_create_unit(self: Server, addr: Address, message: tuple[tuple[int, int], int]):
-    if addr == self.order[self.now_playing_player_index]:
-        result = self.players[addr].create_unit(Vector2d.from_tuple(message[0]), UnitTypes.by_id(message[1]))
-        if result == ErrorCodes.SUCCESS:
-            unit = None
-            for u in Unit.units:
-                if u.pos.x == message[0][0] and u.pos.y == message[0][1]:
-                    unit = u
-                    break
-            for player_addr in self.players:
-                if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
-                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [[], unit.to_serializable()]))
-                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [unit.attached_city.to_serializable()]))
-            self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
-        else:
-            self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Cannot create unit: {result.name}")))
-    else:
+    if addr != self.order[self.now_playing_player_index]:
         self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Not your move right now.")))
+        return
+    result = self.players[addr].create_unit(Vector2d.from_tuple(message[0]), UnitTypes.by_id(message[1]))
+    if result != ErrorCodes.SUCCESS:
+        self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Cannot create unit: {result.name}")))
+        return
+
+    update_updating_objects(self)
 
 @respond.event("CONQUER_CITY")
 def eve_game_conquer_city(self: Server, addr: Address, message: tuple[tuple[int, int]]):
-    if addr == self.order[self.now_playing_player_index]:
-        unit = None
-        for u in Unit.units:
-            if u.pos.x == message[0][0] and u.pos.y == message[0][1]:
-                unit = u
-        city = None
-        for c in City.cities:
-            if c.pos.x == message[0][0] and c.pos.y == message[0][1]:
-                city = c
-                break
-
-        if unit is None:
-            return ErrorCodes.ERR_NOT_YOUR_UNIT
-        if city is None:
-            return ErrorCodes.ERR_NOT_A_CITY
-        prev_city = unit.attached_city
-        result = self.players[addr].conquer_city(Vector2d.from_tuple(message[0]))
-        if result == ErrorCodes.SUCCESS:
-            for player_addr in self.players:
-                if self.players[player_addr].vision[city.pos.y][city.pos.x]:
-                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
-                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [unit.pos.as_tuple(), unit.to_serializable()]))
-                if self.players[player_addr].vision[prev_city.pos.y][prev_city.pos.x]:
-                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [prev_city.to_serializable()]))
-                for pos in city.domain:
-                    if self.players[player_addr].vision[pos.inty()][pos.intx()]:
-                        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [self.the_game.world.get(pos).to_serializable()]))
-        else:
-            self.send_to_addr(addr, Format.error("GAME/CONQUER_CITY", (f"Cannot conquer city: {result.name}")))
-    else:
+    if addr != self.order[self.now_playing_player_index]:
         self.send_to_addr(addr, Format.error("GAME/CONQUER_CITY", (f"Not your move right now.")))
+        return
+    unit = None
+    for u in Unit.units:
+        if u.pos.x == message[0][0] and u.pos.y == message[0][1]:
+            unit = u
+    city = None
+    for c in City.cities:
+        if c.pos.x == message[0][0] and c.pos.y == message[0][1]:
+            city = c
+            break
+    if unit is None:
+        return ErrorCodes.ERR_NOT_YOUR_UNIT
+    if city is None:
+        return ErrorCodes.ERR_NOT_A_CITY
+    
+    result = self.players[addr].conquer_city(Vector2d.from_tuple(message[0]))
+    if result != ErrorCodes.SUCCESS:
+        self.send_to_addr(addr, Format.error("GAME/CONQUER_CITY", (f"Cannot conquer city: {result.name}")))
+        return
+    
+    update_updating_objects(self)
+        
 
 @respond.event("BUY_TECH")
 def eve_game_buy_tech(self: Server, addr: Address, message: tuple[int]):
-    if addr == self.order[self.now_playing_player_index]:
-        if message[0] < 0 or message[0] >= len(TechNode.techs):
-            self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH.name}")))
-            return 
-        tech = TechNode.by_id(message[0])
-        result = self.players[addr].buy_tech(tech)
-        if result != ErrorCodes.SUCCESS:
-            self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {result.name}")))
-        else:
-            self.send_to_addr(addr, Format.event("GAME/UPDATE/TECH", [tech.id]))
-            self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
-    else:
+    if addr != self.order[self.now_playing_player_index]:
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Not your move right now.")))
+        return
+    if message[0] < 0 or message[0] >= len(TechNode.techs):
+        self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH.name}")))
+        return 
+    tech = TechNode.by_id(message[0])
+    result = self.players[addr].buy_tech(tech)
+    if result != ErrorCodes.SUCCESS:
+        self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {result.name}")))
+        return
+  
+    update_updating_objects(self)
 
 @respond.event("HARVEST")
 def eve_game_harvest(self: Server, addr: Address, message: tuple[tuple[int, int]]):
-    if addr == self.order[self.now_playing_player_index]:
-        pos = Vector2d.from_tuple(message[0])
-        result = self.players[addr].harvest(pos)
-        if result != ErrorCodes.SUCCESS:
-            self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Cannot harvest: {result.name}")))
-            return
-        city = None
-        for c in self.players[addr].cities:
-            if pos in c.domain:
-                city = c
-                break
-        if city is None:
-            self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Something strange happened... this tile does not belong to any city...")))
-            return
-        
-        for player_addr in self.players:
-            if self.players[player_addr].vision[pos.inty()][pos.intx()]:
-                self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [self.the_game.world.object.get(pos).to_serializable()]))
-            if self.players[player_addr].vision[city.pos.y][city.pos.x]:
-                self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
-        self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
-    else:
+    if addr != self.order[self.now_playing_player_index]:
         self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Not your move right now.")))
+        return
+    pos = Vector2d.from_tuple(message[0])
+    result = self.players[addr].harvest(pos)
+    if result != ErrorCodes.SUCCESS:
+        self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Cannot harvest: {result.name}")))
+        return
+    
+    update_updating_objects(self)
 
 @respond.event("BUILD")
 def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], int]):
     if addr == self.order[self.now_playing_player_index]:
-        pos = Vector2d.from_tuple(message[0])
-        result = self.players[addr].build(pos, BuildingTypes.by_id(message[1]))
-        if result != ErrorCodes.SUCCESS:
-            self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Cannot build: {result.name}")))
-            return
-        city = None
-        for c in City.cities:
-            if pos in c.domain:
-                city = c
-                break
-        if city is None:
-            self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Something strange happened... this tile does not belong to any city...")))
-            return
-        for player_addr in self.players:
-            if self.players[player_addr].vision[pos.inty()][pos.intx()]:
-                self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [self.the_game.world.object.get(pos).to_serializable()]))
-            if self.players[player_addr].vision[city.pos.y][city.pos.x]:
-                self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
-        self.send_to_addr(addr, Format.event("GAME/UPDATE/MONEY", [self.players[addr].money]))
-        
-    else:
         self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Not your move right now.")))
+        return
+    pos = Vector2d.from_tuple(message[0])
+    result = self.players[addr].build(pos, BuildingTypes.by_id(message[1]))
+    if result != ErrorCodes.SUCCESS:
+        self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Cannot build: {result.name}")))
+        return
+    
+    update_updating_objects(self)
 
 @respond.event("END_TURN")
 def game_end_turn(self: Server, addr: Address, message: tuple):
-    if addr == self.order[self.now_playing_player_index]:
-        self.players[self.order[self.now_playing_player_index]].end_turn()
-        for unit in self.players[self.order[self.now_playing_player_index]].units:
-            if not unit.attacked and not unit.moved:
-                for player_addr in self.players:
-                    if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
-                        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [unit.pos.as_tuple(), unit.to_serializable()]))
-        self.now_playing_player_index += 1
-        self.now_playing_player_index %= len(self.order)
-        self.players[self.order[self.now_playing_player_index]].start_turn()
-        for unit in self.players[self.order[self.now_playing_player_index]].units:
-            for player_addr in self.players:
-                if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
-                    self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [unit.pos.as_tuple(), unit.to_serializable()]))
-        self.send_to_addr(self.order[self.now_playing_player_index], Format.event("GAME/UPDATE/MONEY", [self.players[self.order[self.now_playing_player_index]].money]))
-        for addr1 in self.conns:
-            self.send_to_addr(addr1, Format.event("GAME/END_TURN", [self.addrs_to_names[addr]]))
-    else:
+    if addr != self.order[self.now_playing_player_index]:
         self.send_to_addr(addr, Format.error("GAME/END_TURN", (f"Not your move right now.")))
+        return
+    
+    for addr1 in self.conns:
+        self.send_to_addr(addr1, Format.event("GAME/END_TURN", [self.addrs_to_names[addr]]))
+    
+    self.players[self.order[self.now_playing_player_index]].end_turn()
+    self.now_playing_player_index += 1
+    self.now_playing_player_index %= len(self.order)
+    self.players[self.order[self.now_playing_player_index]].start_turn()
+
+    update_updating_objects(self)

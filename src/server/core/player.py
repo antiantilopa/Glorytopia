@@ -23,7 +23,7 @@ class Player:
     def __init__(self):
         self.id = Player.ID
         Player.ID += 1
-        self.money = 5
+        self.money = 8
         self.vision = [[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)]
         self.techs = [Techs.base]
         self.units = []
@@ -90,6 +90,8 @@ class Player:
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
     def move_unit(self, unit: "Unit.Unit", pos: Vector2d):
+        if unit.owner != self.id:
+            return ErrorCodes.ERR_NOT_YOUR_UNIT
         if pos in unit.get_possible_moves():
             unit.move(pos)
             return ErrorCodes.SUCCESS

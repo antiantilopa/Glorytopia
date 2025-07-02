@@ -3,14 +3,18 @@ from engine_antiantilopa import Vector2d
 from shared.unit_types import UnitType
 from shared.city import CityData
 from shared.tile_types import BuildingType
+from .updating_object import UpdatingObject
+
 
 from .world import World
 from . import unit as Unit
+from . import player as Player
 
-class City(CityData):
+class City(CityData, UpdatingObject):
     cities: list["City"] = []
 
     def __init__(self, pos: Vector2d, owner: int):
+        UpdatingObject.__init__(self)
         CityData.__init__(self, pos, owner, random_name(), 1, 0, 0, False, False, False, [pos])
         City.cities.append(self)
 
@@ -67,17 +71,11 @@ class City(CityData):
                             self.grow_population(World.object.get(pos + Vector2d(dx, dy)).building.population)
         return True
 
-    def destroy(self, pos: Vector2d):
-        self.population -= World.object.get(pos).building.population
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, -1):
-                if dx == dy == 0: continue
-                if World.object.is_in(pos + Vector2d(dx, dy)):
-                    if not (World.object.get(pos).building.adjacent_bonus is None):
-                        if World.object.get(pos + Vector2d(dx, dy)).building == World.object.get(pos).building.adjacent_bonus:
-                            self.population -= 1
-                    if not (World.object.get(pos + Vector2d(dx, dy)).building is None):
-                        if World.object.get(pos + Vector2d(dx, dy)).building.adjacent_bonus == World.object.get(pos).building:
-                            self.population -= 1
-        World.object.get(pos).building = None
-        return True
+    def destroy(self):
+        for pos in self.domain:
+            World.object.get(pos).owner = -1
+        World.object.cities_mask[self.pos.inty()][self.pos.intx()] = 0
+        City.cities.remove(self)
+        Player.Player.players[self.owner].cities.remove(self)
+        UpdatingObject.destroy(self)
+        del self

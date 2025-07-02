@@ -8,3 +8,4 @@ from .unit import Unit
 from .game import Game
 from engine_antiantilopa import Vector2d
 from shared import TechNode, UnitType, TileType, ResourceType, BuildingType, UnitTypes, TileTypes, ResourceTypes, BuildingTypes
+from .updating_object import UpdatingObject
