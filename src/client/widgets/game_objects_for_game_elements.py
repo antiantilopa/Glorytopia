@@ -68,8 +68,8 @@ def create_unit_game_object(unit_data: UnitData):
     unit.add_component(SelectComponent())
     sprite = create_game_object(unit, at=InGrid((1, 1), (0, 0)), layer=2, tags="game_screen:world_section:world:unit_layer:unit:sprite")
     sprite.add_component(SpriteComponent(nickname=unit_data.utype.name, size=block_size))
-    health = create_game_object(unit, at=Position.LEFT_UP, size=block_size // 3, shape=Shape.CIRCLE, layer=3, color=ColorComponent.RED, radius=block_size.x // 6, tags="game_screen:world_section:world:unit_layer:unit:health")
-    create_label(health, text=f"{unit_data.health}", font=pg.font.SysFont("consolas", block_size.x // 4), color=ColorComponent.WHITE, tags="game_screen:world_section:world:unit_layer:unit:health")
+    health = create_game_object(unit, at=Position.LEFT_UP, size=block_size // 3, shape=Shape.CIRCLE, layer=3, color=Client.object.get_main_color(Client.object.order[unit_data.owner]), radius=block_size.x // 6, tags="game_screen:world_section:world:unit_layer:unit:health")
+    create_label(health, text=f"{unit_data.health}", font=pg.font.SysFont("consolas", block_size.x // 4), color=Client.object.get_secondary_color(Client.object.order[unit_data.owner]), tags="game_screen:world_section:world:unit_layer:unit:health")
 
 def remove_unit_game_object(pos: tuple[int, int]):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
@@ -90,21 +90,43 @@ def move_unit_game_object(pos: tuple[int, int], unit_data: UnitData):
             for child in unit.childs:
                 if "game_screen:world_section:world:unit_layer:unit:health" in child.tags:
                     child.childs[0].destroy()
-                    create_label(child, text=f"{unit_data.health}", font=pg.font.SysFont("consolas", block_size.x // 4), color=ColorComponent.WHITE, tags="game_screen:world_section:world:unit_layer:unit:health")
+                    create_label(child, text=f"{unit_data.health}", font=pg.font.SysFont("consolas", block_size.x // 4), color=Client.object.get_secondary_color(Client.object.order[unit_data.owner]), tags="game_screen:world_section:world:unit_layer:unit:health")
             break
+
+def update_city_name_label(city: GameObject):
+    city_data = city.get_component(CityComponent).city_data
+    city_owner = city_data.owner
+    if city_owner == -1:
+        return
+    i = 0
+    while i < len(city.childs):
+        if "game_screen:world_section:world:city_layer:city:name_label" in city.childs[i].tags:
+            city.childs[i].destroy()
+            continue
+        elif "game_screen:world_section:world:city_layer:city:name_label_background" in city.childs[i].tags:
+            city.childs[i].destroy()
+            continue
+        else:
+            i += 1
+
+    city_name_label = create_label(city, "game_screen:world_section:world:city_layer:city:name_label", f"{city_data.level} {city_data.name}{("!" if city_data.is_capital else "")}", pg.font.SysFont("consolas", block_size.x // 6), Position.DOWN, color=Client.object.get_secondary_color(Client.object.order[city_owner]), layer=2, crop=0)
+    city_name_label_background = create_game_object(city, "game_screen:world_section:world:city_layer:city:name_label_background", at=Position.DOWN, size=city_name_label.get_component(SurfaceComponent).size, shape=Shape.RECT, color=Client.object.get_main_color(Client.object.order[city_owner]), layer=1, crop=0)
 
 def create_city_game_object(city_data: CityData):
     city_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:city_layer")
-    for city in city_layer.childs:
+    for city in GameObject.get_group_by_tag("game_screen:world_section:world:city_layer:city"):
         if city.contains_component(CityComponent):
             if city.get_component(PositionComponent).pos == city_data.pos:
                 city.get_component(CityComponent).city_data = city_data
+                update_city_name_label(city)
                 return
-
+    
     city = create_game_object(city_layer, ["game_screen:world_section:world:city_layer:city"], at=InGrid(Client.object.world_size, city_data.pos), shape=Shape.RECT, layer=1)
-    city.add_component(CityComponent(city_data, city_data.pos))
-    city.add_component(SpriteComponent(nickname="city", size=block_size))
     city.add_component(SelectComponent())
+    city.add_component(CityComponent(city_data, city_data.pos))
+    city_sprite = create_game_object(city, "game_screen:world_section:world:city_layer:city:sprite", size=block_size, layer=0)
+    city_sprite.add_component(SpriteComponent(nickname="city", size=block_size))
+    update_city_name_label(city)
 
 def create_tech_tree_node(tech_win: GameObject, tech: TechNode, number: int, depth: int):
     width = 0

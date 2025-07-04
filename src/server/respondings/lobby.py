@@ -13,13 +13,23 @@ def join(self: Server, addr: Address, name: tuple[str]):
         self.send_to_addr(addr, Format.error("LOBBY/JOIN", ["this name is already taken, or it is prohibited."]))
         return
     print(f"{name[0]} joined the game!")
+    used_colors = set(self.names_to_colors.values())
+
+    def mex(some_set: set[int]) -> int: # O(N) = N log(N). Colors < 8 so nevermid
+        mex_value = 0
+        while mex_value in some_set:
+            mex_value += 1
+        return mex_value
+
+    self.names_to_colors[name[0]] = mex(used_colors)
     self.addrs_to_names[addr] = name[0]
     self.names_to_addrs[name[0]] = addr
     self.readiness[addr] = False
     self.game_starting = False
     self.order.append(addr)
     for j in self.conns:
-        self.send_to_addr(j, Format.event("LOBBY/JOIN", [self.addrs_to_names[addr]]))
+        self.send_to_addr(j, Format.event("LOBBY/JOIN", [name[0]]))
+        self.send_to_addr(j, Format.event("LOBBY/COLOR_CHANGE", (name[0], self.names_to_colors[name[0]])))
 
 @respond.event("RECONNECT")
 def reconnect(self: Server, addr: Address, name_and_recovery: tuple[str, int]):
@@ -40,9 +50,9 @@ def reconnect(self: Server, addr: Address, name_and_recovery: tuple[str, int]):
     self.recovery_codes.pop(name)
     previous_addr = self.names_to_addrs[name]
 
-    self.addrs_to_names[addr] = self.addrs_to_names.pop(previous_addr)
-    self.players[addr] = self.players.pop(previous_addr)
-    self.readiness[addr] = self.readiness.pop(previous_addr)
+    self.addrs_to_names[addr] = self.addrs_to_names[previous_addr]
+    self.players[addr] = self.players[previous_addr]
+    self.readiness[addr] = self.readiness[previous_addr]
     self.order[self.order.index(previous_addr)] = addr
     self.names_to_addrs[name] = addr
     for j in self.conns:
@@ -83,6 +93,24 @@ def ready(self: Server, addr: Address, player_readiness: tuple[int]):
     else:
         self.game_starting = False
 
+@respond.event("COLOR_CHANGE")
+def color_change(self: Server, addr: Address, message: tuple[int]):
+    if self.game_started:
+        self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["this game has already started."]))
+        return
+    if addr not in self.addrs_to_names:
+        self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["you did not joined the lobby."]))
+        return
+    if message[0] in self.names_to_colors.values():
+        self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["this color is already taken."]))
+        return
+    if message[0] < 0 or message[0] > 7:
+        self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["color is out of range. 0-7 are allowed."]))
+        return
+    self.names_to_colors[self.addrs_to_names[addr]] = message[0]
+    for i in self.conns:
+        self.send_to_addr(i, Format.event("LOBBY/COLOR_CHANGE", (self.addrs_to_names[addr], message[0])))
+
 @respond.event("ADMIN")
 def eve_lobby_admin(self: Server, addr: Address, message: tuple[str]):
     if self.game_started:
@@ -107,7 +135,10 @@ def eve_lobby_change_order(self: Server, addr: Address, message: tuple[str, str]
 def req_readiness(self: Server, addr: Address, _: tuple):
     self.send_to_addr(addr, Format.info("LOBBY/READINESS", [(self.addrs_to_names[addr], self.readiness[addr]) for addr in self.readiness]))
 
-
 @respond.request("NAMES")
 def req_readiness(self: Server, addr: Address, _: tuple):
-    self.send_to_addr(addr, Format.info("LOBBY/NAMES", [self.addrs_to_names[addr] for addr in self.addrs_to_names]))
+    self.send_to_addr(addr, Format.info("LOBBY/NAMES", [self.addrs_to_names[i] for i in self.order]))
+
+@respond.request("COLORS")
+def req_color(self: Server, addr: Address, _: tuple):
+    self.send_to_addr(addr, Format.info("LOBBY/COLORS", [(name, self.names_to_colors[name]) for name in self.names_to_colors]))

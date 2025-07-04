@@ -12,6 +12,7 @@ class Server(Host):
         self.readiness: dict[Address, bool] = {}
         self.recovery_codes: dict[str, int] = {}
         self.order: list[Address] = []
+        self.names_to_colors: dict[str, int] = {}
         self.admin_addr: Address = Address(("", 0))
         self.game_started = False
         self.game_starting = False

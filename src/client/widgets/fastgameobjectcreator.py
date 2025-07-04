@@ -78,7 +78,8 @@ def create_game_object(
         radius: int|None = None,
         margin: Vector2d = Vector2d(0, 0),
         layer: int = 1,
-        surface_margin: Vector2d = Vector2d(0, 0)) -> GameObject:
+        surface_margin: Vector2d = Vector2d(0, 0),
+        crop: bool = True) -> GameObject:
     t = GameObject(tags)
     t.disable()
     parent.add_child(t)
@@ -105,7 +106,7 @@ def create_game_object(
         elif shape is Shape.CIRCLE:
             t.add_component(shape.value(radius=radius, need_draw=need_draw))
     t.add_component(Transform(pos))
-    t.add_component(SurfaceComponent(size=size, layer=layer))
+    t.add_component(SurfaceComponent(size=size, crop=crop, layer=layer))
     t.enable()
     return t
 
@@ -116,7 +117,9 @@ def create_label(
         font: pg.font.Font|None = None,
         at: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
         color: tuple[int, int, int]|None = None,
-        margin: Vector2d = Vector2d(0, 0)) -> GameObject:
+        margin: Vector2d = Vector2d(0, 0),
+        layer: int = 1,
+        crop: bool = True) -> GameObject:
     if color is None:
         raise ValueError("label have to have a color")
     try:
@@ -137,7 +140,7 @@ def create_label(
         else:
             pos = Vector2d.from_tuple(at)
         t.add_component(Transform(pos))
-        t.add_component(SurfaceComponent(size=size))
+        t.add_component(SurfaceComponent(size=size, crop=crop, layer=layer))
         t.enable()
         return t
     except Exception as e:
@@ -153,6 +156,7 @@ def create_line_game_object(
         width: int|None = None,
         margin: Vector2d = Vector2d(0, 0),
         layer: int = 1,
+        crop: bool = True,
         surface_margin: Vector2d = Vector2d(0, 0)) -> GameObject:
     if color is None:
         raise ValueError("label have to have a color")
@@ -180,12 +184,13 @@ def create_line_game_object(
         size = Vector2d(abs((end - start).x), abs((end - start).y)) + Vector2d(width, width) if width is not None else Vector2d(1, 1)
         t.add_component(LineComponent((start - end) / 2, (end - start) / 2, width=width if width is not None else 1))
         t.add_component(Transform((start + end) / 2))
-        t.add_component(SurfaceComponent(size=size))
+        t.add_component(SurfaceComponent(size=size, crop=crop, layer=layer))
         t.enable()
         return t
     except Exception as e:
         t.destroy()
         raise e
+
 def create_label_block(
         parent = GameObject.root,
         tags: list[str] = [],
@@ -194,7 +199,9 @@ def create_label_block(
         at: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
         text_pos: Position = Position.CENTER,
         color: tuple[int, int, int]|None = None,
-        margin: Vector2d = Vector2d(0, 0)) -> GameObject:
+        margin: Vector2d = Vector2d(0, 0),
+        layer: int = 1, 
+        crop: bool = True) -> GameObject:
     if color is None:
         raise ValueError("label have to have a color.")
     if text_pos not in (Position.LEFT, Position.CENTER, Position.RIGHT):
@@ -221,7 +228,7 @@ def create_label_block(
         pos = at.get_pos(t)
     else:
         pos = Vector2d.from_tuple(at)
-    t.add_component(SurfaceComponent(size=size))
+    t.add_component(SurfaceComponent(size=size, layer=layer, crop=crop))
     t.add_component(Transform(pos))
 
     for i in range(len(text.split("\n"))):

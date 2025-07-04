@@ -77,6 +77,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
                 print("Failed to reconnect. Please check your recovery code.")
                 return
             else:
+                Client.object.send(Format.request("LOBBY/NAMES", []))
                 print("Reconnected successfully.")
                 GameObject.get_game_object_by_tags("main_menu").disable()
                 Client.object.game_started = True
@@ -91,6 +92,8 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
 
         c = Client.object
         c.send(Format.request("LOBBY/NAMES", []))
+        c.send(Format.request("ORDER", []))
+        c.send(Format.request("LOBBY/COLORS", []))
         c.send(Format.request("LOBBY/READINESS", []))
     
     def start_game():

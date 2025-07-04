@@ -34,6 +34,7 @@ def at_disconnect(self: Server, addr: Address):
         if not self.game_started:
             for i in self.conns:
                 self.send_to_addr(i, Format.event("DISCONNECT", [self.addrs_to_names[addr]]))
+            self.names_to_colors.pop(self.addrs_to_names[addr], None)
             self.names_to_addrs.pop(self.addrs_to_names[addr], None)
             self.addrs_to_names.pop(addr)
             self.readiness.pop(addr)
@@ -53,7 +54,7 @@ def at_disconnect(self: Server, addr: Address):
 def req_order(self: Server, addr: Address, _: tuple):
     self.send_to_addr(addr, Format.info("ORDER", [self.addrs_to_names[addr1] for addr1 in self.order]))
 
-host.init_server(3)
+host.init_server(6)
 host.start()
 
 for r in host.respond.routes:

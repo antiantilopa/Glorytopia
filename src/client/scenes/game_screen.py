@@ -42,15 +42,16 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
 
     info_section = create_game_object(scene, "game_screen:info_section", at=InGrid((12, 8), (8, 0), (4, 8)), shape=Shape.RECT)
 
-    money_label = create_label(info_section, tags="game_screen:info_section:money_label", text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 8), (0, 0), (1, 1)), color=ColorComponent.WHITE)
+    money_label = create_label(info_section, tags="game_screen:info_section:money_label", text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((2, 8), (0, 0), (1, 1)), color=ColorComponent.WHITE)
 
     selector_section = create_game_object(info_section, at=InGrid((1, 8), (0, 1), (1, 5)), shape=Shape.RECTBORDER, color=ColorComponent.WHITE, width=2, margin=Vector2d(5, 0), tags="game_screen:info_section:selector_section")
     selector_image_section = create_game_object(selector_section, at=InGrid((4, 5), (0, 0), (1, 1)), surface_margin=Vector2d(7, 2), tags="game_screen:info_section:selector_section:selector_image_section")
     selector_info_section = create_game_object(selector_section, at=InGrid((4, 5), (0, 1), (4, 4)), surface_margin=Vector2d(7, 2), tags="game_screen:info_section:selector_section:selector_info_section")
     
-    end_turn_button = create_game_object(info_section, "game_screen:info_section:end_turn_button", at=InGrid((1, 8), (0, 7), (1, 1)), color=(50, 150, 50) if Client.object.names[0] == Client.object.myname else (30, 100, 30), shape=Shape.RECT)
+    end_turn_button = create_game_object(info_section, "game_screen:info_section:end_turn_button", at=InGrid((1, 8), (0, 7), (1, 1)), color=(50, 150, 50) if Client.object.order[0] == Client.object.myname else (30, 100, 30), shape=Shape.RECT)
     end_turn_label = create_label(end_turn_button, "game_screen:info_section:end_turn_label", text="End Turn", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
     end_turn_button.add_component(OnClickComponent([1, 0, 0], 0, 1, end_turn_click))
+    now_playing_label = create_label_block(info_section, "game_screen:info_section:now_playing_label", text=f"Now playing:\n{Client.object.order[Client.object.now_playing]}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((2, 8), (1, 0), (1, 1)), color=ColorComponent.WHITE)
 
     techs_button = create_game_object(info_section, "game_screen:info_section:techs_button", at=InGrid((1, 8), (0, 6), (1, 1)), color=(0, 150, 250), shape=Shape.RECT)
     techs_label = create_label(techs_button, "game_screen:info_section:end_turn_label", text="Technology", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
@@ -154,12 +155,12 @@ def selector_info_update():
             tile_data = SelectComponent.selected.get_component(TileComponent).tile_data
             text = "\n".join((
                 f"type: {tile_data.ttype.name}", 
-                f"owner: {Client.object.names[tile_data.owner] if tile_data.owner != -1 else None}", 
+                f"owner: {Client.object.order[tile_data.owner] if tile_data.owner != -1 else None}", 
                 f"resorce: {tile_data.resource.name if tile_data.resource is not None else None}", 
                 f"building: {tile_data.building.name if tile_data.building is not None else None}",
                 f"pos: {tile_data.pos}", 
             ))
-            if tile_data.owner == Client.object.names.index(Client.object.myname):
+            if tile_data.owner != -1 and Client.object.myname == Client.object.order[tile_data.owner]:
                 if tile_data.resource is not None:
                     for tech in Client.object.techs:
                         if tile_data.resource in tech.harvestables:
@@ -172,7 +173,7 @@ def selector_info_update():
         else:
             text = "\n".join((
                 f"city: {city_data.name}",
-                f"owner: {Client.object.names[city_data.owner] if city_data.owner != -1 else None}", 
+                f"owner: {Client.object.order[city_data.owner] if city_data.owner != -1 else None}", 
                 f"level: {city_data.level}",
                 f"population: {city_data.population}/{city_data.level + 1}",
                 f"fullness: {city_data.fullness}",
@@ -180,7 +181,7 @@ def selector_info_update():
                 f"pos: {city_data.pos}",
                 f"Capital" if city_data.is_capital else ""
             ))
-            if city_data.owner == Client.object.names.index(Client.object.myname):
+            if city_data.owner != -1 and Client.object.myname == Client.object.order[city_data.owner]:
                 found = 0
                 for unit_data in Client.object.units:
                     if unit_data.pos == city_data.pos:
@@ -198,7 +199,7 @@ def selector_info_update():
         
         text = "\n".join((
             f"type: {unit_data.utype.name}",
-            f"owner: {Client.object.names[unit_data.owner] if unit_data.owner != -1 else None}", 
+            f"owner: {Client.object.order[unit_data.owner] if unit_data.owner != -1 else None}", 
             f"health: {unit_data.health}",
             f"can_move?: {"no" if unit_data.moved else "yes"}",
             f"can_attack?: {"no" if unit_data.attacked else "yes"}",
@@ -223,7 +224,7 @@ def selector_info_update():
 
         my_cities_count = 0
         for city in Client.object.cities:
-            if city.owner == Client.object.names.index(Client.object.myname):
+            if city.owner != -1 and Client.object.myname == Client.object.order[city.owner]:
                 my_cities_count += 1
         text = "\n".join((
             f"name: {tech.name}    " + (f"owned" if tech in Client.object.techs else "not owned"),
@@ -377,11 +378,17 @@ def init():
     @Client.object.check_update(UpdateCodes.END_TURN)
     def end_turn():
         self = Client.object
-        if self.names[self.now_playing] == self.myname:
+        if self.order[self.now_playing] == self.myname:
             end_turn_button = GameObject.get_group_by_tag("game_screen:info_section:end_turn_button")[0]
             end_turn_button.get_component(ColorComponent).color = (50, 150, 50)
             end_turn_button.need_draw_set_true()
             end_turn_button.need_blit_set_true()
+
+        now_playing_label = GameObject.get_game_object_by_tags("game_screen:info_section:now_playing_label")
+        now_playing_label.destroy()
+        screen_size = GameObject.get_game_object_by_tags("game_screen").get_component(SurfaceComponent).size
+        info_section = GameObject.get_game_object_by_tags("game_screen:info_section")
+        now_playing_label = create_label_block(info_section, "game_screen:info_section:now_playing_label", text=f"Now playing:\n{Client.object.order[Client.object.now_playing]}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((2, 8), (1, 0), (1, 1)), color=ColorComponent.WHITE)
 
     @Client.object.change_main_cycle
     def update(self: Client):

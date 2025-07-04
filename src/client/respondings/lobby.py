@@ -11,6 +11,8 @@ def join(self: Client, message: tuple[str]):
         self.readiness[name] = False
     self.readiness[message[0]] = False
     self.names.append(message[0])
+    self.order[len(self.order)] = message[0]
+    self.names_to_colors[message[0]] = 0 # just to ensure that the client do not try to draw the non existent color
     if message[0] == self.myname:
         self.joined = True
     self.updated |= 2 ** UpdateCodes.JOIN.value
@@ -41,6 +43,11 @@ def message(self: Client, message: tuple[str, str]):
     self.messages.append(message)
     self.updated |= 2 ** UpdateCodes.MESSAGE.value
 
+@respond.event("COLOR_CHANGE")
+def color_change(self: Client, message: tuple[str, int]):
+    self.names_to_colors[message[0]] = message[1]
+    self.updated |= 2 ** UpdateCodes.COLOR_CHANGE.value
+
 @respond.event("GAME_START")
 def game_start(self: Client, message: tuple[int]):
     if message[0] == 0:
@@ -66,7 +73,7 @@ def info_names(self: Client, message: list[str]):
             self.readiness[name] = False
     self.updated |= 2 ** UpdateCodes.INIT_NAMES.value
 
-@respond.info("ORDER") # HAVE TO BE GAME ORDER TODO
-def print_order(self: Client, message: list[str]):
-    for i in range(len(message)):
-        self.order[message[i]] = i
+@respond.info("COLORS")
+def info_colors(self: Client, message: list[tuple[str, int]]):
+    self.names_to_colors = {name: color for (name, color) in message}
+    self.updated |= 2 ** UpdateCodes.INIT_COLORS.value
