@@ -9,9 +9,9 @@ c.respond.merge(gameevents.respond)
 c.respond.merge(gameinfo.respond)
 
 resolutions = [
-    # (1680, 1120),
-    # (1440, 960),
-    # (1200, 800),
+    (1680, 1120),
+    (1440, 960),
+    (1200, 800),
     (960, 640),
     (720, 480),
     (600, 400),
@@ -24,4 +24,3 @@ for res in resolutions:
         break
 
 client.Client.object.sock.close()
-# Vector2d changed...

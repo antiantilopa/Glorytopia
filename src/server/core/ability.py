@@ -73,8 +73,9 @@ class Abilities:
                 res = 1.5
                 for city in City.City.cities:
                     if city.pos == unit.pos:
-                        if city.walls is True:
+                        if city.walls == True:
                             res = 2
+                            break
                         else:
                             break
             return res
@@ -129,7 +130,7 @@ class Abilities:
 
         @staticmethod
         def after_movement(unit):
-            if World.cities_mask[unit.pos.y][unit.pos.x]:
+            if World.object.cities_mask[unit.pos.y][unit.pos.x]:
                 for city in City.City.cities:
                     if city.pos == unit.pos:
                         if city.owner != unit.owner:

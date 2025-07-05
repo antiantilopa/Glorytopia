@@ -68,6 +68,10 @@
             "cloack": "cloak.png",
             "giant": "giant.png"
         },
-        "city": "city.png"
+        "city": {
+            "city": "city.png",
+            "city_walls": "city_walls.png",
+            "city_forge": "city_forge.png"
+        }
     }
 }

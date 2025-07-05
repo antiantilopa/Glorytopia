@@ -55,13 +55,27 @@ def create_tile_game_object(pos: tuple[int, int]):
     new_tile_sprite.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].ttype.name, size=block_size))
     if self.world[pos[1]][pos[0]].building is not None:
         building = create_game_object(new_tile, "game_screen:world_section:world:tile:building", at=InGrid((1, 1), (0, 0)), layer = 1)
-        building.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].building.name, size=block_size))
+        if self.world[pos[1]][pos[0]].building.adjacent_bonus == None:
+            building.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].building.name, size=block_size))
+        else:
+            level = 0
+            for d in VectorRange(Vector2d(-1, -1), Vector2d(2, 2)):
+                if (Vector2d.from_tuple(pos) + d).is_in_box(Vector2d(0, 0), Vector2d.from_tuple(self.world_size) - Vector2d(1, 1)):
+                    print(d)
+                    if self.world[pos[1] + d.inty()][pos[0] + d.intx()] is None:
+                        continue
+                    if self.world[pos[1] + d.inty()][pos[0] + d.intx()].owner == self.world[pos[1]][pos[0]].owner:
+                        if self.world[pos[1] + d.inty()][pos[0] + d.intx()].building == self.world[pos[1]][pos[0]].building.adjacent_bonus:
+                            level += 1
+            if level == 0:
+                level = 1
+            print(level)
+            building.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].building.name, size=block_size, frame=level-1, frames_number=8, frame_direction=Vector2d(0, 1)))
     if self.world[pos[1]][pos[0]].resource is not None:
         resource = create_game_object(new_tile, "game_screen:world_section:world:tile:resource", at=InGrid((1, 1), (0, 0)), layer = 1)
         resource.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].resource.name, size=block_size))
     if self.world[pos[1]][pos[0]].owner == -1:
         return
-    print(f"update border for {Vector2d.from_tuple(pos)}", end=": ")
     update_tile_border(pos)
     for d in (Vector2d(-1, 0), Vector2d(1, 0), Vector2d(0, 1), Vector2d(0, -1)):
         if not (0 <= pos[0] + d.x < self.world_size[0] and 0 <= pos[1] + d.y < self.world_size[1]):
@@ -69,7 +83,6 @@ def create_tile_game_object(pos: tuple[int, int]):
         if self.world[pos[1] + d.inty()][pos[0] + d.intx()] == None:
             continue
         if self.world[pos[1] + d.inty()][pos[0] + d.intx()].owner != -1:
-            print(f"> update {Vector2d.from_tuple(pos) + d}", end=": ")
             update_tile_border((pos[0] + d.intx(), pos[1] + d.inty()))
 
 def update_tile_border(pos: tuple[int, int]):
@@ -79,9 +92,7 @@ def update_tile_border(pos: tuple[int, int]):
             new_tile = tile
             break
     if new_tile is None:
-        print("not found")
         return
-    print("found")
     i = 0
     while i < len(new_tile.childs):
         if "game_screen:world_section:world:tile:border" in new_tile.childs[i].tags:
@@ -145,9 +156,27 @@ def update_city_name_label(city: GameObject):
         else:
             i += 1
 
-    city_name_label = create_label(city, "game_screen:world_section:world:city_layer:city:name_label", f"{city_data.level} {city_data.name}{("!" if city_data.is_capital else "")}", pg.font.SysFont("consolas", block_size.x // 6), Position.DOWN, color=Client.object.get_secondary_color(Client.object.order[city_owner]), layer=2, crop=0)
-    city_name_label_background = create_game_object(city, "game_screen:world_section:world:city_layer:city:name_label_background", at=Position.DOWN, size=city_name_label.get_component(SurfaceComponent).size, shape=Shape.RECT, color=Client.object.get_main_color(Client.object.order[city_owner]), layer=1, crop=0)
+    city_name_label = create_label(city, "game_screen:world_section:world:city_layer:city:name_label", f"{city_data.level} {city_data.name}{("!" if city_data.is_capital else "")}", pg.font.SysFont("consolas", block_size.x // 6), Position.DOWN, color=Client.object.get_secondary_color(Client.object.order[city_owner]), layer=6, crop=0)
+    city_name_label_background = create_game_object(city, "game_screen:world_section:world:city_layer:city:name_label_background", at=Position.DOWN, size=city_name_label.get_component(SurfaceComponent).size, shape=Shape.RECT, color=Client.object.get_main_color(Client.object.order[city_owner]), layer=5, crop=0)
 
+def update_city_upgrades(city: GameObject):
+    if city.get_component(CityComponent).city_data.level == 1:
+        return
+    found_forge = 0
+    found_walls = 0
+    for child in city.childs:
+        if "game_screen:world_section:world:city_layer:city:forge_sprite" in child.tags:
+            found_forge = 1
+        if "game_screen:world_section:world:city_layer:city:walls_sprite" in child.tags:
+            found_walls = 1
+    
+    if found_forge == 0 and city.get_component(CityComponent).city_data.forge == 1:
+        forge_sprite = create_game_object(city, "game_screen:world_section:world:city_layer:city:forge_sprite", at=InGrid((1, 1), (0, 0)), layer=1)
+        forge_sprite.add_component(SpriteComponent(nickname="city_forge", size=block_size))
+    if found_walls == 0  and city.get_component(CityComponent).city_data.walls == 1:
+        walls_sprite = create_game_object(city, "game_screen:world_section:world:city_layer:city:walls_sprite", at=InGrid((1, 1), (0, 0)), layer=2)
+        walls_sprite.add_component(SpriteComponent(nickname="city_walls", size=block_size))
+        
 def create_city_game_object(city_data: CityData):
     city_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:city_layer")
     for city in GameObject.get_group_by_tag("game_screen:world_section:world:city_layer:city"):
@@ -155,6 +184,7 @@ def create_city_game_object(city_data: CityData):
             if city.get_component(PositionComponent).pos == city_data.pos:
                 city.get_component(CityComponent).city_data = city_data
                 update_city_name_label(city)
+                update_city_upgrades(city)
                 return
     
     city = create_game_object(city_layer, ["game_screen:world_section:world:city_layer:city"], at=InGrid(Client.object.world_size, city_data.pos), shape=Shape.RECT, layer=1)
@@ -163,6 +193,7 @@ def create_city_game_object(city_data: CityData):
     city_sprite = create_game_object(city, "game_screen:world_section:world:city_layer:city:sprite", size=block_size, layer=0)
     city_sprite.add_component(SpriteComponent(nickname="city", size=block_size))
     update_city_name_label(city)
+    update_city_upgrades(city)
 
 def create_tech_tree_node(tech_win: GameObject, tech: TechNode, number: int, depth: int):
     width = 0

@@ -5,7 +5,7 @@ from . import city as City
 from shared.unit_types import UnitType
 from shared.tile_types import TileType, BuildingType, BuildingTypes
 from shared.error_codes import ErrorCodes
-from engine_antiantilopa import Vector2d
+from engine_antiantilopa import Vector2d, VectorRange
 
 
 class Player:
@@ -23,7 +23,7 @@ class Player:
     def __init__(self):
         self.id = Player.ID
         Player.ID += 1
-        self.money = 8
+        self.money = 8000
         self.vision = [[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)]
         self.techs = [Techs.base]
         self.units = []
@@ -56,6 +56,22 @@ class Player:
             return ErrorCodes.ERR_NOT_ENOUGH_MONEY
         if not (World.object.get(pos).ttype in btype.ttypes):
             return ErrorCodes.ERR_NOT_SUITABLE_TILE_TYPE
+        if btype.adjacent_bonus != None:
+            found = 0
+            for d in VectorRange(Vector2d(-1, -1), Vector2d(2, 2)):
+                if d == Vector2d(0, 0): continue
+                if not World.object.is_in(pos + d): continue
+                if World.object.get(pos + d).owner != self.id: continue
+                if not (btype.adjacent_bonus is None):
+                    if World.object.get(pos + d).building == btype.adjacent_bonus:
+                        found = 1
+                        break
+                if not (World.object.get(pos + d).building is None):
+                    if World.object.get(pos + d).building.adjacent_bonus == btype:
+                        found = 1
+                        break
+            if found == 0:
+                return ErrorCodes.ERR_BUILDING_HAS_NOT_ADJACENT_BONUS_GIVING_BUILDING
         for tech in self.techs:
             if btype in tech.buildings:
                 for city in self.cities:

@@ -1,13 +1,19 @@
-What is done:
-1. Engine (thx to tafh...)
-2. Serializator 
-3. map (proceduric generation)
-4. units
-5. Game logic (Just copy polytopia)
-6. Tree
-...
+Ctitical errors:
+    lobby visual bug (names are not displayed/has white color)
+    sawmill texture (it is not done yet... NEEDS to be done VERY soon)
 
-
-What should be done right now
-1. Interface (I believe in anyone who will do that !) (but nobody came...)
-2. Textures (thx to my brother)
+Need to do:
+    sounds for events (especially when your turn)
+    roads
+    game over
+    resources visibility and even spawn
+    naval update (in)
+    settings and config
+    
+Some improvements:
+    premoves
+    animations
+    tiles destruction by units
+    cities spawn and destruction
+    support units (like + defence for all units around)
+    tier 4 techs with siege units

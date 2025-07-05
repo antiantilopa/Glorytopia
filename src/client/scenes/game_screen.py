@@ -142,7 +142,10 @@ def selector_info_update():
             r_img.add_component(SpriteComponent(nickname=SelectComponent.selected.get_component(TileComponent).tile_data.resource.name, size=block_size))
         elif  SelectComponent.selected.get_component(TileComponent).tile_data.building is not None:
             r_img = create_game_object(selector_image_section, "game_screen:info_section:selector_section:selector_image_section:building_image", at=InGrid((1, 1), (0, 0)), layer=1)
-            r_img.add_component(SpriteComponent(nickname=SelectComponent.selected.get_component(TileComponent).tile_data.building.name, size=block_size))
+            if SelectComponent.selected.get_component(TileComponent).tile_data.building.adjacent_bonus == None:
+                r_img.add_component(SpriteComponent(nickname=SelectComponent.selected.get_component(TileComponent).tile_data.building.name, size=block_size))
+            else:
+                r_img.add_component(SpriteComponent(nickname=SelectComponent.selected.get_component(TileComponent).tile_data.building.name, size=block_size, frame=0, frames_number=8, frame_direction=Vector2d(0, 1)))
         else:
             for city in Client.object.cities:
                 if city.pos == SelectComponent.selected.get_component(TileComponent).pos:
@@ -176,7 +179,7 @@ def selector_info_update():
                 f"owner: {Client.object.order[city_data.owner] if city_data.owner != -1 else None}", 
                 f"level: {city_data.level}",
                 f"population: {city_data.population}/{city_data.level + 1}",
-                f"fullness: {city_data.fullness}",
+                f"fullness: {city_data.fullness}/{city_data.level + 1}",
                 f"income: +{city_data.level + city_data.is_capital + city_data.forge}",
                 f"pos: {city_data.pos}",
                 f"Capital" if city_data.is_capital else ""

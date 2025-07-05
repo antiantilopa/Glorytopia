@@ -25,14 +25,15 @@ def load_textures(texture_packs: list[str] = ["default"]):
                         SpriteComponent(texture_path + "/" + textures_json["textures"][name][type.name], Vector2d(100, 100), nickname=type.name)
                     except FileNotFoundError:
                         pass
-        if ":city" in SpriteComponent.downloaded:
-            continue
-        if "city" in textures_json["textures"]:
-            texture_path = path + texture_pack + "/textures"
-            try:
-                SpriteComponent(texture_path + "/" + textures_json["textures"]["city"], Vector2d(100, 100), nickname="city")
-            except FileNotFoundError:
-                pass
+        for key in ("city", "city_walls", "city_forge"):
+            if SpriteComponent.is_downloaded(key):
+                continue
+            if key in textures_json["textures"]["city"]:
+                texture_path = path + texture_pack + "/textures"
+                try:
+                    SpriteComponent(texture_path + "/" + textures_json["textures"]["city"][key], Vector2d(100, 100), nickname=key)
+                except FileNotFoundError:
+                    pass
     for name, types in {"tiles": TileType.ttypes, "resources": ResourceType.rtypes, "techs": TechNode.techs, "buildings": BuildingType.btypes, "units": UnitType.utypes}.items():
         for type in types:
             if f":{type.name}" not in SpriteComponent.downloaded:

@@ -31,13 +31,18 @@ class City(CityData, UpdatingObject):
         population_need = self.level + 1
         
         while self.population >= population_need:
-            self.level_up()
             self.population -= population_need
             population_need = self.level + 1
+            self.level_up()
 
     def level_up(self):
         self.level += 1
-        #add something TODO
+        if self.level == 2:
+            self.forge = 1
+        if self.level == 3:
+            self.walls = 1
+        if self.level == 4:
+            self.grow_population(3)
 
     def create_unit(self, utype: UnitType):
         if self.fullness < self.level + 1:
@@ -62,7 +67,9 @@ class City(CityData, UpdatingObject):
         for dx in (-1, 0, 1):
             for dy in (-1, 0, -1):
                 if dx == dy == 0: continue
-                if (pos + Vector2d(dx, dy)) in self.domain:
+                if World.object.is_in(pos + Vector2d(dx, dy)):
+                    if World.object.get(pos + Vector2d(dx, dy)).owner != self.owner:
+                        continue
                     if not (btype.adjacent_bonus is None):
                         if World.object.get(pos + Vector2d(dx, dy)).building == btype.adjacent_bonus:
                             self.grow_population(btype.population)
