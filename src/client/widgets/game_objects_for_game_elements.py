@@ -39,28 +39,64 @@ def create_tile_game_object(pos: tuple[int, int]):
     world = GameObject.get_game_object_by_tags("game_screen:world_section:world")
     self = Client.object
     i = 0
-    while i < len(world.childs):
-        tile_child = world.childs[i]
-        if not tile_child.contains_component(PositionComponent):
+    while i < len(GameObject.get_group_by_tag("game_screen:world_section:world:tile")):
+        tile_child = GameObject.get_group_by_tag("game_screen:world_section:world:tile")[i]
+        if not tile_child.contains_component(TileComponent):
             i += 1
             continue
-        elif tile_child.get_component(PositionComponent).pos == Vector2d(*pos):
+        elif tile_child.get_component(TileComponent).pos == Vector2d(*pos):
             tile_child.destroy()
         else:
             i += 1
     new_tile = create_game_object(world, "game_screen:world_section:world:tile", at=InGrid(self.world_size, Vector2d(*pos)), shape=Shape.RECT, layer = 0)
     new_tile.add_component(TileComponent(self.world[pos[1]][pos[0]], Vector2d(*pos)))
-    new_tile.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].ttype.name, size=block_size))
     new_tile.add_component(SelectComponent())
+    new_tile_sprite = create_game_object(new_tile, "game_screen:world_section:world:tile:sprite", at=InGrid((1, 1), (0, 0)), layer=0)
+    new_tile_sprite.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].ttype.name, size=block_size))
     if self.world[pos[1]][pos[0]].building is not None:
-        building = create_game_object(world, "game_screen:world_section:world:tile:building", at=InGrid(self.world_size, Vector2d(*pos)), shape=Shape.RECT, layer = 1)
+        building = create_game_object(new_tile, "game_screen:world_section:world:tile:building", at=InGrid((1, 1), (0, 0)), layer = 1)
         building.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].building.name, size=block_size))
-        building.add_component(PositionComponent(Vector2d(*pos)))
     if self.world[pos[1]][pos[0]].resource is not None:
-        resource = create_game_object(world, "game_screen:world_section:world:tile:resource", at=InGrid(self.world_size, Vector2d(*pos)), shape=Shape.RECT, layer = 1)
+        resource = create_game_object(new_tile, "game_screen:world_section:world:tile:resource", at=InGrid((1, 1), (0, 0)), layer = 1)
         resource.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].resource.name, size=block_size))
-        resource.add_component(PositionComponent(Vector2d(*pos)))
-    
+    if self.world[pos[1]][pos[0]].owner == -1:
+        return
+    print(f"update border for {Vector2d.from_tuple(pos)}", end=": ")
+    update_tile_border(pos)
+    for d in (Vector2d(-1, 0), Vector2d(1, 0), Vector2d(0, 1), Vector2d(0, -1)):
+        if not (0 <= pos[0] + d.x < self.world_size[0] and 0 <= pos[1] + d.y < self.world_size[1]):
+            continue
+        if self.world[pos[1] + d.inty()][pos[0] + d.intx()] == None:
+            continue
+        if self.world[pos[1] + d.inty()][pos[0] + d.intx()].owner != -1:
+            print(f"> update {Vector2d.from_tuple(pos) + d}", end=": ")
+            update_tile_border((pos[0] + d.intx(), pos[1] + d.inty()))
+
+def update_tile_border(pos: tuple[int, int]):
+    new_tile = None
+    for tile in GameObject.get_group_by_tag("game_screen:world_section:world:tile"):
+        if tile.get_component(TileComponent).pos == Vector2d(*pos):
+            new_tile = tile
+            break
+    if new_tile is None:
+        print("not found")
+        return
+    print("found")
+    i = 0
+    while i < len(new_tile.childs):
+        if "game_screen:world_section:world:tile:border" in new_tile.childs[i].tags:
+            new_tile.childs[i].destroy()
+        else:
+            i += 1
+    self = Client.object
+    for d in (Vector2d(-1, 0), Vector2d(1, 0), Vector2d(0, 1), Vector2d(0, -1)):
+        if not (0 <= pos[0] + d.x < self.world_size[0] and 0 <= pos[1] + d.y < self.world_size[1]):
+            continue
+        if (self.world[pos[1] + d.inty()][pos[0] + d.intx()] == None) or (self.world[pos[1] + d.inty()][pos[0] + d.intx()].owner != self.world[pos[1]][pos[0]].owner):
+            create_line_game_object(new_tile, "game_screen:world_section:world:tile:border", at=d.complex_multiply(Vector2d(1, 1)) * block_size // 2, to=d.complex_multiply(Vector2d(1, -1)) * block_size // 2, color=self.get_main_color(self.order[self.world[pos[1]][pos[0]].owner]), width=5)
+    new_tile.need_draw = True
+    new_tile.need_blit_set_true()
+
 def create_unit_game_object(unit_data: UnitData):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
     unit = create_game_object(unit_layer, "game_screen:world_section:world:unit_layer:unit", at=InGrid(Client.object.world_size, unit_data.pos.as_tuple()), shape=Shape.RECT, layer=2)

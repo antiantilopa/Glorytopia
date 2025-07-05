@@ -92,6 +92,7 @@ try:
                 exec(a)
             except Exception as e:
                 print(f"error: {e}")
-except KeyboardInterrupt:
-    host.close_threads()
-    host.close_connections()
+except Exception as e:
+    print(f"ERROR OCCURED: {e}")
+    print(e.with_traceback())
+

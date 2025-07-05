@@ -12,6 +12,9 @@ def join(self: Server, addr: Address, name: tuple[str]):
     if (name[0] in self.addrs_to_names.values()) or (name[0] == "") or not (name[0].isascii()):
         self.send_to_addr(addr, Format.error("LOBBY/JOIN", ["this name is already taken, or it is prohibited."]))
         return
+    if len(name[0]) > 15:
+        self.send_to_addr(addr, Format.error("LOBBY/JOIN", ["this name is too long. 15 symbols maximum"]))
+
     print(f"{name[0]} joined the game!")
     used_colors = set(self.names_to_colors.values())
 
@@ -50,9 +53,9 @@ def reconnect(self: Server, addr: Address, name_and_recovery: tuple[str, int]):
     self.recovery_codes.pop(name)
     previous_addr = self.names_to_addrs[name]
 
-    self.addrs_to_names[addr] = self.addrs_to_names[previous_addr]
-    self.players[addr] = self.players[previous_addr]
-    self.readiness[addr] = self.readiness[previous_addr]
+    self.addrs_to_names[addr] = self.addrs_to_names.pop(previous_addr)
+    self.players[addr] = self.players.pop(previous_addr)
+    self.readiness[addr] = self.readiness.pop(previous_addr)
     self.order[self.order.index(previous_addr)] = addr
     self.names_to_addrs[name] = addr
     for j in self.conns:
@@ -104,8 +107,8 @@ def color_change(self: Server, addr: Address, message: tuple[int]):
     if message[0] in self.names_to_colors.values():
         self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["this color is already taken."]))
         return
-    if message[0] < 0 or message[0] > 7:
-        self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["color is out of range. 0-7 are allowed."]))
+    if message[0] < 0:
+        self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["color is out of range. [0; +inf) are allowed."]))
         return
     self.names_to_colors[self.addrs_to_names[addr]] = message[0]
     for i in self.conns:
