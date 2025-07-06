@@ -36,6 +36,11 @@ def get_cities(self: Client, message: list[SerializedCity]):
         self.cities_updates.append((CityData.from_serializable(sercity)))
     self.updated |= 2 ** UpdateCodes.UPDATE_CITY.value
 
+@respond.info("NOW_PLAYING_PLAYER_INDEX")
+def get_now_playing_player_index(self: Client, message: tuple[int]):
+    self.now_playing = message[0]
+    self.updated |= 2 ** UpdateCodes.END_TURN.value
+
 @respond.info("MY_TECHS")
 def get_techs(self: Client, message: tuple[int]):
     self.techs = [TechNode.by_id(i) for i in message]

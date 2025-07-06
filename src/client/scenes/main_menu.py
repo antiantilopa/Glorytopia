@@ -90,6 +90,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
                 Client.object.send(Format.request("LOBBY/NAMES", []))
                 Client.object.send(Format.request("ORDER", []))
                 Client.object.send(Format.request("LOBBY/COLORS", []))
+                Client.object.send(Format.request("GAME/NOW_PLAYING_PLAYER_INDEX", []))
                 print("Reconnected successfully.")
                 GameObject.get_game_object_by_tags("main_menu").disable()
                 Client.object.game_started = True

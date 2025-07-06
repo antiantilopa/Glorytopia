@@ -8,7 +8,6 @@ Need to do:
     game over
     resources visibility and even spawn
     naval update (in)
-    settings and config
     
 Some improvements:
     premoves

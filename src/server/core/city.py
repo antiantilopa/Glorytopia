@@ -65,7 +65,7 @@ class City(CityData, UpdatingObject):
         if btype.adjacent_bonus is None:
             self.grow_population(btype.population)
         for dx in (-1, 0, 1):
-            for dy in (-1, 0, -1):
+            for dy in (-1, 0, 1):
                 if dx == dy == 0: continue
                 if World.object.is_in(pos + Vector2d(dx, dy)):
                     if World.object.get(pos + Vector2d(dx, dy)).owner != self.owner:
@@ -75,7 +75,10 @@ class City(CityData, UpdatingObject):
                             self.grow_population(btype.population)
                     if not (World.object.get(pos + Vector2d(dx, dy)).building is None):
                         if World.object.get(pos + Vector2d(dx, dy)).building.adjacent_bonus == btype:
-                            self.grow_population(World.object.get(pos + Vector2d(dx, dy)).building.population)
+                            for city in City.cities:
+                                if (pos + Vector2d(dx, dy)) in city.domain:
+                                    city.grow_population(World.object.get(pos + Vector2d(dx, dy)).building.population)
+                                    break
         return True
 
     def destroy(self):

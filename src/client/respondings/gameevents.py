@@ -75,9 +75,8 @@ def update_money(self: Client, message: tuple[int]):
     self.updated |= 2 ** UpdateCodes.UPDATE_MONEY.value
 
 @respond.event("END_TURN")
-def end_turn(self: Client, message: tuple[str]):
-    self.now_playing += 1
-    self.now_playing %= len(self.names)
+def end_turn(self: Client, message: tuple[int]):
+    self.now_playing = message[0]
     self.updated |= 2 ** UpdateCodes.END_TURN.value
 
 @respond.event("GAME_START")
@@ -90,3 +89,7 @@ def game_start(self: Client, message: tuple[int]):
     self.send(Format.request("GAME/MY_MONEY", []))
     self.send(Format.request("GAME/MY_TECHS", []))
     self.updated |= 2 ** UpdateCodes.GAME_START.value
+
+@respond.event("GAME_OVER")
+def game_over(self: Client, message: tuple[str]):
+    print(f"{message[0]} has lost the game")

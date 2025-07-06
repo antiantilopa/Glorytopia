@@ -74,7 +74,7 @@ class Abilities:
                 for city in City.City.cities:
                     if city.pos == unit.pos:
                         if city.walls == True:
-                            res = 2
+                            res = 4
                             break
                         else:
                             break

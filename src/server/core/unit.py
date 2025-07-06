@@ -91,7 +91,7 @@ class Unit(UnitData, UpdatingObject):
         result = []
         for unit in Unit.units:
             if unit.owner != self.owner:
-                if max((unit.pos - self.pos).x, (unit.pos - self.pos).y) <= self.utype.attack_range:
+                if max(abs((unit.pos - self.pos).x), abs((unit.pos - self.pos).y)) <= self.utype.attack_range:
                     result.append(unit)
         return result
 
@@ -111,10 +111,10 @@ class Unit(UnitData, UpdatingObject):
     def calc_attack(self, other: "Unit") -> tuple[int, int]:
         defense_bonus = 1
         for tech in Player.Player.players[other.owner].techs:
-            if World.object.get(other.pos) in tech.defence:
+            if World.object.get(other.pos).ttype in tech.defence:
                 defense_bonus = 1.5
                 break
-        for ability in self.utype.abilities:
+        for ability in other.utype.abilities:
             defense_bonus *= Ability.abilities[ability].defense_bonus(other)
 
         attack_force = self.utype.attack * (self.health / self.utype.health)
@@ -143,7 +143,6 @@ class Unit(UnitData, UpdatingObject):
                 for ability in self.utype.abilities:
                     defense_result = Ability.abilities[ability].retaliation_mitigate(self, defense_result)
                 result[1] = defense_result
-        print(result)
         return result
     
     def recv_damage(self, damage: int):
@@ -218,7 +217,6 @@ class Unit(UnitData, UpdatingObject):
             if hasattr(self, "pos"):
                 object.__setattr__(self, "previous_pos", self.pos)
             else:
-                print(value)
                 object.__setattr__(self, "previous_pos", value)
         return UpdatingObject.__setattr__(self, name, value)
 

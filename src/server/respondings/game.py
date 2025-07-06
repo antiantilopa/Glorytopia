@@ -11,6 +11,10 @@ respond = Respond("GAME")
 def req_game_world_size(self: Server, addr: Address, message: tuple):
     self.send_to_addr(addr, Format.info("GAME/WORLD_SIZE", (self.the_game.world.size.as_tuple())))
 
+@respond.request("NOW_PLAYING_PLAYER_INDEX")
+def get_now_playing_player_index(self: Server, addr: Address, message: tuple):
+    self.send_to_addr(addr, Format.info("GAME/NOW_PLAYING_PLAYER_INDEX", [self.now_playing_player_index]))
+
 @respond.request("WORLD")
 def req_game_world(self: Server, addr: Address, message: list[tuple[int, int]]):
     if len(message) != 0:
@@ -109,7 +113,6 @@ def req_game_cities(self: Server, addr: Address, message: list[tuple[int, int]])
         for city in City.cities:
             if self.players[addr].vision[city.pos.y][city.pos.x]:
                 result.append(city.to_serializable())
-                break
     self.send_to_addr(addr, Format.info("GAME/CITIES", result))
 
 @respond.request("MY_TECHS")
@@ -225,8 +228,8 @@ def eve_game_conquer_city(self: Server, addr: Address, message: tuple[tuple[int,
 
 @respond.event("BUY_TECH")
 def eve_game_buy_tech(self: Server, addr: Address, message: tuple[int]):
-    if addr != self.order[self.now_playing_player_index]:
-        self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Not your move right now.")))
+    if addr not in self.order:
+        self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"You are not playing.")))
         return
     if message[0] < 0 or message[0] >= len(TechNode.techs):
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH.name}")))
@@ -271,12 +274,31 @@ def game_end_turn(self: Server, addr: Address, message: tuple):
         self.send_to_addr(addr, Format.error("GAME/END_TURN", (f"Not your move right now.")))
         return
     
-    for addr1 in self.conns:
-        self.send_to_addr(addr1, Format.event("GAME/END_TURN", [self.addrs_to_names[addr]]))
-    
+
     self.players[self.order[self.now_playing_player_index]].end_turn()
+
     self.now_playing_player_index += 1
     self.now_playing_player_index %= len(self.order)
+    while len(self.players[self.order[self.now_playing_player_index]].cities) + len(self.players[self.order[self.now_playing_player_index]].cities) == 0:
+        if self.players[self.order[self.now_playing_player_index]].is_dead == True:
+            self.now_playing_player_index += 1
+            self.now_playing_player_index %= len(self.order)
+        else:
+            for addr1 in self.conns:
+                self.send_to_addr(addr1, Format.event("GAME/GAME_OVER", [self.addrs_to_names[self.order[self.now_playing_player_index]]]))
+            self.players[self.order[self.now_playing_player_index]].is_dead = True
+            for i in range((World.object.size.x)):
+                for j in range((World.object.size.y)):
+                    self.players[self.order[self.now_playing_player_index]].vision[j][i] = 1
+            req_game_world(self, self.order[self.now_playing_player_index], [])
+            req_game_cities(self, self.order[self.now_playing_player_index], [])
+            req_game_units(self, self.order[self.now_playing_player_index], [])
+            self.now_playing_player_index += 1
+            self.now_playing_player_index %= len(self.order)
+
     self.players[self.order[self.now_playing_player_index]].start_turn()
+
+    for addr1 in self.conns:
+        self.send_to_addr(addr1, Format.event("GAME/END_TURN", [self.now_playing_player_index]))
 
     update_updating_objects(self)

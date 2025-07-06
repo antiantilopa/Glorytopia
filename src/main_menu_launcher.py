@@ -45,7 +45,5 @@ except Exception as e:
     
     Settings.save_to_file_()
 
-# TODO add new texture packs to settings
-
 launch(Vector2d.from_tuple(Settings.resolution.variants[Settings.resolution.chosen]))
 client.Client.object.sock.close()

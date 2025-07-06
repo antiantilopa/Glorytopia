@@ -16,6 +16,7 @@ class Player:
     techs: list[TechNode]
     units: list["Unit.Unit"]
     cities: list["City.City"]
+    is_dead: bool
 
     ID = 0
     players: list["Player"] = []
@@ -23,11 +24,12 @@ class Player:
     def __init__(self):
         self.id = Player.ID
         Player.ID += 1
-        self.money = 8000
+        self.money = 8
         self.vision = [[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)]
         self.techs = [Techs.base]
         self.units = []
         self.cities = []
+        self.is_dead = False
         Player.players.append(self)
     
     def harvest(self, pos: Vector2d):
