@@ -5,9 +5,11 @@ class SelectComponent(Component):
     is_selected: bool
 
     selected: GameObject|None = None
+    selectables: list["SelectComponent"] = []
 
     def __init__(self):
         super().__init__()
+        SelectComponent.selectables.append(self)
         self.is_selected = False
 
     def select(self):
@@ -23,4 +25,5 @@ class SelectComponent(Component):
     def destroy(self):
         if SelectComponent.selected == self.game_object:
             self.deselect()
+        SelectComponent.selectables.remove(self)
         return super().destroy()

@@ -1,5 +1,6 @@
 from engine_antiantilopa import *
 from client.respondings.client import Client
+from client.globals.settings import Settings
 from client.respondings.lobby import respond, UpdateCodes
 from client.widgets.fastgameobjectcreator import *
 from serializator.data_format import Format
@@ -155,6 +156,7 @@ def init():
             label.get_component(LabelComponent).text = "X" if int(label.tags[1]) in Client.object.names_to_colors.values() else "O" 
             label.need_draw_set_true()
             label.need_blit_set_true()
+        Client.object.send(Format.event("LOBBY/COLOR_CHANGE", [Settings.preffered_color.chosen]))
 
     @Client.object.check_update(UpdateCodes.MESSAGE)
     def message():

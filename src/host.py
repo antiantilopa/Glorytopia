@@ -54,7 +54,7 @@ def at_disconnect(self: Server, addr: Address):
 def req_order(self: Server, addr: Address, _: tuple):
     self.send_to_addr(addr, Format.info("ORDER", [self.addrs_to_names[addr1] for addr1 in self.order]))
 
-host.init_server(6)
+host.init_server(8)
 host.start()
 
 for r in host.respond.routes:

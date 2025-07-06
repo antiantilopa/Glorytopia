@@ -96,6 +96,7 @@ class Client:
     changing_main_cycle: bool
 
     def __init__(self):
+        self.sock = None
         self.respond = Respond()
         self.main_cycle = default_main_cycle
         self.main_cycle_thread = None
@@ -128,6 +129,7 @@ class Client:
     def init_client(self, IPaddr: tuple[str, int] = socket.gethostbyname(socket.gethostname())):
         self.sock = socket.socket()
         self.sock.connect(IPaddr)
+        print("connected)")
         self.respond.at_connect(self)
         self.init()
 

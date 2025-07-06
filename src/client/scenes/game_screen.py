@@ -1,5 +1,6 @@
 from engine_antiantilopa import *
 from client.respondings.client import Client
+from client.globals.settings import Settings
 from client.respondings.lobby import respond, UpdateCodes
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.game_objects_for_game_elements import *
@@ -14,7 +15,7 @@ block_size = Vector2d(100, 100)
 
 def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     global block_size
-    load_textures()
+    load_textures(Settings.texture_packs.order)
 
     scene = create_game_object(tags="game_screen", size=screen_size)
 
@@ -31,7 +32,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
 
     create_game_object(scene, "game_screen:world_section", at=InGrid((12, 8), (0, 0), (8, 8)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2)
     
-    techs_window = create_list_game_object(scene, "game_screen:techs_window", at=InGrid((12, 8), (0, 0), (8, 8)), color=(0, 70, 150), shape=Shape.RECT, axis=(1, 1), speed=Vector2d(2500, 2500) // block_size, bound=1, layer=0, x_axis_keys=[pg.K_a, pg.K_d], y_axis_keys=[pg.K_w, pg.K_s])
+    techs_window = create_list_game_object(scene, "game_screen:techs_window", at=InGrid((12, 8), (0, 0), (8, 8)), color=(0, 70, 150), shape=Shape.RECT, axis=(1, 1), speed=Vector2d(40, 40) * block_size // 100, bound=1, layer=0, x_axis_keys=[pg.K_a, pg.K_d], y_axis_keys=[pg.K_w, pg.K_s])
     techs_window.add_component(KeyBindComponent([pg.K_ESCAPE], 0, 1, close_techs_window))
     create_tech_tree()
 
@@ -327,13 +328,13 @@ def init():
             max_y = (world_height - view_height) / 2
             
             if pg.K_w in keys and current_pos.y < max_y:
-                g_obj.get_component(Transform).move(Vector2d(0, 2000) // block_size)
+                g_obj.get_component(Transform).move(Vector2d(0, 40) * block_size // 100)
             if pg.K_a in keys and current_pos.x < max_x:
-                g_obj.get_component(Transform).move(Vector2d(2000, 0) // block_size)
+                g_obj.get_component(Transform).move(Vector2d(40, 0) * block_size // 100)
             if pg.K_s in keys and current_pos.y > -max_y:
-                g_obj.get_component(Transform).move(Vector2d(0, -2000) // block_size)
+                g_obj.get_component(Transform).move(Vector2d(0, -40) * block_size // 100)
             if pg.K_d in keys and current_pos.x > -max_x:
-                g_obj.get_component(Transform).move(Vector2d(-2000, 0) // block_size)
+                g_obj.get_component(Transform).move(Vector2d(-40, 0) * block_size // 100)
         world.add_component(KeyBindComponent([pg.K_w, pg.K_a, pg.K_s, pg.K_d], 1, 1, bind_keys))
         world_obj.enable()
 

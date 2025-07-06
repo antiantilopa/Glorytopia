@@ -104,7 +104,7 @@ def update_tile_border(pos: tuple[int, int]):
         if not (0 <= pos[0] + d.x < self.world_size[0] and 0 <= pos[1] + d.y < self.world_size[1]):
             continue
         if (self.world[pos[1] + d.inty()][pos[0] + d.intx()] == None) or (self.world[pos[1] + d.inty()][pos[0] + d.intx()].owner != self.world[pos[1]][pos[0]].owner):
-            create_line_game_object(new_tile, "game_screen:world_section:world:tile:border", at=d.complex_multiply(Vector2d(1, 1)) * block_size // 2, to=d.complex_multiply(Vector2d(1, -1)) * block_size // 2, color=self.get_main_color(self.order[self.world[pos[1]][pos[0]].owner]), width=5)
+            create_line_game_object(new_tile, "game_screen:world_section:world:tile:border", at=d.complex_multiply(Vector2d(1, 1)) * block_size // 2, to=d.complex_multiply(Vector2d(1, -1)) * block_size // 2, color=self.get_main_color(self.order[self.world[pos[1]][pos[0]].owner]), width=2 * (block_size.x // 15))
     new_tile.need_draw = True
     new_tile.need_blit_set_true()
 
