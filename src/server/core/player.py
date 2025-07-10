@@ -1,9 +1,7 @@
 from .world import World
-from shared.tree import TechNode, Techs
 from . import unit as Unit
 from . import city as City
-from shared.unit_types import UnitType
-from shared.tile_types import TileType, BuildingType, BuildingTypes
+from shared.asset_types import UnitType, BuildingType, BuildingType, TechNode
 from shared.error_codes import ErrorCodes
 from engine_antiantilopa import Vector2d, VectorRange
 
@@ -26,7 +24,7 @@ class Player:
         Player.ID += 1
         self.money = 8
         self.vision = [[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)]
-        self.techs = [Techs.base]
+        self.techs = [TechNode.get("base")]
         self.units = []
         self.cities = []
         self.is_dead = False

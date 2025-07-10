@@ -1,5 +1,5 @@
 from shared.tile import TileData
-from shared.tile_types import TileType, BuildingType, ResourceType
+from shared.asset_types import TileType, BuildingType, ResourceType
 from engine_antiantilopa import Vector2d
 from .updating_object import UpdatingObject
 

@@ -1,0 +1,5 @@
+{
+    "name": "forest",
+    "is_water": false,
+    "stops_movement": true
+}

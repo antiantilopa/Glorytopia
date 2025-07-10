@@ -1,11 +1,10 @@
 from serializator.host import Address
 from serializator.data_format import Format
-from serializator.net import flags_to_int
 from server.core import *
 from server.respondings import lobby, game
 from server.respondings.server import Server
 import socket, time, random
-
+from engine_antiantilopa import Vector2d
 
 
 # random.seed(0)

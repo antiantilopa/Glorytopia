@@ -1,0 +1,6 @@
+{
+    "name": "meditation",
+    "cost": 4,
+    "tier": 2,
+    "parent": "climbing"
+}

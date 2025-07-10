@@ -229,7 +229,7 @@ def create_tech_tree():
     tech_win = GameObject.get_game_object_by_tags("game_screen:techs_window")
 
     roots = []
-    for tech in TechNode.techs:
+    for tech in TechNode.values():
         if tech.parent is None:
             roots.append(tech)
 

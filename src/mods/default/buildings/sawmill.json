@@ -1,0 +1,7 @@
+{
+    "name": "sawmill",
+    "ttypes": ["plain"],
+    "adjacent_bonus": "hut",
+    "cost": 5,
+    "population": 1
+}

@@ -1,0 +1,6 @@
+{
+    "name": "mountain",
+    "is_water": false,
+    "stops_movement": false,
+    "vision_range": 2
+}

@@ -1,0 +1,7 @@
+{
+    "name": "forge",
+    "ttypes": ["plain"],
+    "adjacent_bonus": "mine",
+    "cost": 5,
+    "population": 2
+}

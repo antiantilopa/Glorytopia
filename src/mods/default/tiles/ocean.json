@@ -1,0 +1,5 @@
+{
+    "name": "ocean",
+    "is_water": true,
+    "stops_movement": false
+}

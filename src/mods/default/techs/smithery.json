@@ -1,0 +1,8 @@
+{
+    "name": "smithery",
+    "cost": 4,
+    "tier": 3,
+    "parent": "mining",
+    "units": ["swordsman"],
+    "buildings": ["forge"]
+}

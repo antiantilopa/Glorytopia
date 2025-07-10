@@ -1,8 +1,7 @@
 from .random_names import random_funny_name as random_name
 from engine_antiantilopa import Vector2d
-from shared.unit_types import UnitType
+from shared.asset_types import UnitType, BuildingType
 from shared.city import CityData
-from shared.tile_types import BuildingType
 from .updating_object import UpdatingObject
 
 

@@ -1,0 +1,8 @@
+{
+    "name": "climbing",
+    "cost": 4,
+    "tier": 1,
+    "parent": "base",
+    "defence": ["mountain"],
+    "accessable": ["mountain"]
+}

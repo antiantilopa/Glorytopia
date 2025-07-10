@@ -1,0 +1,13 @@
+{
+  "name": "catapult",
+  "health": 10,
+  "attack": 4,
+  "defense": 0,
+  "movement": 1,
+  "attack_range": 3,
+  "cost": 8,
+  "water": false,
+  "abilities": [
+    "stiff"
+  ]
+}

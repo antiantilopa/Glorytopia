@@ -1,0 +1,6 @@
+{
+    "name": "navigation",
+    "cost": 4,
+    "tier": 3,
+    "parent": "sailing"
+}

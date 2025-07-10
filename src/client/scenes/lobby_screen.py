@@ -78,7 +78,6 @@ def start_game():
     game_screen.start()
 
 def init():
-
     @Client.object.check_update(UpdateCodes.JOIN)
     def join():
         self = Client.object

@@ -1,0 +1,14 @@
+{
+  "name": "dagger",
+  "health": 10,
+  "attack": 2,
+  "defense": 2,
+  "movement": 1,
+  "attack_range": 1,
+  "cost": 0,
+  "water": false,
+  "abilities": [
+    "dash",
+    "surprise"
+  ]
+}

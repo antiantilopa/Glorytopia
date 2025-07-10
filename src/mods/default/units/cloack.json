@@ -1,0 +1,17 @@
+{
+  "name": "cloack",
+  "health": 5,
+  "attack": 0,
+  "defense": 0.5,
+  "movement": 2,
+  "attack_range": 1,
+  "cost": 8,
+  "water": false,
+  "abilities": [
+    "creep", 
+    "hide", 
+    "infiltrate", 
+    "dash", 
+    "stiff", 
+    "scout"]
+}

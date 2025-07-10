@@ -1,0 +1,6 @@
+{
+    "name": "riding",
+    "cost": 4,
+    "parent": "base",
+    "units": ["rider"]
+}

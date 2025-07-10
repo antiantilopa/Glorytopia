@@ -1,0 +1,14 @@
+{
+  "name": "warrior",
+  "health": 10,
+  "attack": 2,
+  "defense": 2,
+  "movement": 1,
+  "attack_range": 1,
+  "cost": 2,
+  "water": false,
+  "abilities": [
+    "dash",
+    "fortify"
+  ]
+}

@@ -1,6 +1,6 @@
 from engine_antiantilopa import Vector2d
 
-from .tile_types import TileType, TileTypes, BuildingType, BuildingTypes, ResourceType, ResourceTypes
+from .asset_types import TileType, BuildingType, ResourceType
 
 SerializedTile = tuple[int, int, tuple[int, int], int, int, bool]
 
@@ -35,10 +35,10 @@ class TileData:
     def from_serializable(serializable: SerializedTile) -> "TileData":
         tdata = TileData(
             Vector2d.from_tuple(serializable[2]), 
-            TileTypes.by_id(serializable[0]), 
-            ResourceTypes.by_id(serializable[3]) if serializable[3] >= 0 else None
+            TileType.by_id(serializable[0]), 
+            ResourceType.by_id(serializable[3]) if serializable[3] >= 0 else None
         )
         tdata.owner = serializable[1]
-        tdata.building = BuildingTypes.by_id(serializable[4]) if serializable[4] >= 0 else None
+        tdata.building = BuildingType.by_id(serializable[4]) if serializable[4] >= 0 else None
         tdata.has_road = serializable[5]
         return tdata

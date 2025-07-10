@@ -1,0 +1,8 @@
+{
+    "name": "archery",
+    "cost": 4,
+    "tier": 2,
+    "parent": "hunting",
+    "units": ["archer"],
+    "defence": ["forest"]
+}

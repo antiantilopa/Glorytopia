@@ -1,0 +1,7 @@
+{
+    "name": "farming",
+    "cost": 4,
+    "parent": "organization",
+    "tier": 2,
+    "buildings": ["farm"]
+}

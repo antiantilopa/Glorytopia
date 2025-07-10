@@ -1,0 +1,11 @@
+{
+    "name": "spiritualism",
+    "cost": 4,
+    "tier": 3,
+    "parent": "archery",
+    "units": [],
+    "buildings": [],
+    "achievements": [],
+    "harvestables": [],
+    "defence": []
+}

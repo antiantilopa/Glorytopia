@@ -1,15 +1,15 @@
-from shared.unit_types import AbilityIndexes
+from typing import Type
+from shared.generic_types import GenericType
 from .world import World
 from .tile import Tile
 from . import city as City
 from . import unit as Unit
 
-class Ability:
+class Ability(GenericType[Type["Ability"]]):
     index: int
-    abilities: dict[int, type["Ability"]] = {}
-
-    def __init_subclass__(cls, ind: AbilityIndexes):
-        Ability.abilities[ind] = (cls)
+    
+    def __init_subclass__(cls):
+        Ability.add(cls)
 
     @staticmethod
     def after_movement(unit: "Unit.Unit"):
@@ -58,14 +58,16 @@ class Ability:
 
 class Abilities:
 
-    class Dash(Ability, ind = AbilityIndexes.dash):
+    class Dash(Ability):
+        name = "dash"
 
         @staticmethod
         def after_movement(unit):
             unit.attacked = False
     
-    class Fortify(Ability, ind = AbilityIndexes.fortify):
-
+    class Fortify(Ability):
+        name = "fortify"
+        
         @staticmethod
         def defense_bonus(unit):
             res = 1
@@ -80,49 +82,49 @@ class Abilities:
                             break
             return res
 
-    class Escape(Ability, ind = AbilityIndexes.escape):
-
+    class Escape(Ability):
+        name = "escape"
         @staticmethod
         def after_attack(unit: "Unit.Unit", _):
             unit.moved = False
 
-    class Stiff(Ability, ind = AbilityIndexes.stiff):
-        index = AbilityIndexes.stiff
+    class Stiff(Ability):
+        name = "stiff"
     
         @staticmethod
         def retaliation_bonus(*_):
             return 0
 
-    class Persist(Ability, ind = AbilityIndexes.persist):
-        index = AbilityIndexes.persist
+    class Persist(Ability):
+        name = "persist"
 
         @staticmethod
         def after_kill(unit, other):
             unit.attacked = False
     
-    class Creep(Ability, ind = AbilityIndexes.creep):
-        index = AbilityIndexes.creep
+    class Creep(Ability):
+        name = "creep"
 
         @staticmethod
         def on_terrain_movement(unit, tile, movement):
             return movement - 1 * (1 - 0.5 * tile.has_road)
     
-    class Scout(Ability, ind = AbilityIndexes.scout):
-        index = AbilityIndexes.scout
+    class Scout(Ability):
+        name = "scout"
 
         @staticmethod
         def get_vision_range(unit):
             return 2
 
-    class Hide(Ability, ind = AbilityIndexes.hide):
-        index = AbilityIndexes.hide
+    class Hide(Ability):
+        name = "hide"
 
         @staticmethod
         def get_visibility(unit):
             return 0
     
-    class Infiltrate(Ability, ind = AbilityIndexes.infiltrate):
-        index = AbilityIndexes.infiltrate
+    class Infiltrate(Ability):
+        name = "infiltrate"
 
         def infiltrate(city: "City.City"):
             pass
@@ -152,8 +154,8 @@ class Abilities:
                         else:
                             break
     
-    class Convert(Ability, ind = AbilityIndexes.convert):
-        index = AbilityIndexes.convert
+    class Convert(Ability):
+        name = "convert"
 
         @staticmethod
         def after_attack(unit, other):
@@ -169,7 +171,6 @@ class Abilities:
         def retaliation_mitigate(unit, defense_result):
             return 0
     
-    class Heal(Ability, ind = AbilityIndexes.heal):
-        index = AbilityIndexes.heal
-
+    class Heal(Ability):
+        name = "heal"
         #TODO: implement heal ability

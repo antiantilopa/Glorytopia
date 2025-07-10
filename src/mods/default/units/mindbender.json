@@ -1,0 +1,14 @@
+{
+  "name": "mindbender",
+  "health": 10,
+  "attack": 0,
+  "defense": 1,
+  "movement": 1,
+  "attack_range": 1,
+  "cost": 5,
+  "water": false,
+  "abilities": [
+    "heal",
+    "convert"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+    "name": "construction",
+    "cost": 4,
+    "parent": "farming",
+    "buildings": ["windmill"]
+}

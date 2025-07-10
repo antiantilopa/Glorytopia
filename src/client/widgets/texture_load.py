@@ -15,7 +15,7 @@ def load_textures(texture_packs: list[str] = ["default"]):
             textures_json = (json.load(f))
 
 
-        for name, types in {"tiles": TileType.ttypes, "resources": ResourceType.rtypes, "techs": TechNode.techs, "buildings": BuildingType.btypes, "units": UnitType.utypes}.items():
+        for name, types in {"tiles": TileType.values(), "resources": ResourceType.values(), "techs": TechNode.values(), "buildings": BuildingType.values(), "units": UnitType.values()}.items():
             for type in types:
                 if f":{type.name}" in SpriteComponent.downloaded:
                     continue
@@ -40,7 +40,8 @@ def load_textures(texture_packs: list[str] = ["default"]):
                 except Exception as e:
                     print(f"error occured while reading {texture_pack}")
                     print(e)
-    for name, types in {"tiles": TileType.ttypes, "resources": ResourceType.rtypes, "techs": TechNode.techs, "buildings": BuildingType.btypes, "units": UnitType.utypes}.items():
+                    
+    for name, types in {"tiles": TileType.values(), "resources": ResourceType.values(), "techs": TechNode.values(), "buildings": BuildingType.values(), "units": UnitType.values()}.items():
         for type in types:
             if f":{type.name}" not in SpriteComponent.downloaded:
                 print(f"Texture for {name[:-1]} {type.name} not found in any texture pack!")

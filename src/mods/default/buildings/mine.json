@@ -1,0 +1,7 @@
+{
+    "name": "mine",
+    "ttypes": ["mountain"],
+    "required_resource": "metal",
+    "cost": 5,
+    "population": 2
+}

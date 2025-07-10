@@ -2,8 +2,7 @@ from .world import World
 from .player import Player
 from .city import City
 from .unit import Unit
-from shared.tile_types import TileTypes, ResourceTypes
-from shared.unit_types import UnitTypes
+from shared.asset_types import TileType, ResourceType, UnitType
 from engine_antiantilopa import Vector2d, Angle
 from math import pi
 from random import randint
@@ -25,7 +24,7 @@ class Game:
         self.place_players()
         self.place_resources()
         for player in self.players:
-            player.create_unit(player.cities[0].pos, UnitTypes.warrior)
+            player.create_unit(player.cities[0].pos, UnitType.get("warrior"))
             player.money += 2
             player.update_vision()
 
@@ -48,7 +47,7 @@ class Game:
                         is_far_enough = False
                         break
                 if is_far_enough:
-                    World.object.get(Vector2d(x, y)).ttype = TileTypes.plain
+                    World.object.get(Vector2d(x, y)).ttype = TileType.get("plain")
                     City(Vector2d(x, y), -1)
                     World.object.cities_mask[y][x] = 1
                     return
@@ -72,35 +71,35 @@ class Game:
                     if World.object.get(Vector2d(i, j)).ttype.is_water:
                         rand = randint(0, 1)
                         if rand == 1:
-                            World.object.get(Vector2d(i, j)).resource = ResourceTypes.fish
-                    elif World.object.get(Vector2d(i, j)).ttype == TileTypes.plain:
+                            World.object.get(Vector2d(i, j)).resource = ResourceType.get("fish")
+                    elif World.object.get(Vector2d(i, j)).ttype == TileType.get("plain"):
                         rand = randint(1, 48)
                         if is_city_nearby(Vector2d(i, j), 1):
                             if rand < 19:
-                                World.object.get(Vector2d(i, j)).resource = ResourceTypes.fruits
+                                World.object.get(Vector2d(i, j)).resource = ResourceType.get("fruits")
                             elif rand < 37:
-                                World.object.get(Vector2d(i, j)).resource = ResourceTypes.crops
+                                World.object.get(Vector2d(i, j)).resource = ResourceType.get("crops")
                         else:
                             if rand < 7:
-                                World.object.get(Vector2d(i, j)).resource = ResourceTypes.fruits
+                                World.object.get(Vector2d(i, j)).resource = ResourceType.get("fruits")
                             elif rand < 13:
-                                World.object.get(Vector2d(i, j)).resource = ResourceTypes.crops
-                    elif World.object.get(Vector2d(i, j)).ttype == TileTypes.forest:
+                                World.object.get(Vector2d(i, j)).resource = ResourceType.get("crops")
+                    elif World.object.get(Vector2d(i, j)).ttype == TileType.get("forest"):
                         rand = randint(1, 38)
                         if is_city_nearby(Vector2d(i, j), 1):
                             if rand < 20:
-                                World.object.get(Vector2d(i, j)).resource = ResourceTypes.wild_animals
+                                World.object.get(Vector2d(i, j)).resource = ResourceType.get("wild_animals")
                         else:
                             if rand < 6:
-                                World.object.get(Vector2d(i, j)).resource = ResourceTypes.wild_animals
-                    elif World.object.get(Vector2d(i, j)).ttype == TileTypes.mountain:
+                                World.object.get(Vector2d(i, j)).resource = ResourceType.get("wild_animals")
+                    elif World.object.get(Vector2d(i, j)).ttype == TileType.get("mountain"):
                         rand = randint(1, 14)
                         if is_city_nearby(Vector2d(i, j), 1):
                             if rand < 12:
-                                World.object.get(Vector2d(i, j)).resource = ResourceTypes.metal
+                                World.object.get(Vector2d(i, j)).resource = ResourceType.get("metal")
                         else:
                             if rand < 4:
-                                World.object.get(Vector2d(i, j)).resource = ResourceTypes.metal
+                                World.object.get(Vector2d(i, j)).resource = ResourceType.get("metal")
 
     def place_players(self):
         distance_to_center_of_map = World.object.size.x * 3 / 10
@@ -153,7 +152,7 @@ class Game:
                 city.is_capital = True
                 continue
             else:
-                World.object.get(place).ttype = TileTypes.plain
+                World.object.get(place).ttype = TileType.get("plain")
                 city = City(place, player.id)
                 World.object.cities_mask[place.y][place.x] = 1
                 player.cities.append(city)

@@ -1,0 +1,6 @@
+{
+    "name": "strategy",
+    "cost": 4,
+    "parent": "organization",
+    "units": ["defender"]
+}

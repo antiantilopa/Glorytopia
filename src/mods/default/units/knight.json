@@ -1,0 +1,15 @@
+{
+  "name": "knight",
+  "health": 10,
+  "attack": 3.5,
+  "defense": 1,
+  "movement": 3,
+  "attack_range": 1,
+  "cost": 8,
+  "water": false,
+  "abilities": [
+    "dash",
+    "fortify",
+    "persist"
+  ]
+}

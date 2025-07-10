@@ -1,0 +1,15 @@
+{
+  "name": "rider",
+  "health": 10,
+  "attack": 2,
+  "defense": 1,
+  "movement": 2,
+  "attack_range": 1,
+  "cost": 3,
+  "water": false,
+  "abilities": [
+    "dash",
+    "fortify",
+    "escape"
+  ]
+}

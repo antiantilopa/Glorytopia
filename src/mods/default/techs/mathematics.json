@@ -1,0 +1,8 @@
+{
+    "name": "mathematics",
+    "cost": 4,
+    "tier": 3,
+    "parent": "forestry",
+    "units": ["catapult"],
+    "buildings": ["sawmill"]
+}

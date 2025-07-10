@@ -1,0 +1,7 @@
+{
+    "name": "organization",
+    "cost": 4,
+    "parent": "base",
+    "tier": 1,
+    "harvestables": ["fruits"]
+}

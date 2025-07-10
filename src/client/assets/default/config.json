@@ -5,7 +5,7 @@
     "author": "Kamenov Madi Dauletovich",
     "textures": {
         "default": "default.png",
-        "tiles":{
+        "tiles": {
             "plain": "plain.png",
             "mountain": "mountain.png",
             "forest": "forest.png",

@@ -1,0 +1,7 @@
+{
+    "name": "farm",
+    "ttypes": ["plain"],
+    "required_resource": "crops",
+    "cost": 5,
+    "population": 2
+}

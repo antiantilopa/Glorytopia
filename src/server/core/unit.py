@@ -1,6 +1,5 @@
-from shared.unit_types import UnitType
+from shared.asset_types import UnitType, TileType
 from shared.unit import UnitData
-from shared.tile_types import TileTypes
 from engine_antiantilopa import Vector2d
 from .world import World
 from math import floor, ceil
@@ -39,7 +38,7 @@ class Unit(UnitData, UpdatingObject):
         def get_mv(movement: float, tile: Tile) -> float:
             res = 0 if tile.ttype.stops_movement else movement - 1 * (1 - 0.5 * tile.has_road)
             for ability in self.utype.abilities:
-                res = max(res, Ability.abilities[ability].on_terrain_movement(self, tile, movement))
+                res = max(res, Ability.get(ability).on_terrain_movement(self, tile, movement))
             return res
         while len(s_poses) != 0:
             s_pos = s_poses.pop(0)
@@ -115,7 +114,7 @@ class Unit(UnitData, UpdatingObject):
                 defense_bonus = 1.5
                 break
         for ability in other.utype.abilities:
-            defense_bonus *= Ability.abilities[ability].defense_bonus(other)
+            defense_bonus *= Ability.get(ability).defense_bonus(other)
 
         attack_force = self.utype.attack * (self.health / self.utype.health)
         defense_force = other.utype.defense * (other.health / other.utype.health) * defense_bonus
@@ -139,9 +138,9 @@ class Unit(UnitData, UpdatingObject):
         if other.health > attack_result:
             if (self in other.get_attacks()):
                 for ability in other.utype.abilities:
-                    defense_result = Ability.abilities[ability].retaliation_bonus(other, defense_result)
+                    defense_result = Ability.get(ability).retaliation_bonus(other, defense_result)
                 for ability in self.utype.abilities:
-                    defense_result = Ability.abilities[ability].retaliation_mitigate(self, defense_result)
+                    defense_result = Ability.get(ability).retaliation_mitigate(self, defense_result)
                 result[1] = defense_result
         return result
     
@@ -166,17 +165,17 @@ class Unit(UnitData, UpdatingObject):
                         self.pos = unit.pos
                     if unit.health <= 0:
                         for ability in self.utype.abilities:
-                            Ability.abilities[ability].after_kill(self, unit)
+                            Ability.get(ability).after_kill(self, unit)
 
                     for ability in self.utype.abilities:
-                        Ability.abilities[ability].after_attack(self, unit)
+                        Ability.get(ability).after_attack(self, unit)
                     break
         else:
             World.object.unit_mask[self.pos.y][self.pos.x] = 0
             self.pos = pos
             World.object.unit_mask[self.pos.y][self.pos.x] = 1
             for ability in self.utype.abilities:
-                Ability.abilities[ability].after_movement(self)
+                Ability.get(ability).after_movement(self)
     
     def heal(self):
         if World.object.get(self.pos).owner == self.owner:
@@ -185,15 +184,15 @@ class Unit(UnitData, UpdatingObject):
             self.health = min(self.health + 2, self.utype.health)
     
     def get_vision_range(self) -> int:
-        vision = 2 if World.object.get(self.pos).ttype == TileTypes.mountain else 1
+        vision = World.object.get(self.pos).ttype.vision_range
         for ability in self.utype.abilities:
-            vision = max(vision, Ability.abilities[ability].get_vision_range(self))
+            vision = max(vision, Ability.get(ability).get_vision_range(self))
         return vision
 
     def get_visibility(self) -> bool:
         visibility = 1
         for ability in self.utype.abilities:
-            visibility = visibility and Ability.abilities[ability].get_visibility(self)
+            visibility = visibility and Ability.get(ability).get_visibility(self)
         return visibility
     
     def destroy(self):

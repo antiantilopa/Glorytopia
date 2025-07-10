@@ -1,0 +1,14 @@
+{
+  "name": "archer",
+  "health": 10,
+  "attack": 2,
+  "defense": 1,
+  "movement": 1,
+  "attack_range": 2,
+  "cost": 3,
+  "water": false,
+  "abilities": [
+    "dash",
+    "fortify"
+  ]
+}

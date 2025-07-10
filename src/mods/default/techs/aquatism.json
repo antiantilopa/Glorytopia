@@ -1,0 +1,7 @@
+{
+    "name": "aquatism",
+    "cost": 4,
+    "tier": 3,
+    "parent": "aquaculture",
+    "defence": ["water", "ocean"]
+  }

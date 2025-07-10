@@ -1,0 +1,7 @@
+{
+    "name": "philosophy",
+    "cost": 4,
+    "tier": 3,
+    "parent": "meditation",
+    "units": ["mindbender"]
+}

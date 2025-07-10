@@ -17,14 +17,11 @@ recovery_code = None
 
 def load(screen_size: Vector2d = Vector2d(1200, 800)):
     scene = create_game_object(tags="main_menu", size=screen_size)
-
     
     settings_button = create_game_object(scene, "main_menu:settings_button", Position.LEFT_DOWN, size=Vector2d(210, 70), surface_margin=Vector2d(10, 10), color=ColorComponent.BLUE, shape=Shape.RECT)
     create_label(settings_button, "main_menu:settings_button:label", "Settings", color=ColorComponent.WHITE)
 
-    def settings_click(*_):
-        launch_settings_menu()
-    settings_button.add_component(OnClickComponent([1, 0, 0], 0, 1, settings_click))
+    settings_button.add_component(OnClickComponent([1, 0, 0], 0, 1, lambda *_: launch_settings_menu()))
 
     label_obj = create_label(scene, "main_menu:main_label", text="Enter IPv4:", at=Position.CENTER, color=ColorComponent.RED)
 

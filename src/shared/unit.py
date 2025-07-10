@@ -1,5 +1,5 @@
 from engine_antiantilopa import Vector2d
-from .unit_types import UnitType, UnitTypes
+from .asset_types import UnitType
 from serializator.net import flags_to_int, int_to_flags
 
 SerializedUnit = tuple[int, int, tuple[int, int], int, int]
@@ -25,7 +25,7 @@ class UnitData:
 
     @staticmethod
     def from_serializable(serializable: SerializedUnit) -> "UnitData":
-        udata = UnitData(UnitTypes.by_id(serializable[0]), serializable[1], Vector2d.from_tuple(serializable[2]))
+        udata = UnitData(UnitType.by_id(serializable[0]), serializable[1], Vector2d.from_tuple(serializable[2]))
         udata.health = serializable[3]
         udata.moved, udata.attacked = int_to_flags(serializable[4], 2)
         return udata

@@ -1,0 +1,6 @@
+{
+    "name": "roads",
+    "cost": 4,
+    "tier": 2,
+    "parent": "riding"
+}

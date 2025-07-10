@@ -1,0 +1,9 @@
+{
+    "name": "base",
+    "cost": 0,
+    "units": ["warrior"],
+    "accessable": [
+        "plain",
+        "forest"
+    ]
+}

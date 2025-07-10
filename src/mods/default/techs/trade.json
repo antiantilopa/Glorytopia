@@ -1,0 +1,6 @@
+{
+    "name": "trade",
+    "cost": 3,
+    "parent": "roads",
+    "buildings": ["market"]
+}

@@ -1,0 +1,7 @@
+{
+    "name": "forestry",
+    "cost": 4,
+    "tier": 2,
+    "parent": "hunting",
+    "buildings": ["hut"]
+}

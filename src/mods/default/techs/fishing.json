@@ -1,0 +1,9 @@
+{
+    "name": "fishing",
+    "cost": 4,
+    "tier": 1,
+    "parent": "base",
+    "buildings": ["port"],
+    "harvestables": ["fish"],
+    "accessable": ["water"]
+}

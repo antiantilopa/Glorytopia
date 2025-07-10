@@ -1,0 +1,6 @@
+{
+    "name": "diplomacy",
+    "cost": 4,
+    "parent": "strategy",
+    "units": ["cloack"]
+}

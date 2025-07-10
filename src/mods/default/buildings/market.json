@@ -1,0 +1,7 @@
+{
+    "name": "market",
+    "ttypes": ["plain"],
+    "adjacent_bonus": "port",
+    "cost": 5,
+    "population": 1
+}

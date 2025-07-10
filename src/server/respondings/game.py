@@ -3,7 +3,10 @@ from serializator.data_format import Format
 from serializator.net import flags_to_int
 from server.core import *
 from server.respondings.server import Server
+from shared.asset_types import BuildingType, TechNode, UnitType
 from shared.error_codes import ErrorCodes
+from engine_antiantilopa import Vector2d
+
 
 respond = Respond("GAME")
 
@@ -192,7 +195,7 @@ def eve_game_create_unit(self: Server, addr: Address, message: tuple[tuple[int, 
     if addr != self.order[self.now_playing_player_index]:
         self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Not your move right now.")))
         return
-    result = self.players[addr].create_unit(Vector2d.from_tuple(message[0]), UnitTypes.by_id(message[1]))
+    result = self.players[addr].create_unit(Vector2d.from_tuple(message[0]), UnitType.by_id(message[1]))
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Cannot create unit: {result.name}")))
         return
@@ -231,7 +234,7 @@ def eve_game_buy_tech(self: Server, addr: Address, message: tuple[int]):
     if addr not in self.order:
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"You are not playing.")))
         return
-    if message[0] < 0 or message[0] >= len(TechNode.techs):
+    if message[0] < 0 or message[0] >= len(TechNode.types):
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH.name}")))
         return 
     tech = TechNode.by_id(message[0])
@@ -261,7 +264,7 @@ def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], 
         self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Not your move right now.")))
         return
     pos = Vector2d.from_tuple(message[0])
-    result = self.players[addr].build(pos, BuildingTypes.by_id(message[1]))
+    result = self.players[addr].build(pos, BuildingType.by_id(message[1]))
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Cannot build: {result.name}")))
         return

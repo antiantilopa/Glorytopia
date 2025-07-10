@@ -1,0 +1,6 @@
+{
+    "name": "port",
+    "ttypes": ["water"],
+    "cost": 7,
+    "population": 1
+}

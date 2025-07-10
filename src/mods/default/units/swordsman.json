@@ -1,0 +1,13 @@
+{
+  "name": "swordsman",
+  "health": 15,
+  "attack": 3,
+  "defense": 3,
+  "movement": 1,
+  "attack_range": 1,
+  "cost": 5,
+  "water": false,
+  "abilities": [
+    "dash"
+  ]
+}
