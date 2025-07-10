@@ -5,7 +5,9 @@ from server.respondings import lobby, game
 from server.respondings.server import Server
 import socket, time, random
 from engine_antiantilopa import Vector2d
+from shared.loader import load_mains
 
+load_mains()
 
 # random.seed(0)
 

@@ -1,6 +1,8 @@
+from pathlib import Path
 from engine_antiantilopa import *
 from shared import *
 import os, json
+
 
 def load_textures(texture_packs: list[str] = ["default"]):
     path = str.join("/", [*(__file__).split("\\")[:-2], "assets"]) + "/"
@@ -13,7 +15,7 @@ def load_textures(texture_packs: list[str] = ["default"]):
 
         with open(path + texture_pack + "/config.json", "r") as f:
             textures_json = (json.load(f))
-
+            
 
         for name, types in {"tiles": TileType.values(), "resources": ResourceType.values(), "techs": TechNode.values(), "buildings": BuildingType.values(), "units": UnitType.values()}.items():
             for type in types:
@@ -28,6 +30,7 @@ def load_textures(texture_packs: list[str] = ["default"]):
                     except Exception as e:
                         print(f"error occured while reading {texture_pack}")
                         print(e)
+                        
         for key in ("city", "city_walls", "city_forge"):
             if SpriteComponent.is_downloaded(key):
                 continue

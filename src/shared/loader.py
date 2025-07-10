@@ -34,16 +34,18 @@ def load_mod(path: Path):
 
     for tech_json in techs.iterdir():
         tech = from_file(TechNode, str(tech_json))
+        print(f"Loaded tech: {tech.name}", str(path))
         TechNode.add(tech)
-
-    TechNode.assign()
     
-    try:
-        __import__(str(path / "main").replace("\\", "."), fromlist=str(path).split("\\")).load_mod()
-    except Exception as e:
-        print(f"Error loading mod {path.name}: {e}")
-    
-
+def load_mains():
+    for path in MODS_PATH.iterdir():
+        try:
+            __import__(str(path / "main").replace("\\", "."), fromlist=str(path).split("\\")).load_mod()
+        except Exception as e:
+            print(f"Error loading mod {path.name}: {e}")
+            
 def load_assets():
     for mod_path in MODS_PATH.iterdir():
         load_mod(mod_path)
+
+    TechNode.assign()
