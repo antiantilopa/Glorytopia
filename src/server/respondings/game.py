@@ -234,7 +234,7 @@ def eve_game_buy_tech(self: Server, addr: Address, message: tuple[int]):
     if addr not in self.order:
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"You are not playing.")))
         return
-    if message[0] < 0 or message[0] >= len(TechNode.types):
+    if message[0] < 0 or message[0] >= len(TechNode.values()):
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH.name}")))
         return 
     tech = TechNode.by_id(message[0])
