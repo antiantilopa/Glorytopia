@@ -1,6 +1,7 @@
 {
     "name": "diplomacy",
     "cost": 4,
+    "tier": 3,
     "parent": "strategy",
     "units": ["cloack"]
 }

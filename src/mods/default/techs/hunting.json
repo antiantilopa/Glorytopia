@@ -1,6 +1,7 @@
 {
     "name": "hunting",
-    "cost": 1,
+    "cost": 4,
+    "tier": 1,
     "parent": "base",
     "harvestables": ["wild_animals"]
 }

@@ -1,6 +1,7 @@
 {
     "name": "riding",
     "cost": 4,
+    "tier": 1,
     "parent": "base",
     "units": ["rider"]
 }

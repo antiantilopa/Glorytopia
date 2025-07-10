@@ -37,6 +37,12 @@ def load_mod(path: Path):
         TechNode.add(tech)
 
     TechNode.assign()
+    
+    try:
+        __import__(str(path / "main").replace("\\", "."), fromlist=str(path).split("\\")).load_mod()
+    except Exception as e:
+        print(f"Error loading mod {path.name}: {e}")
+    
 
 def load_assets():
     for mod_path in MODS_PATH.iterdir():

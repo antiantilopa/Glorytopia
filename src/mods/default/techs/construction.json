@@ -1,6 +1,7 @@
 {
     "name": "construction",
     "cost": 4,
+    "tier": 3,
     "parent": "farming",
     "buildings": ["windmill"]
 }
