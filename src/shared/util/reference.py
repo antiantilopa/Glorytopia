@@ -31,7 +31,11 @@ class Ref(Generic[T]):
         return self.__dict__[name]
     
     def __eq__(self, value):
+        if value is None:
+            return False
         return self.name == value.name
     
     def __ne__(self, value):
+        if value is None:
+            return True
         return self.name != value.name
