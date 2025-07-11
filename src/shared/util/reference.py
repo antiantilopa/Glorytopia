@@ -13,6 +13,8 @@ class Ref(Generic[T]):
         object.__setattr__(self, "cls", cls)
 
     def create(self, name: str) -> T:
+        if name is None:
+            return None
         object.__setattr__(self, "name", name)
         return self
     
