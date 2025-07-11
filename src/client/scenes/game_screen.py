@@ -172,6 +172,8 @@ def selector_info_update():
                 if tile_data.building is None:
                     for tech in Client.object.techs:
                         for btype in tech.buildings:
+                            print(btype.required_resource)
+                            print(tile_data.resource)
                             if (tile_data.ttype in btype.ttypes) and ((btype.required_resource is None) or (btype.required_resource == tile_data.resource)):
                                 buttons.append((f"{btype.name}:{btype.cost}", lambda g, k, p, *args: Client.object.send(Format.event("GAME/BUILD", [tile_data.pos.as_tuple(), args[0]])), btype.id))
         else:

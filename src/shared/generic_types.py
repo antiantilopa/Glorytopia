@@ -47,3 +47,13 @@ class GenericType[T]:
             if ttype.id == id:
                 return ttype
         raise KeyError(id)
+    
+    def __eq__(self, value):
+        if value is None:
+            return False
+        return self.name == value.name
+    
+    def __ne__(self, value):
+        if value is None:
+            return True
+        return self.name != value.name

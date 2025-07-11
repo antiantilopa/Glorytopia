@@ -84,7 +84,7 @@ class BuildingType(GenericType["BuildingType"]):
         BuildingType.ID += 1
         self.name = name
         self.ttypes = [Ref(TileType).create(i) for i in ttypes]
-        self.required_resource = required_resource
+        self.required_resource = Ref(ResourceType).create(required_resource)
         self.cost = cost
         self.population = population
         self.adjacent_bonus = adjacent_bonus
