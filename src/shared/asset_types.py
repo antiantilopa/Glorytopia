@@ -76,10 +76,10 @@ class BuildingType(GenericType["BuildingType"]):
     def __init__(self, 
                  name :str = "default",
                  ttypes: list[TileType] = [],
-                 required_resource: "ResourceType | None" = None,
+                 required_resource: "str | None" = None,
                  cost: int = 0,
                  population: int = 0,
-                 adjacent_bonus: "BuildingType|None" = None) -> None:
+                 adjacent_bonus: "str|None" = None) -> None:
         self.id = BuildingType.ID
         BuildingType.ID += 1
         self.name = name
@@ -87,7 +87,7 @@ class BuildingType(GenericType["BuildingType"]):
         self.required_resource = Ref(ResourceType).create(required_resource)
         self.cost = cost
         self.population = population
-        self.adjacent_bonus = adjacent_bonus
+        self.adjacent_bonus = Ref(BuildingType).create(adjacent_bonus)
     
     def __repr__(self) -> str:
         return self.name
