@@ -60,12 +60,23 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
     ready_button = create_game_object(info_section, "lobby_screen:info_section:ready_button", Position.LEFT_UP, Vector2d(70, 70), ColorComponent.RED, Shape.RECT, margin=Vector2d(10, 10))
     ready_button.add_component(OnClickComponent([1, 0, 0], 0, 1, send_ready))
 
-    ready_button_label = create_label(ready_button, "lobby_screen:info_section:ready_button:label", "Ready", pg.font.SysFont("consolas", 20), color=ColorComponent.WHITE)
+    ready_button_label = create_label(
+        parent=ready_button, 
+        tags="lobby_screen:info_section:ready_button:label", text="Ready", 
+        font=pg.font.SysFont("consolas", 20), 
+        color=ColorComponent.WHITE
+    )
 
     for i in range(8):
         color_change_button = create_game_object(info_section, "lobby_screen:info_section:change_color_button", InGrid((6, 5), (1 + i % 4, 2 + i // 4)), color=Client.colors[i][0], shape=Shape.RECT, margin=Vector2d(5, 5))
         color_change_button.add_component(OnClickComponent([1, 0, 0], 0, 1, send_change_color, i))
-        color_change_button_label = create_label(color_change_button, ["lobby_screen:info_section:change_color_button:label", f"{i}"], "O", pg.font.SysFont("consolas", screen_size.y // 12), color=Client.colors[i][1])
+        color_change_button_label = create_label(
+            parent=color_change_button, 
+            tags=["lobby_screen:info_section:change_color_button:label", f"{i}"], 
+            text="O", 
+            font=pg.font.SysFont("consolas", screen_size.y // 12), 
+            color=Client.colors[i][1]
+        )
     
     scene.disable()
     return scene
@@ -97,8 +108,23 @@ def init():
                     if "lobby_screen:ready_section:name:name_label" in child.tags:
                         child.destroy()
                         break
-                l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=self.get_main_color(self.names[int(g.tags[1])]), margin=Vector2d(20, 3))
-                l2 = create_label(g, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.RIGHT, color=self.get_main_color(self.names[int(g.tags[1])]), margin=Vector2d(20, 3))
+                l1 = create_label(
+                    parent=g, 
+                    tags="lobby_screen:ready_section:name:name_label", 
+                    text=self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), 
+                    at=Position.LEFT, 
+                    color=self.get_main_color(self.names[int(g.tags[1])]), 
+                    margin=Vector2d(20, 3)
+                )
+                l2 = create_label(
+                    parent=g, 
+                    tags="lobby_screen:ready_section:name:ready_label", 
+                    text="X", 
+                    font=pg.font.SysFont("consolas", scene_size.y // 40), 
+                    at=Position.RIGHT, 
+                    color=self.get_main_color(self.names[int(g.tags[1])]), 
+                    margin=Vector2d(20, 3)
+                )
                 l1.first_iteration()
                 l2.first_iteration()
         for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
@@ -121,7 +147,15 @@ def init():
                     if "lobby_screen:ready_section:name:name_label" in child.tags:
                         child.destroy()
                         break
-                l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=self.get_main_color(self.names[int(g.tags[1])]), margin=Vector2d(20, 3))
+                l1 = create_label(
+                    parent=g, 
+                    tags="lobby_screen:ready_section:name:name_label", 
+                    text=self.names[int(g.tags[1])], 
+                    font=pg.font.SysFont("consolas", scene_size.y // 40), 
+                    at=Position.LEFT, 
+                    color=self.get_main_color(self.names[int(g.tags[1])]), 
+                    margin=Vector2d(20, 3)
+                )
                 l1.first_iteration()
         for g in GameObject.get_group_by_tag("lobby_screen:ready_section:name:ready_label"):
             g.get_component(LabelComponent).text = "X"
@@ -145,8 +179,23 @@ def init():
             ready_section.childs[0].destroy()
         for num in range(len(self.names)):
             n = create_game_object(ready_section, ["lobby_screen:ready_section:name", str(num)], at=InGrid((1, 6), (0, num)), color=ColorComponent.WHITE, width=2, shape=Shape.RECTBORDER, margin=Vector2d(10, 3))
-            l1 = create_label(n, tags="lobby_screen:ready_section:name:name_label", text = self.names[num], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=self.get_main_color(self.names[num]), margin=Vector2d(20, 3))
-            l2 = create_label(n, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.RIGHT, color=self.get_main_color(self.names[num]), margin=Vector2d(20, 3))
+            l1 = create_label(
+                parent=n, 
+                tags="lobby_screen:ready_section:name:name_label", 
+                text=self.names[num], font=pg.font.SysFont("consolas", scene_size.y // 40), 
+                at=Position.LEFT, 
+                color=self.get_main_color(self.names[num]), 
+                margin=Vector2d(20, 3)
+            )
+            l2 = create_label(
+                parent=n, 
+                tags="lobby_screen:ready_section:name:ready_label", 
+                text="X", 
+                font=pg.font.SysFont("consolas", scene_size.y // 40), 
+                at=Position.RIGHT, 
+                color=self.get_main_color(self.names[num]), 
+                margin=Vector2d(20, 3)
+            )
     
     @Client.object.check_update(UpdateCodes.INIT_COLORS)
     def init_colors():
@@ -171,7 +220,15 @@ def init():
                 color = self.get_main_color(self.messages[i][0])
             else:
                 color = ColorComponent.WHITE
-            l = create_label(n, "lobby_screen:chat_section:mesage_section:message_box:message_label", at=Position.LEFT, text=f"{self.messages[i][0]}: {self.messages[i][1]}", font=pg.font.SysFont("consolas", scene_size.y // 40), color=color, margin=Vector2d(10, 2))
+            l = create_label(
+                parent=n, 
+                tags="lobby_screen:chat_section:mesage_section:message_box:message_label", 
+                at=Position.LEFT, 
+                text=f"{self.messages[i][0]}: {self.messages[i][1]}", 
+                font=pg.font.SysFont("consolas", scene_size.y // 40), 
+                color=color, 
+                margin=Vector2d(10, 2)
+            )
         message_section.enable()
 
     @Client.object.check_update(UpdateCodes.COLOR_CHANGE)
@@ -183,8 +240,24 @@ def init():
                 if "lobby_screen:ready_section:name:name_label" in child.tags:
                     child.destroy()
                     break
-            l1 = create_label(g, tags="lobby_screen:ready_section:name:name_label", text = self.names[int(g.tags[1])], font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.LEFT, color=self.get_main_color(self.names[int(g.tags[1])]), margin=Vector2d(20, 3))
-            l2 = create_label(g, tags="lobby_screen:ready_section:name:ready_label", text="X", font=pg.font.SysFont("consolas", scene_size.y // 40), at=Position.RIGHT, color=self.get_main_color(self.names[int(g.tags[1])]), margin=Vector2d(20, 3))
+            l1 = create_label(
+                parent=g, 
+                tags="lobby_screen:ready_section:name:name_label", 
+                text=self.names[int(g.tags[1])], 
+                font=pg.font.SysFont("consolas", scene_size.y // 40), 
+                at=Position.LEFT, 
+                color=self.get_main_color(self.names[int(g.tags[1])]), 
+                margin=Vector2d(20, 3)
+            )
+            l2 = create_label(
+                parent=g, 
+                tags="lobby_screen:ready_section:name:ready_label", 
+                text="X", 
+                font=pg.font.SysFont("consolas", scene_size.y // 40), 
+                at=Position.RIGHT, 
+                color=self.get_main_color(self.names[int(g.tags[1])]), 
+                margin=Vector2d(20, 3)
+            )
             l1.first_iteration()
             l2.first_iteration()
         

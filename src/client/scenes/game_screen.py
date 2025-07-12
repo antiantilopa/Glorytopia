@@ -43,19 +43,46 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
 
     info_section = create_game_object(scene, "game_screen:info_section", at=InGrid((12, 8), (8, 0), (4, 8)), shape=Shape.RECT)
 
-    money_label = create_label(info_section, tags="game_screen:info_section:money_label", text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((2, 8), (0, 0), (1, 1)), color=ColorComponent.WHITE)
+    money_label = create_label(
+        parent=info_section, 
+        tags="game_screen:info_section:money_label", 
+        text=f"Money: {Client.object.money}", font=pg.font.SysFont("consolas", screen_size.y // 40), 
+        at=InGrid((2, 8), (0, 0), (1, 1)), 
+        color=ColorComponent.WHITE
+    )
 
     selector_section = create_game_object(info_section, at=InGrid((1, 8), (0, 1), (1, 5)), shape=Shape.RECTBORDER, color=ColorComponent.WHITE, width=2, margin=Vector2d(5, 0), tags="game_screen:info_section:selector_section")
     selector_image_section = create_game_object(selector_section, at=InGrid((4, 5), (0, 0), (1, 1)), surface_margin=Vector2d(7, 2), tags="game_screen:info_section:selector_section:selector_image_section")
     selector_info_section = create_game_object(selector_section, at=InGrid((4, 5), (0, 1), (4, 4)), surface_margin=Vector2d(7, 2), tags="game_screen:info_section:selector_section:selector_info_section")
     
     end_turn_button = create_game_object(info_section, "game_screen:info_section:end_turn_button", at=InGrid((1, 8), (0, 7), (1, 1)), color=(50, 150, 50) if Client.object.order[0] == Client.object.myname else (30, 100, 30), shape=Shape.RECT)
-    end_turn_label = create_label(end_turn_button, "game_screen:info_section:end_turn_label", text="End Turn", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
+    end_turn_label = create_label(
+        parent=end_turn_button, 
+        tags="game_screen:info_section:end_turn_label", 
+        text="End Turn", 
+        font=pg.font.SysFont("consolas", screen_size.y // 40), 
+        at=InGrid((1, 1), (0, 0), (1, 1)), 
+        color=ColorComponent.WHITE
+    )
     end_turn_button.add_component(OnClickComponent([1, 0, 0], 0, 1, end_turn_click))
-    now_playing_label = create_label_block(info_section, "game_screen:info_section:now_playing_label", text=f"Now playing:\n{Client.object.order[Client.object.now_playing]}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((2, 8), (1, 0), (1, 1)), color=ColorComponent.WHITE)
+    now_playing_label = create_label_block(
+        parent=info_section, 
+        tags="game_screen:info_section:now_playing_label", 
+        text=f"Now playing:\n{Client.object.order[Client.object.now_playing]}", 
+        font=pg.font.SysFont("consolas", screen_size.y // 40), 
+        at=InGrid((2, 8), (1, 0), (1, 1)), 
+        color=ColorComponent.WHITE
+    )
 
     techs_button = create_game_object(info_section, "game_screen:info_section:techs_button", at=InGrid((1, 8), (0, 6), (1, 1)), color=(0, 150, 250), shape=Shape.RECT)
-    techs_label = create_label(techs_button, "game_screen:info_section:end_turn_label", text="Technology", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
+    techs_label = create_label(
+        parent=techs_button, 
+        tags="game_screen:info_section:end_turn_label", 
+        text="Technology", 
+        font=pg.font.SysFont("consolas", screen_size.y // 40), 
+        at=InGrid((1, 1), (0, 0), (1, 1)), 
+        color=ColorComponent.WHITE
+    )
     techs_button.add_component(OnClickComponent([1, 0, 0], 0, 1, open_techs_window))
 
 
@@ -99,6 +126,7 @@ def selecting(coords: Vector2d):
     self = Client.object
     if self.world[coords.inty()][coords.intx()] is None:
         return
+    
     for uobj in GameObject.get_group_by_tag("game_screen:world_section:world:unit_layer:unit"):
         if uobj.get_component(PositionComponent).pos == coords:
             if uobj.get_component(SelectComponent).is_selected:
@@ -107,6 +135,7 @@ def selecting(coords: Vector2d):
             else:
                 uobj.get_component(SelectComponent).select()
                 return
+            
     for tile in GameObject.get_group_by_tag("game_screen:world_section:world:tile"):
         if tile.get_component(PositionComponent).pos == coords:
             if tile.get_component(SelectComponent).is_selected:
@@ -122,8 +151,10 @@ def selector_info_update():
 
     while len(selector_info_section.childs) != 0:
         selector_info_section.childs[0].destroy()
+
     while len(selector_image_section.childs) != 0:
         selector_image_section.childs[0].destroy()
+
     selector_image_section.need_draw = True
     selector_info_section.need_draw = True
 
@@ -244,14 +275,30 @@ def selector_info_update():
         ))
         if (tech.parent is not None) and (tech.parent in Client.object.techs) and (tech not in Client.object.techs):
             buttons.append((f"buy:{tech.cost + tech.tier * my_cities_count}", lambda *_: Client.object.send(Format.event("GAME/BUY_TECH", [tech.id]))))
-    create_label_block(selector_info_section, "game_screen:info_section:selector_section:selector_info_section:label_block", text, font=pg.font.SysFont("consolas", block_size.y // 5),  at=Position.LEFT_UP, text_pos=Position.LEFT, color=ColorComponent.RED)
+    create_label_block(
+        parent=selector_info_section, 
+        tags="game_screen:info_section:selector_section:selector_info_section:label_block", 
+        text=text, 
+        font=pg.font.SysFont("consolas", block_size.y // 5),  
+        at=Position.LEFT_UP, 
+        text_pos=Position.LEFT, 
+        color=ColorComponent.RED
+    )
     selector_info_buttons_section = create_list_game_object(selector_info_section, bound=1, at=InGrid((1, 5), (0, 2), (1, 3)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4), tags="game_screen:info_section:selector_section:selector_info_section:buttons_section")
 
     for i in range(len(buttons)):
         button_sec = create_game_object(selector_info_buttons_section, at=InGrid((1, 5), (0, i), (1, 1)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4), tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_section")
         button = create_game_object(button_sec, at=InGrid((10, 1), (0, 0), (1, 1)), color=ColorComponent.GREEN, shape=Shape.RECT, tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_section:button")
         button.add_component(OnClickComponent((1, 0, 0), 0, 1, buttons[i][1], (buttons[i][2] if len(buttons[i]) > 2 else ())))
-        create_label(button_sec, text=buttons[i][0], font=pg.font.SysFont("consolas", block_size.y // 5), at=InGrid((10, 1), (1, 0), (9, 1)), margin=Vector2d(5, 0), color=ColorComponent.RED, tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_sec:label")
+        create_label(
+            parent=button_sec, 
+            text=buttons[i][0], 
+            font=pg.font.SysFont("consolas", block_size.y // 5), 
+            at=InGrid((10, 1), (1, 0), (9, 1)), 
+            margin=Vector2d(5, 0), 
+            color=ColorComponent.RED, 
+            tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_sec:label"
+        )
 
 def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector2d, *_):
     
@@ -394,7 +441,14 @@ def init():
         now_playing_label.destroy()
         screen_size = GameObject.get_game_object_by_tags("game_screen").get_component(SurfaceComponent).size
         info_section = GameObject.get_game_object_by_tags("game_screen:info_section")
-        now_playing_label = create_label_block(info_section, "game_screen:info_section:now_playing_label", text=f"Now playing:\n{Client.object.order[Client.object.now_playing]}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((2, 8), (1, 0), (1, 1)), color=ColorComponent.WHITE)
+        now_playing_label = create_label_block(
+            parent=info_section, 
+            tags="game_screen:info_section:now_playing_label", 
+            text=f"Now playing:\n{Client.object.order[Client.object.now_playing]}", 
+            font=pg.font.SysFont("consolas", screen_size.y // 40), 
+            at=InGrid((2, 8), (1, 0), (1, 1)), 
+            color=ColorComponent.WHITE
+        )
 
     @Client.object.change_main_cycle
     def update(self: Client):
