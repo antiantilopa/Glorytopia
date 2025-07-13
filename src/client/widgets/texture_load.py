@@ -1,4 +1,3 @@
-from pathlib import Path
 from engine_antiantilopa import *
 from shared import *
 import os, json
@@ -19,30 +18,34 @@ def load_textures(texture_packs: list[str] = ["default"]):
 
         for name, types in {"tiles": TileType.values(), "resources": ResourceType.values(), "techs": TechNode.values(), "buildings": BuildingType.values(), "units": UnitType.values()}.items():
             for type in types:
-                if f":{type.name}" in SpriteComponent.downloaded:
-                    continue
-                if type.name in textures_json["textures"][name]:
-                    texture_path = path + texture_pack + "/textures"
-                    try:
-                        SpriteComponent(texture_path + "/" + textures_json["textures"][name][type.name], Vector2d(100, 100), nickname=type.name)
-                    except FileNotFoundError:
-                        pass
-                    except Exception as e:
-                        print(f"error occured while reading {texture_pack}")
-                        print(e)
-                        
-        for key in ("city", "city_walls", "city_forge"):
-            if SpriteComponent.is_downloaded(key):
-                continue
-            if key in textures_json["textures"]["city"]:
-                texture_path = path + texture_pack + "/textures"
                 try:
-                    SpriteComponent(texture_path + "/" + textures_json["textures"]["city"][key], Vector2d(100, 100), nickname=key)
+                    if f":{type.name}" in SpriteComponent.downloaded:
+                        continue
+                    if type.name in textures_json["textures"][name]:
+                        texture_path = path + texture_pack + "/textures"
+                        SpriteComponent(texture_path + "/" + textures_json["textures"][name][type.name], Vector2d(100, 100), nickname=type.name)
                 except FileNotFoundError:
+                    pass
+                except KeyError:
                     pass
                 except Exception as e:
                     print(f"error occured while reading {texture_pack}")
                     print(e)
+                        
+        for key in ("city", "city_walls", "city_forge"):
+            try:
+                if SpriteComponent.is_downloaded(key):
+                    continue
+                if key in textures_json["textures"]["city"]:
+                    texture_path = path + texture_pack + "/textures"
+                    SpriteComponent(texture_path + "/" + textures_json["textures"]["city"][key], Vector2d(100, 100), nickname=key)
+            except FileNotFoundError:
+                pass
+            except KeyError:
+                pass
+            except Exception as e:
+                print(f"error occured while reading {texture_pack}")
+                print(e)
                     
     for name, types in {"tiles": TileType.values(), "resources": ResourceType.values(), "techs": TechNode.values(), "buildings": BuildingType.values(), "units": UnitType.values()}.items():
         for type in types:

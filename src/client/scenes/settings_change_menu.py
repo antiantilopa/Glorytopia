@@ -3,6 +3,7 @@ from client.widgets.fastgameobjectcreator import *
 import pygame as pg
 from client.widgets.select import SelectComponent
 from client.globals.settings import Settings, ChosenVar, InputVar, OrderVar
+from . import main_menu
 from typing import Any
 
 class SettingVariableComponent(Component):
@@ -43,7 +44,11 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     global block_size
     block_size = screen_size // Vector2d(12, 8)
 
+    if len(GameObject.get_group_by_tag("settings_screen")) > 0:
+        return GameObject.get_game_object_by_tags("settings_screen")
+
     scene = create_game_object(tags="settings_screen", size=screen_size)
+    scene.add_component(KeyBindComponent([pg.K_ESCAPE], 0, 1, exit_to_main_menu))
 
     overview = create_game_object(scene, "settings_screen:overview", at=InGrid((12, 8), (0, 0), (8, 8)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2)
 
@@ -60,8 +65,6 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     entry_box = create_game_object(edit_section, "settings_screen:edit_sec:entry_box", at=InGrid((1, 8), (0, 6), (1, 1)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4))
     entry_obj = create_game_object(entry_box, "settings_screen:edit_sec:entry_box:entry", at=InGrid((1, 1), (0, 0)), color=ColorComponent.RED, surface_margin=Vector2d(4, 4))
     entry_obj.add_component(EntryComponent(font=pg.font.SysFont("consolas", block_size.y // 4), active=1))
-    # techs_label = create_label(techs_button, "game_screen:info_section:end_turn_label", text="Technology", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
-    # techs_button.add_component(OnClickComponent([1, 0, 0], 0, 1, open_techs_window))
 
     main_body = create_game_object(overview, "settings_screen:overview:main_body", size=screen_size)
     ui_lauer = create_game_object(main_body, "settings_screen:overview:main_body:ui_layer", size=screen_size, shape=Shape.RECT, layer=4)
@@ -200,6 +203,13 @@ def save_click(*_):
             variable.order = box.get_component(OrderComponent).order
 
     Settings.save_to_file_()
+
+def exit_to_main_menu(*_):
+    scene = GameObject.get_game_object_by_tags("settings_screen")
+    scene.disable()
+    screen_size = scene.get_component(SurfaceComponent).size
+    settings_menu_scene = main_menu.load(screen_size)
+    settings_menu_scene.enable()
 
 def launch(screen_size: Vector2d = Vector2d(1200, 800)):
     load(screen_size)

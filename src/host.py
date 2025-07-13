@@ -62,7 +62,7 @@ for r in host.respond.routes:
     print(r)
 
 def start_game():
-    host.the_game = Game(Vector2d(17, 17), len(host.addrs_to_names))
+    host.the_game = Game(Vector2d(7, 7), len(host.addrs_to_names))
     for addr in host.order:
         host.players[addr] = host.the_game.players[host.order.index(addr)]
         host.send_to_addr(addr, Format.event("GAME/GAME_START", [0, host.order.index(addr)]))
@@ -88,8 +88,8 @@ try:
             else:
                 timer = 3
         elif host.game_started:
-            a = input()
             try:
+                a = input()
                 exec(a)
             except Exception as e:
                 print(f"error: {e}")

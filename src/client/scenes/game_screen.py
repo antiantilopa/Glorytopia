@@ -6,6 +6,7 @@ from client.widgets.fastgameobjectcreator import *
 from client.widgets.game_objects_for_game_elements import *
 from client.widgets.texture_load import load_textures
 from client.widgets.select import SelectComponent
+from client.widgets.sound import SoundComponent
 from serializator.data_format import Format
 from shared import *
 import pygame as pg
@@ -52,6 +53,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     end_turn_button = create_game_object(info_section, "game_screen:info_section:end_turn_button", at=InGrid((1, 8), (0, 7), (1, 1)), color=(50, 150, 50) if Client.object.order[0] == Client.object.myname else (30, 100, 30), shape=Shape.RECT)
     end_turn_label = create_label(end_turn_button, "game_screen:info_section:end_turn_label", text="End Turn", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
     end_turn_button.add_component(OnClickComponent([1, 0, 0], 0, 1, end_turn_click))
+    end_turn_button.add_component(SoundComponent(nickname="start_turn"))
     now_playing_label = create_label_block(info_section, "game_screen:info_section:now_playing_label", text=f"Now playing:\n{Client.object.order[Client.object.now_playing]}", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((2, 8), (1, 0), (1, 1)), color=ColorComponent.WHITE)
 
     techs_button = create_game_object(info_section, "game_screen:info_section:techs_button", at=InGrid((1, 8), (0, 6), (1, 1)), color=(0, 150, 250), shape=Shape.RECT)
@@ -387,6 +389,7 @@ def init():
         if self.order[self.now_playing] == self.myname:
             end_turn_button = GameObject.get_group_by_tag("game_screen:info_section:end_turn_button")[0]
             end_turn_button.get_component(ColorComponent).color = (50, 150, 50)
+            end_turn_button.get_component(SoundComponent).play_once()
             end_turn_button.need_draw_set_true()
             end_turn_button.need_blit_set_true()
 

@@ -3,6 +3,7 @@ from client.respondings.client import Client
 from client.globals.settings import Settings
 from client.respondings.lobby import respond, UpdateCodes
 from client.widgets.fastgameobjectcreator import *
+from client.widgets.sound import SoundComponent
 from serializator.data_format import Format
 from . import game_screen
 import threading
@@ -73,6 +74,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
 def start_game():
     scene = GameObject.get_group_by_tag("lobby_screen")[0]
     scene.disable()
+    GameObject.get_game_object_by_tags("main_menu").get_component(SoundComponent).stop_all_channels()
     game_scene = game_screen.load(scene.get_component(SurfaceComponent).size)
     game_screen.init()
     game_screen.start()

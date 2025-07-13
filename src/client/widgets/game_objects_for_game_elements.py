@@ -3,6 +3,7 @@ from shared import *
 from client.respondings.client import Client
 from .fastgameobjectcreator import *
 from .select import SelectComponent
+from .sound import SoundComponent
 
 block_size = Vector2d(0, 0)
 
@@ -182,6 +183,13 @@ def create_city_game_object(city_data: CityData):
     for city in GameObject.get_group_by_tag("game_screen:world_section:world:city_layer:city"):
         if city.contains_component(CityComponent):
             if city.get_component(PositionComponent).pos == city_data.pos:
+                if city_data.owner != city.get_component(CityComponent).city_data.owner:
+                    if city_data.owner != -1:
+                        if Client.object.myname == Client.object.order[city_data.owner]:
+                            SoundComponent(nickname="city_conquer").play_once()
+                    elif city.get_component(CityComponent).city_data.owner != -1:
+                        if Client.object.myname == Client.object.order[city.get_component(CityComponent).city_data.owner]:
+                            SoundComponent(nickname="city_lose").play_once()
                 city.get_component(CityComponent).city_data = city_data
                 update_city_name_label(city)
                 update_city_upgrades(city)

@@ -5,6 +5,8 @@ from client.respondings.client import Client
 from client.scenes.lobby_screen import load as lobby_load
 from client.scenes.lobby_screen import init as lobby_init
 from client.scenes.settings_change_menu import load as settings_change_load
+from client.widgets.sounds_load import load_sounds
+from client.widgets.sound import SoundComponent
 from serializator.data_format import Format
 from client.respondings.client import UpdateCodes
 import pygame as pg
@@ -16,7 +18,14 @@ name = None
 recovery_code = None
 
 def load(screen_size: Vector2d = Vector2d(1200, 800)):
+    if len(GameObject.get_group_by_tag("main_menu")) > 0:
+        return GameObject.get_game_object_by_tags("main_menu")
+
+    load_sounds(Settings.texture_packs.order)
+
     scene = create_game_object(tags="main_menu", size=screen_size)
+    scene.add_component(SoundComponent(nickname="melody1"))
+    scene.get_component(SoundComponent).play_in_loop()
     
     settings_button = create_game_object(scene, "main_menu:settings_button", Position.LEFT_DOWN, size=Vector2d(210, 70), surface_margin=Vector2d(10, 10), color=ColorComponent.BLUE, shape=Shape.RECT)
     create_label(settings_button, "main_menu:settings_button:label", "Settings", color=ColorComponent.WHITE)
@@ -115,6 +124,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
     
     def start_game():
         scene = GameObject.get_group_by_tag("main_menu")[0]
+        scene.get_component(SoundComponent).stop_all_channels()
         scene.disable()
         self = Client.object
         self.game_started = True

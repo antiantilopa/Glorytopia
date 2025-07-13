@@ -1,0 +1,11 @@
+{
+    "parties":
+    [
+        {
+            "name": "raw1",
+            "wave": "sqr",
+            "volume": 0.2
+        }
+    ],
+    "spn": 0.2
+}
