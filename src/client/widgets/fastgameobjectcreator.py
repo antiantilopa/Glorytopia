@@ -111,17 +111,15 @@ def create_game_object(
     return t
 
 def create_label(
+        color: tuple[int, int, int],
         parent = GameObject.root,
         tags: list[str] = [],
         text: str  = "",
         font: pg.font.Font|None = None,
         at: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
-        color: tuple[int, int, int]|None = None,
         margin: Vector2d = Vector2d(0, 0),
         layer: int = 1,
         crop: bool = True) -> GameObject:
-    if color is None:
-        raise ValueError("label have to have a color")
     try:
         t = GameObject(tags)
         t.disable()
@@ -148,18 +146,15 @@ def create_label(
         raise e
 
 def create_line_game_object(
+        color: tuple[int, int, int],
         parent = GameObject.root,
         tags: list[str] = [],
         at: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
         to: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
-        color: tuple[int, int, int]|None = None,
         width: int|None = None,
         margin: Vector2d = Vector2d(0, 0),
         layer: int = 1,
-        crop: bool = True,
-        surface_margin: Vector2d = Vector2d(0, 0)) -> GameObject:
-    if color is None:
-        raise ValueError("label have to have a color")
+        crop: bool = True) -> GameObject:
     try:
         t = GameObject(tags)
         t.disable()
@@ -192,34 +187,32 @@ def create_line_game_object(
         raise e
 
 def create_label_block(
+        color: tuple[int, int, int],
         parent = GameObject.root,
         tags: list[str] = [],
         text: str  = "",
-        font: pg.font.Font|None = None,
+        font: pg.font.Font | None = None,
         at: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
         text_pos: Position = Position.CENTER,
-        color: tuple[int, int, int]|None = None,
         margin: Vector2d = Vector2d(0, 0),
         layer: int = 1, 
         crop: bool = True) -> GameObject:
-    if color is None:
-        raise ValueError("label have to have a color.")
     if text_pos not in (Position.LEFT, Position.CENTER, Position.RIGHT):
         raise ValueError("text_pos have to be either LEFT, CENTER, or RIGHT.")
+    
     t = GameObject(tags)
     t.disable()
     parent.add_child(t)
+
     if font is None:
         font = pg.font.SysFont("consolas", 30)
-    max_length = 0
-    total_height = 0
-    for line in text.split("\n"):
-        length, height = font.size(line)
-        if length > max_length:
-            max_length = length
-        total_height += height
+
+    
+    max_length = max(map(lambda x: font.size(x)[0], text.split("\n")))
+    total_height = sum(map(lambda x: font.size(x)[1], text.split("\n")))
     
     size = Vector2d(max_length, total_height)
+
     if isinstance(at, Position):
         pos = Position.get_vector_pos(at, size, parent.get_component(SurfaceComponent).size - margin * 2)
     elif isinstance(at, Vector2d):
@@ -228,21 +221,24 @@ def create_label_block(
         pos = at.get_pos(t)
     else:
         pos = Vector2d.from_tuple(at)
+
     t.add_component(SurfaceComponent(size=size, layer=layer, crop=crop))
     t.add_component(Transform(pos))
 
+    if isinstance(tags, str):
+        new_tag = tags + ":label"
+    elif len(tags) == 0:
+        new_tag = "label"
+    else:
+        new_tag = tags[0] + ":label"
+
     for i in range(len(text.split("\n"))):
         line = text.split("\n")[i]
-        if isinstance(tags, str):
-            new_tag = tags + ":label"
-        elif len(tags) == 0:
-            new_tag = "label"
-        else:
-            new_tag = tags[0] + ":label"
-        l = create_label(t, new_tag, line, font, Position.CENTER, color)
+        l = create_label(color, t, new_tag, line, font, Position.CENTER)
         label_pos_x = Position.get_vector_pos(text_pos, Vector2d.from_tuple(font.size(line)), size).x
         label_pos_y = InGrid((1, len(text.split("\n"))), (0, i), (1, 1)).get_pos(l).y
         l.get_component(Transform).set_pos(Vector2d(label_pos_x, label_pos_y))
+
     t.enable()
     return t
     
@@ -269,10 +265,13 @@ def create_list_game_object(
     t = GameObject(tags)
     t.disable()
     parent.add_child(t)
+
     if not isinstance(size, Vector2d):
         size = Vector2d.from_tuple(size)
+        
     if color is not None:
         t.add_component(ColorComponent(color))
+
     if isinstance(at, Position):
         pos = Position.get_vector_pos(at, size, parent.get_component(SurfaceComponent).size - 2 * surface_margin)
     elif isinstance(at, Vector2d):
@@ -282,6 +281,7 @@ def create_list_game_object(
         size = at.get_size(t, surface_margin)
     else:
         pos = Vector2d.from_tuple(at)
+        
     if shape is not None:
         if color is None: need_draw = False
         else: need_draw = True

@@ -28,11 +28,22 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
     scene.get_component(SoundComponent).play_in_loop()
     
     settings_button = create_game_object(scene, "main_menu:settings_button", Position.LEFT_DOWN, size=Vector2d(210, 70), surface_margin=Vector2d(10, 10), color=ColorComponent.BLUE, shape=Shape.RECT)
-    create_label(settings_button, "main_menu:settings_button:label", "Settings", color=ColorComponent.WHITE)
+    create_label(
+        parent=settings_button, 
+        tags="main_menu:settings_button:label", 
+        text="Settings", 
+        color=ColorComponent.WHITE
+    )
 
     settings_button.add_component(OnClickComponent([1, 0, 0], 0, 1, lambda *_: launch_settings_menu()))
 
-    label_obj = create_label(scene, "main_menu:main_label", text="Enter IPv4:", at=Position.CENTER, color=ColorComponent.RED)
+    label_obj = create_label(
+        parent=scene, 
+        tags="main_menu:main_label", 
+        text="Enter IPv4:", 
+        at=Position.CENTER, 
+        color=ColorComponent.RED
+    )
 
     box = create_game_object(scene, "main_menu:entry_box", at=(0, 100), size=Vector2d(500, 100), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, margin=Vector2d(50, 25), width=2)
 
@@ -57,7 +68,13 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
             entry_obj.get_component(EntryComponent).clear()
             entry_obj.get_component(EntryComponent).text = Settings.pref_name.var
             label_obj.destroy()
-            new_label_obj = create_label(scene, "main_menu:main_label", text="Enter nickname:", at=Position.CENTER, color=ColorComponent.RED)
+            new_label_obj = create_label(
+                parent=scene, 
+                tags="main_menu:main_label", 
+                text="Enter nickname:", 
+                at=Position.CENTER, 
+                color=ColorComponent.RED
+            )
             new_label_obj.first_iteration()
         elif name is None:
             name = entry_obj.get_component(EntryComponent).text
@@ -72,7 +89,13 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
                 Client.object.joined = None
                 entry_obj.get_component(EntryComponent).clear()
                 GameObject.get_game_object_by_tags("main_menu:main_label").destroy()
-                new_label_obj = create_label(scene, "main_menu:main_label", text="Enter recovery code:", at=Position.CENTER, color=ColorComponent.RED)
+                new_label_obj = create_label(
+                    parent=scene, 
+                    tags="main_menu:main_label", 
+                    text="Enter recovery code:", 
+                    at=Position.CENTER, 
+                    color=ColorComponent.RED
+                )
                 new_label_obj.first_iteration()
         elif recovery_code is None:
             try:

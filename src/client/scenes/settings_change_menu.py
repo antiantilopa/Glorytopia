@@ -37,6 +37,7 @@ class InputComponent(SettingVariableComponent):
     def __init__(self, var: str, name: str):
         self.var = var
         SettingVariableComponent.__init__(self, name, var)
+    
 
 block_size = Vector2d(100, 100)
 
@@ -57,9 +58,20 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     selector_section = create_game_object(edit_section, at=InGrid((1, 8), (0, 1), (1, 5)), shape=Shape.RECTBORDER, color=ColorComponent.WHITE, width=2, margin=Vector2d(5, 0), tags="settings_screen:edit_sec:selector_section")
     selector_info_section = create_game_object(selector_section, at=InGrid((4, 5), (0, 1), (4, 4)), surface_margin=Vector2d(7, 2), tags="settings_screen:edit_sec:selector_section:selector_info_section")
     
+    def load_main_menu(*_):
+        scene.disable()
+        main_menu.load(screen_size).enable()
+
     save_button = create_game_object(edit_section, "settings_screen:edit_sec:save_button", at=InGrid((1, 8), (0, 7), (1, 1)), color=(50, 150, 50), shape=Shape.RECT)
-    save_label = create_label(save_button, "settings_screen:edit_sec:save_label", text="Save to file", font=pg.font.SysFont("consolas", screen_size.y // 40), at=InGrid((1, 1), (0, 0), (1, 1)), color=ColorComponent.WHITE)
-    save_button.add_component(OnClickComponent([1, 0, 0], 0, 1, save_click))
+    save_label = create_label(
+        parent=save_button, 
+        tags="settings_screen:edit_sec:save_label", 
+        text="Save to file", 
+        font=pg.font.SysFont("consolas", screen_size.y // 40), 
+        at=InGrid((1, 1), (0, 0), (1, 1)), 
+        color=ColorComponent.WHITE
+    )
+    save_button.add_component(OnClickComponent([1, 0, 0], 0, 1, lambda *_: save_click() or load_main_menu()))
 
 
     entry_box = create_game_object(edit_section, "settings_screen:edit_sec:entry_box", at=InGrid((1, 8), (0, 6), (1, 1)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4))
@@ -86,7 +98,13 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
         box.add_component(SelectComponent())
         
         create_game_object(box, "settings_screen:overview:main_body:setting_variable_box:border", InGrid((1, 1), (0, 0)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4))
-        create_label(box, "settings_screen:overview:main_body:setting_variable_box:label", setting_variable_name, pg.font.SysFont("consolas", block_size.y // 5), color=ColorComponent.RED)
+        create_label(
+            parent=box, 
+            tags="settings_screen:overview:main_body:setting_variable_box:label", 
+            text=setting_variable_name, 
+            font=pg.font.SysFont("consolas", block_size.y // 5), 
+            color=ColorComponent.RED
+        )
         i += 1
     return scene
 
@@ -168,14 +186,30 @@ def selector_info_update():
         for i in range(len(order) - 1):
             buttons.append(((f"{i} <-> {i + 1}"), change_order(i)))
         
-    create_label_block(selector_info_section, "settings_screen:edit_sec:selector_section:selector_info_section:label_block", text, font=pg.font.SysFont("consolas", block_size.y // 5),  at=Position.LEFT_UP, text_pos=Position.LEFT, color=ColorComponent.RED)
+    create_label_block(
+        parent=selector_info_section, 
+        tags="settings_screen:edit_sec:selector_section:selector_info_section:label_block", 
+        text=text, 
+        font=pg.font.SysFont("consolas", block_size.y // 5),  
+        at=Position.LEFT_UP, 
+        text_pos=Position.LEFT, 
+        color=ColorComponent.RED
+    )
     selector_info_buttons_section = create_list_game_object(selector_info_section, bound=1, at=InGrid((1, 5), (0, 2), (1, 3)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4), tags="settings_screen:edit_sec:selector_section:selector_info_section:buttons_section")
 
     for i in range(len(buttons)):
         button_sec = create_game_object(selector_info_buttons_section, at=InGrid((1, 5), (0, i), (1, 1)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4), tags="settings_screen:edit_sec:selector_section:selector_info_section:buttons_section:button_section")
         button = create_game_object(button_sec, at=InGrid((10, 1), (0, 0), (1, 1)), color=ColorComponent.GREEN, shape=Shape.RECT, tags="settings_screen:edit_sec:selector_section:selector_info_section:buttons_section:button_section:button")
         button.add_component(OnClickComponent((1, 0, 0), 0, 0, buttons[i][1], (buttons[i][2] if len(buttons[i]) > 2 else ())))
-        create_label(button_sec, text=buttons[i][0], font=pg.font.SysFont("consolas", block_size.y // 5), at=InGrid((10, 1), (1, 0), (9, 1)), margin=Vector2d(5, 0), color=ColorComponent.RED, tags="settings_screen:edit_sec:selector_section:selector_info_section:buttons_section:button_sec:label")
+        create_label(
+            parent=button_sec, 
+            text=buttons[i][0], 
+            font=pg.font.SysFont("consolas", block_size.y // 5), 
+            at=InGrid((10, 1), (1, 0), (9, 1)), 
+            margin=Vector2d(5, 0), 
+            color=ColorComponent.RED, 
+            tags="settings_screen:edit_sec:selector_section:selector_info_section:buttons_section:button_sec:label"
+        )
 
 def on_world_click(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector2d, *_):
     
