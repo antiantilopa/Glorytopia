@@ -6,6 +6,7 @@ from server.respondings.server import Server
 import socket, time, random
 from engine_antiantilopa import Vector2d
 from shared.loader import load_mains
+from shared.asset_types import *
 
 load_mains()
 
@@ -55,14 +56,14 @@ def at_disconnect(self: Server, addr: Address):
 def req_order(self: Server, addr: Address, _: tuple):
     self.send_to_addr(addr, Format.info("ORDER", [self.addrs_to_names[addr1] for addr1 in self.order]))
 
-host.init_server(8)
+host.init_server(6)
 host.start()
 
 for r in host.respond.routes:
     print(r)
 
 def start_game():
-    host.the_game = Game(Vector2d(7, 7), len(host.addrs_to_names))
+    host.the_game = Game(Vector2d(17, 17), len(host.addrs_to_names))
     for addr in host.order:
         host.players[addr] = host.the_game.players[host.order.index(addr)]
         host.send_to_addr(addr, Format.event("GAME/GAME_START", [0, host.order.index(addr)]))

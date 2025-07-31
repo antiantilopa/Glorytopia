@@ -1,0 +1,6 @@
+{
+  "name": "chop_forest",
+  "cost": -1,
+  "from_ttype": "forest",
+  "to_ttype": "plain"
+}

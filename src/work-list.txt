@@ -1,13 +1,9 @@
 Ctitical errors:
-    lobby visual bug (names are not displayed/has white color)
-    sawmill texture (it is not done yet... NEEDS to be done VERY soon)
+    resources visibility and even spawn
 
 Need to do:
-    sounds for events (especially when your turn)
     roads
-    game over
-    resources visibility and even spawn
-    naval update (in)
+    naval update (nah)
     
 Some improvements:
     premoves

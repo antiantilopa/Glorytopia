@@ -12,6 +12,16 @@ class SoundComponent(Component):
 
     downloaded: dict[str, pg.mixer.Sound] = {}
     stop_event_type = pg.event.custom_type()
+    names_to_funcs = {
+        "sin": Synths.get_sin_party,
+        "pin": Synths.get_pin_party,
+        "tri": Synths.get_tri_party,
+        "sqr": Synths.get_sqr_party,
+        "pqr": Synths.get_pqr_party,
+        "nos": Synths.get_nos_party,
+        "hit": Synths.get_hit_party,
+    }
+
     def __init__(self, path: str = "", nickname: str = "", volume: float = 1, tone_offset: int = 0):
         prenickname = ":"
         self.channels = []
@@ -21,9 +31,7 @@ class SoundComponent(Component):
             self.sound = SoundComponent.downloaded[(prenickname + nickname)]
         else:
             if nickname != "":
-                print("there is something in downloaded")
                 SoundComponent.downloaded[(prenickname + nickname)] = SoundComponent.load(path)
-                print(f"\t{SoundComponent.downloaded}")
                 self.sound = SoundComponent.downloaded[(prenickname + nickname)]
             else:
                 SoundComponent.downloaded[path] = SoundComponent.load(path)
@@ -39,16 +47,7 @@ class SoundComponent(Component):
         Synths.seconds_per_note = config["spn"]
         for party_conf in config["parties"]:
             notes = Note.load_notes(path + "/" + party_conf["name"])
-            if party_conf["wave"] == "sin":
-                party = Synths.get_sin_party(notes)
-            elif party_conf["wave"] == "tri":
-                party = Synths.get_tri_party(notes)
-            elif party_conf["wave"] == "sqr":
-                party = Synths.get_sqr_party(notes)
-            elif party_conf["wave"] == "nos":
-                party = Synths.get_nos_party(notes)
-            else:
-                raise KeyError(f"unexpected party wave {party_conf["wave"]}")
+            party = SoundComponent.names_to_funcs[party_conf["wave"]](notes)
             party *= party_conf["volume"]
             parties.append(party)
         arr = Synths.merge_parties(*parties)

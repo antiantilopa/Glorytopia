@@ -96,14 +96,39 @@ class ResourceType(GenericType["ResourceType"]):
     id: int
     name: str
     ttypes: list[TileType]
+    spawn_rates: dict[int, float] # spawn rate for each distance to nearest city. if distance is not in dict, then it is 0
 
     ID = 0
 
-    def __init__(self, name: str = "default", ttypes: list[TileType] = []) -> None:
+    def __init__(self, name: str = "default", ttypes: list[TileType] = [], spawn_rates: list[tuple[int, float]] = []) -> None:
         self.id = ResourceType.ID
         ResourceType.ID += 1
         self.name = name
         self.ttypes = [Ref(TileType).create(i) for i in ttypes]
+        self.spawn_rates = dict(spawn_rates)
+
+class TerraForm(GenericType["TerraForm"]):
+    id: int
+    name: str
+    cost: int
+    from_ttype: TileType
+    from_resource: ResourceType|None
+    to_ttype: TileType
+    to_resource: ResourceType|None
+
+    ID = 0
+
+    def __init__(self, name: str = "default", cost: int = 0, from_ttype: str = "plain", from_resource: str = None, to_ttype: str = "plain", to_resource: str = None) -> None:
+        self.id = TerraForm.ID
+        TerraForm.ID += 1
+        self.name = name
+        self.cost = cost
+        self.from_ttype = Ref(TileType).create(from_ttype)
+        self.from_resource = Ref(ResourceType).create(from_resource)
+        self.to_ttype = Ref(TileType).create(to_ttype)
+        self.to_resource = Ref(ResourceType).create(to_resource)
+
+
 
 class TechNode(GenericType["TechNode"]):
     id: int
@@ -117,6 +142,7 @@ class TechNode(GenericType["TechNode"]):
     harvestables: list[ResourceType]
     defence: list[TileType]
     accessable: list[TileType]
+    terraforms: list[TerraForm]
     childs: list["TechNode"]
 
     ID = 0
@@ -131,7 +157,8 @@ class TechNode(GenericType["TechNode"]):
                  achievements: list[0] = [],
                  harvestables: list[str] = [],
                  defence: list[str] = [],
-                 accessable: list[str] = []) -> None:
+                 accessable: list[str] = [],
+                 terraforms: list[str] = []) -> None:
         self.id = TechNode.ID
         TechNode.ID += 1
         self.name = name
@@ -147,6 +174,7 @@ class TechNode(GenericType["TechNode"]):
         self.harvestables = [Ref(ResourceType).create(resource_name) for resource_name in harvestables]
         self.defence = [Ref(TileType).create(tile_name) for tile_name in defence]
         self.accessable = [Ref(TileType).create(tile_name) for tile_name in accessable]
+        self.terraforms = [Ref(TerraForm).create(terraform_name) for terraform_name in terraforms]
         self.childs = []
 
     @staticmethod

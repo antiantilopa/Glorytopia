@@ -129,7 +129,6 @@ class Client:
     def init_client(self, IPaddr: tuple[str, int] = socket.gethostbyname(socket.gethostname())):
         self.sock = socket.socket()
         self.sock.connect(IPaddr)
-        print("connected)")
         self.respond.at_connect(self)
         self.init()
 

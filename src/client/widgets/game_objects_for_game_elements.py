@@ -41,7 +41,12 @@ def create_tile_game_object(pos: tuple[int, int]):
     self = Client.object
 
     group = GameObject.get_group_by_tag("game_screen:world_section:world:tile")
-    map(lambda x: x.destroy() if x.get_component(TileComponent).pos == Vector2d(*pos) else None, group)
+    i = 0
+    while i < len(group):
+        if group[i].get_component(TileComponent).pos == Vector2d(*pos):
+            group[i].destroy()
+        else:
+            i += 1
 
     new_tile = create_game_object(
         parent=world, 
@@ -73,7 +78,6 @@ def create_tile_game_object(pos: tuple[int, int]):
             level = 0
             for d in VectorRange(Vector2d(-1, -1), Vector2d(2, 2)):
                 if (Vector2d.from_tuple(pos) + d).is_in_box(Vector2d(0, 0), Vector2d.from_tuple(self.world_size) - Vector2d(1, 1)):
-                    print(d)
                     if self.world[pos[1] + d.inty()][pos[0] + d.intx()] is None:
                         continue
                     if self.world[pos[1] + d.inty()][pos[0] + d.intx()].owner == self.world[pos[1]][pos[0]].owner:
@@ -81,7 +85,6 @@ def create_tile_game_object(pos: tuple[int, int]):
                             level += 1
             if level == 0:
                 level = 1
-            print(level)
             building.add_component(SpriteComponent(nickname=self.world[pos[1]][pos[0]].building.name, size=block_size, frame=level-1, frames_number=8, frame_direction=Vector2d(0, 1)))
     if self.world[pos[1]][pos[0]].resource is not None:
         resource = create_game_object(
@@ -102,6 +105,9 @@ def create_tile_game_object(pos: tuple[int, int]):
             continue
         if self.world[pos[1] + d.inty()][pos[0] + d.intx()].owner != -1:
             update_tile_border((pos[0] + d.intx(), pos[1] + d.inty()))
+    
+    new_tile.need_draw = True
+    new_tile.need_blit_set_true()
 
 def update_tile_border(pos: tuple[int, int]):
     new_tile = next((x for x in GameObject.get_group_by_tag("game_screen:world_section:world:tile") 
@@ -161,6 +167,8 @@ def remove_unit_game_object(pos: tuple[int, int]):
 
 def move_unit_game_object(pos: tuple[int, int], unit_data: UnitData):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
+    if unit_data.pos != Vector2d(*pos):
+        SoundComponent(nickname="unit_walk").play_once()
     for unit in unit_layer.childs:
         if unit.get_component(PositionComponent).pos == Vector2d(*pos):
             unit.get_component(UnitComponent).unit_data = unit_data
@@ -183,7 +191,7 @@ def update_city_name_label(city: GameObject):
     city_owner = city_data.owner
     if city_owner == -1:
         return
-    
+
     map(
         lambda x: x.destroy() if 
         "game_screen:world_section:world:city_layer:city:name_label" in x.tags or 

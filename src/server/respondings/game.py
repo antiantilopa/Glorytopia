@@ -3,7 +3,7 @@ from serializator.data_format import Format
 from serializator.net import flags_to_int
 from server.core import *
 from server.respondings.server import Server
-from shared.asset_types import BuildingType, TechNode, UnitType
+from shared.asset_types import BuildingType, TechNode, TerraForm, UnitType
 from shared.error_codes import ErrorCodes
 from engine_antiantilopa import Vector2d
 
@@ -267,6 +267,20 @@ def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], 
     result = self.players[addr].build(pos, BuildingType.by_id(message[1]))
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Cannot build: {result.name}")))
+        return
+    
+    update_updating_objects(self)
+
+@respond.event("TERRAFORM")
+def eve_game_terraform(self: Server, addr: Address, message: tuple[tuple[int, int], int]):
+    if addr != self.order[self.now_playing_player_index]:
+        self.send_to_addr(addr, Format.error("GAME/TERRAFORM", (f"Not your move right now.")))
+        return
+    pos = Vector2d.from_tuple(message[0])
+    terraform = TerraForm.by_id(message[1])
+    result = self.players[addr].terraform(pos, terraform)
+    if result != ErrorCodes.SUCCESS:
+        self.send_to_addr(addr, Format.error("GAME/TERRAFORM", (f"Cannot terraform: {result.name}")))
         return
     
     update_updating_objects(self)

@@ -1,7 +1,7 @@
 from .world import World
 from . import unit as Unit
 from . import city as City
-from shared.asset_types import UnitType, BuildingType, BuildingType, TechNode
+from shared.asset_types import UnitType, BuildingType, BuildingType, TechNode, TerraForm
 from shared.error_codes import ErrorCodes
 from engine_antiantilopa import Vector2d, VectorRange
 
@@ -37,6 +37,8 @@ class Player:
             return ErrorCodes.ERR_TILE_HAS_NO_RESOURCE
         if self.money < 2:
             return ErrorCodes.ERR_NOT_ENOUGH_MONEY
+        if World.object.get(pos).owner != self.id:
+            return ErrorCodes.ERR_NOT_IN_DOMAIN
         for tech in self.techs:
             if World.object.get(pos).resource in tech.harvestables:
                 for city in self.cities:
@@ -56,6 +58,8 @@ class Player:
             return ErrorCodes.ERR_NOT_ENOUGH_MONEY
         if not (World.object.get(pos).ttype in btype.ttypes):
             return ErrorCodes.ERR_NOT_SUITABLE_TILE_TYPE
+        if World.object.get(pos).owner != self.id:
+            return ErrorCodes.ERR_NOT_IN_DOMAIN
         if btype.adjacent_bonus != None:
             found = 0
             for d in VectorRange(Vector2d(-1, -1), Vector2d(2, 2)):
@@ -83,6 +87,26 @@ class Player:
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
     
     def destroy(self, pos: Vector2d):
+        return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
+
+    def terraform(self, pos: Vector2d, terraform: TerraForm):
+        if World.object.is_in(pos) == False:
+            return ErrorCodes.ERR_NOT_IN_WORLD
+        if self.money < terraform.cost:
+            return ErrorCodes.ERR_NOT_ENOUGH_MONEY
+        if World.object.get(pos).ttype != terraform.from_ttype:
+            return ErrorCodes.ERR_NOT_SUITABLE_TILE_TYPE
+        if World.object.get(pos).owner != self.id:
+            return ErrorCodes.ERR_NOT_IN_DOMAIN
+        if World.object.get(pos).building is not None:
+            return ErrorCodes.ERR_TILE_HAS_BUILDING
+        if (terraform.from_resource is not None) and (World.object.get(pos).resource != terraform.from_resource):
+            return ErrorCodes.ERR_NOT_SUITABLE_RESOURCE
+        for tech in self.techs:
+            if terraform in tech.terraforms:
+                World.object.get(pos).terraform(terraform)
+                self.money -= terraform.cost
+                return ErrorCodes.SUCCESS
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
     def create_unit(self, pos: Vector2d, utype: UnitType):

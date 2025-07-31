@@ -1,0 +1,7 @@
+{
+  "name": "burn_forest",
+  "cost": 5,
+  "from_ttype": "forest",
+  "to_ttype": "plain",
+  "to_resource": "crops"
+}

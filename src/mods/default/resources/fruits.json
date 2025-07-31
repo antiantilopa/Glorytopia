@@ -1,4 +1,8 @@
 {
     "name": "fruits",
-    "ttypes": ["plain"]
+    "ttypes": ["plain"],
+    "spawn_rates": [
+        [1, 1.63636363],
+        [2, 0.16666666]
+    ]
 }

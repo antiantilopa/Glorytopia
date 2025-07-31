@@ -4,7 +4,6 @@ from .sound import SoundComponent
 import os
 
 def load_sounds(texture_packs: list[str] = ["default"]):
-    print("====== start sound load ======")
     path = str.join("/", [*(__file__).split("\\")[:-2], "assets"]) + "/"
     for texture_pack in texture_packs:
         if texture_pack not in os.listdir(path):
@@ -14,18 +13,14 @@ def load_sounds(texture_packs: list[str] = ["default"]):
             continue
             
         for file in os.listdir(path + texture_pack + "/sounds/"):
-            # try:
+            try:
                 if SoundComponent.is_downloaded(nickname=file):
                     continue
                 sound_path = path + texture_pack + "/sounds"
                 if os.path.exists(sound_path + "/" + file + "/config.json"):
                     SoundComponent(path=sound_path + "/" + file, nickname=file)
-            # except KeyError:
-            #     pass
-            # except Exception as e:
-            #     print(f"error occured while reading {texture_pack}:{file}")
-            #     print(e)
-    for d in SoundComponent.downloaded:
-        print("in downloaded: " + d)
-    print("====== thend sound load ======")
-    
+            except KeyError:
+                pass
+            except Exception as e:
+                print(f"error occured while reading {texture_pack}:{file}")
+                print(e)

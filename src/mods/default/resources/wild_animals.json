@@ -1,4 +1,8 @@
 {
     "name": "wild_animals",
-    "ttypes": ["forest"]
+    "ttypes": ["forest"],
+    "spawn_rates": [
+        [1, 1],
+        [2, 0.15151515]
+    ]
 }

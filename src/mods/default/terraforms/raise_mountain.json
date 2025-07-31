@@ -1,0 +1,6 @@
+{
+  "name": "raise_mountain",
+  "cost": 15,
+  "from_ttype": "plain",
+  "to_ttype": "mountain"
+}

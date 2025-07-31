@@ -79,6 +79,17 @@ class Synths:
         down = np.linspace(1, 0, round((duration * rate) - round(0.01 * rate)))
         Synths.cache[("get_attack_arr", duration)] = np.append(up, down)
         return Synths.cache[("get_attack_arr", duration)]
+    
+    @staticmethod
+    def get_hit_attack_arr(duration = 1.5):
+        if ("get_hit_attack_arr", duration) in Synths.cache:
+            return Synths.cache[("get_hit_attack_arr", duration)]
+        rate = Synths.rate
+        up = np.linspace(0, 1, round(0.01 * rate))
+        down = np.linspace(1, 0.2, round(0.01 * rate))
+        steep_down = np.linspace(0.2, 0, round((duration * rate) - round(0.01 * rate) - round(0.01 * rate)))
+        Synths.cache[("get_hit_attack_arr", duration)] = np.append(np.append(up, down), steep_down)
+        return Synths.cache[("get_hit_attack_arr", duration)]
 
     @staticmethod
     def get_sin_arr(freq, duration = 1.5):
@@ -89,6 +100,32 @@ class Synths:
         arr = np.sin(2 * np.pi * freq * t)
         arr *= Synths.get_control_arr(duration)
         Synths.cache[("get_sin_arr", freq, duration)] = arr
+        return arr
+
+    @staticmethod
+    def get_pin_arr(freq, duration = 1.5):
+        if ("get_pin_arr", freq, duration) in Synths.cache:
+            return Synths.cache[("get_pin_arr", freq, duration)]
+        rate = Synths.rate
+        t = np.linspace(0, duration, round(rate * duration), endpoint=False)
+        arr = np.sin(2 * np.pi * freq * t) / 2
+        for i in range(2, 10):
+            arr += np.sin(2 * np.pi * freq * t * 2 ** i) / (2 ** i)
+        arr *= Synths.get_control_arr(duration)
+        Synths.cache[("get_pin_arr", freq, duration)] = arr
+        return arr
+    
+    @staticmethod
+    def get_pqr_arr(freq, duration = 1.5):
+        if ("get_pqr_arr", freq, duration) in Synths.cache:
+            return Synths.cache[("get_pqr_arr", freq, duration)]
+        rate = Synths.rate
+        t = np.linspace(0, duration, round(rate * duration), endpoint=False)
+        arr = np.fmod(np.floor(t * freq), 2) / 2
+        for i in range(2, 4):
+            arr += np.fmod(np.floor(t * freq * 2 ** i), 2) / (2 ** i)
+        arr *= Synths.get_control_arr(duration)
+        Synths.cache[("get_pqr_arr", freq, duration)] = arr
         return arr
 
     @staticmethod
@@ -121,8 +158,18 @@ class Synths:
             return Synths.cache[("get_nos_arr", duration)]
         rate = Synths.rate
         arr = np.random.rand(round(rate * duration))
-        arr *= Synths.get_attack_arr(duration)
+        arr *= Synths.get_control_arr(duration)
         Synths.cache[("get_nos_arr", duration)] = arr
+        return arr
+    
+    @staticmethod
+    def get_hit_arr(duration = 1.5):
+        if ("get_hit_arr", duration) in Synths.cache:
+            return Synths.cache[("get_hit_arr", duration)]
+        rate = Synths.rate
+        arr = np.random.rand(round(rate * duration))
+        arr *= Synths.get_hit_attack_arr(duration)
+        Synths.cache[("get_hit_arr", duration)] = arr
         return arr
 
     @staticmethod
@@ -146,7 +193,6 @@ class Synths:
         sound = pygame.sndarray.make_sound(sound.copy())
         
         with wave.open(output_filename, 'wb') as wf:
-            print("at least was here")
             # Set WAV file parameters
             wf.setnchannels(2)  # Number of channels (e.g., 1 for mono, 2 for stereo)
             wf.setsampwidth(2)  # Sample width in bytes (e.g., 2 for 16-bit)
@@ -164,6 +210,32 @@ class Synths:
                 arr = Synths.get_non_arr(note.duration * Synths.seconds_per_note)
             else:
                 arr = Synths.get_sin_arr(note.freq, note.duration * Synths.seconds_per_note)
+            res[i : i + round(Synths.rate * note.duration * Synths.seconds_per_note)] = arr
+            i += round(Synths.rate * note.duration * Synths.seconds_per_note)
+        return res
+
+    @staticmethod
+    def get_pin_party(notes: list[Note]):
+        res = np.empty(sum([round(Synths.rate * note.duration * Synths.seconds_per_note) for note in notes]))
+        i = 0
+        for note in notes:
+            if note.pause:
+                arr = Synths.get_non_arr(note.duration * Synths.seconds_per_note)
+            else:
+                arr = Synths.get_pin_arr(note.freq, note.duration * Synths.seconds_per_note)
+            res[i : i + round(Synths.rate * note.duration * Synths.seconds_per_note)] = arr
+            i += round(Synths.rate * note.duration * Synths.seconds_per_note)
+        return res
+
+    @staticmethod
+    def get_pqr_party(notes: list[Note]):
+        res = np.empty(sum([round(Synths.rate * note.duration * Synths.seconds_per_note) for note in notes]))
+        i = 0
+        for note in notes:
+            if note.pause:
+                arr = Synths.get_non_arr(note.duration * Synths.seconds_per_note)
+            else:
+                arr = Synths.get_pqr_arr(note.freq, note.duration * Synths.seconds_per_note)
             res[i : i + round(Synths.rate * note.duration * Synths.seconds_per_note)] = arr
             i += round(Synths.rate * note.duration * Synths.seconds_per_note)
         return res
@@ -202,7 +274,20 @@ class Synths:
             if note.pause:
                 arr = Synths.get_non_arr(note.duration * Synths.seconds_per_note)
             else:
-                arr = Synths.get_nos_arr(note.duration * Synths.seconds_per_note) * note.tone
+                arr = Synths.get_nos_arr(note.duration * Synths.seconds_per_note)
+            res[i : i + round(Synths.rate * note.duration * Synths.seconds_per_note)] = arr
+            i += round(Synths.rate * note.duration * Synths.seconds_per_note)
+        return res
+    
+    @staticmethod
+    def get_hit_party(notes: list[Note]):
+        res = np.empty(sum([round(Synths.rate * note.duration * Synths.seconds_per_note) for note in notes]))
+        i = 0
+        for note in notes:
+            if note.pause:
+                arr = Synths.get_non_arr(note.duration * Synths.seconds_per_note)
+            else:
+                arr = Synths.get_hit_arr(note.duration * Synths.seconds_per_note)
             res[i : i + round(Synths.rate * note.duration * Synths.seconds_per_note)] = arr
             i += round(Synths.rate * note.duration * Synths.seconds_per_note)
         return res

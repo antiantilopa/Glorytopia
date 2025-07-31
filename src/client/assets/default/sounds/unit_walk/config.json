@@ -3,9 +3,9 @@
     [
         {
             "name": "raw0",
-            "wave": "sqr",
+            "wave": "hit",
             "volume": 0.2
         }
     ],
-    "spn": 0.1
+    "spn": 0.12
 }

@@ -1,0 +1,6 @@
+{
+  "name": "destroy_mountain",
+  "cost": 15,
+  "from_ttype": "mountain",
+  "to_ttype": "plain"
+}

@@ -1,0 +1,7 @@
+{
+  "name": "geology_search",
+  "cost": 5,
+  "from_ttype": "mountain",
+  "to_ttype": "mountain",
+  "to_resource": "metal"
+}

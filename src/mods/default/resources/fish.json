@@ -1,4 +1,8 @@
 {
     "name": "fish",
-    "ttypes": ["water", "ocean"]
+    "ttypes": ["water", "ocean"],
+    "spawn_rates":[
+        [1, 1], 
+        [2, 1]
+    ]
 }

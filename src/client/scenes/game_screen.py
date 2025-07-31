@@ -205,10 +205,12 @@ def selector_info_update():
                 if tile_data.building is None:
                     for tech in Client.object.techs:
                         for btype in tech.buildings:
-                            print(btype.required_resource)
-                            print(tile_data.resource)
                             if (tile_data.ttype in btype.ttypes) and ((btype.required_resource is None) or (btype.required_resource == tile_data.resource)):
                                 buttons.append((f"{btype.name}:{btype.cost}", lambda g, k, p, *args: Client.object.send(Format.event("GAME/BUILD", [tile_data.pos.as_tuple(), args[0]])), btype.id))
+                    for tech in Client.object.techs:
+                        for terraform in tech.terraforms:
+                            if (tile_data.ttype == terraform.from_ttype) and ((terraform.from_resource is None) or (terraform.from_resource == tile_data.resource)):
+                                buttons.append((f"{terraform.name}:{terraform.cost}", lambda g, k, p, *args: Client.object.send(Format.event("GAME/TERRAFORM", [tile_data.pos.as_tuple(), args[0]])), terraform.id))
         else:
             text = "\n".join((
                 f"city: {city_data.name}",
@@ -273,6 +275,7 @@ def selector_info_update():
             (f"resources: {', '.join([r.name for r in tech.harvestables])}\n" if len(tech.harvestables) > 0 else "") +
             (f"terrain: {', '.join([t.name for t in tech.accessable])}\n" if len(tech.accessable) > 0 else "") + 
             (f"defecnces: {', '.join([t.name for t in tech.defence])}\n" if len(tech.defence) > 0 else "") + 
+            (f"terraforms: {', '.join([t.name for t in tech.terraforms])}\n" if len(tech.terraforms) > 0 else "") + 
             (f"achievements: {', '.join([a for a in tech.achievements])}\n" if len(tech.achievements) > 0 else "")
         ))
         if (tech.parent is not None) and (tech.parent in Client.object.techs) and (tech not in Client.object.techs):
@@ -369,8 +372,8 @@ def init():
             world_obj = GameObject.get_game_object_by_tags("game_screen:world_section")
             current_pos = g_obj.get_component(Transform).pos
                     
-            world_width = self.world_size[0] * block_size.x
-            world_height = self.world_size[1] * block_size.y
+            world_width = self.world_size[0] * block_size.x + block_size.x // 2
+            world_height = self.world_size[1] * block_size.y + block_size.y // 2
             
             view_width = world_obj.get_component(SurfaceComponent).size.x
             view_height = world_obj.get_component(SurfaceComponent).size.y
@@ -392,9 +395,8 @@ def init():
     @Client.object.check_update(UpdateCodes.UPDATE_TILE)
     def update_tile():
         self = Client.object
-        for pos in self.world_updates:
-            create_tile_game_object(pos)
-        self.world_updates.clear()
+        while len(self.world_updates) > 0:
+            create_tile_game_object(self.world_updates.pop(0))
         selector_info_update()
 
     @Client.object.check_update(UpdateCodes.UPDATE_UNIT)
@@ -413,6 +415,9 @@ def init():
     @Client.object.check_update(UpdateCodes.UPDATE_CITY)
     def update_city():
         self = Client.object
+        if len(GameObject.get_group_by_tag("game_screen:world_section:world:city_layer:city")) == 0:
+            world = GameObject.get_game_object_by_tags("game_screen:world_section:world")
+            world.get_component(Transform).set_pos(world.get_component(SurfaceComponent).size // 2 - self.cities_updates[0].pos * block_size)
         for city in self.cities_updates:
             create_city_game_object(city)
         self.cities_updates.clear()

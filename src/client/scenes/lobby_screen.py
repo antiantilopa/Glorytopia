@@ -201,7 +201,6 @@ def init():
     
     @Client.object.check_update(UpdateCodes.INIT_COLORS)
     def init_colors():
-        print(Client.object.names_to_colors)
         for label in GameObject.get_group_by_tag("lobby_screen:info_section:change_color_button:label"):
             label.get_component(LabelComponent).text = "X" if int(label.tags[1]) in Client.object.names_to_colors.values() else "O" 
             label.need_draw_set_true()

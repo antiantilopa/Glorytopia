@@ -120,7 +120,6 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
                 Client.object.send(Format.request("ORDER", []))
                 Client.object.send(Format.request("LOBBY/COLORS", []))
                 Client.object.send(Format.request("GAME/NOW_PLAYING_PLAYER_INDEX", []))
-                print("Reconnected successfully.")
                 GameObject.get_game_object_by_tags("main_menu").disable()
                 Client.object.game_started = True
                 while not (Client.object.updated & 2 ** UpdateCodes.INIT_COLORS.value):
@@ -134,16 +133,17 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
 
     def launch_lobby():
         global ip, name
-        scene.disable()
-        lobbby_scene = lobby_load(screen_size)
-        lobby_init()
-        lobbby_scene.enable()
-
         c = Client.object
         c.send(Format.request("LOBBY/NAMES", []))
         c.send(Format.request("ORDER", []))
         c.send(Format.request("LOBBY/COLORS", []))
         c.send(Format.request("LOBBY/READINESS", []))
+        while not (Client.object.updated & 2 ** UpdateCodes.INIT_COLORS.value):
+            pass
+        scene.disable()
+        lobbby_scene = lobby_load(screen_size)
+        lobby_init()
+        lobbby_scene.enable()
     
     def start_game():
         scene = GameObject.get_group_by_tag("main_menu")[0]

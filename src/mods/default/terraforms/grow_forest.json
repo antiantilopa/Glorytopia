@@ -1,0 +1,6 @@
+{
+  "name": "grow_forest",
+  "cost": 5,
+  "from_ttype": "plain",
+  "to_ttype": "forest"
+}

@@ -1,5 +1,5 @@
 from shared.tile import TileData
-from shared.asset_types import TileType, BuildingType, ResourceType
+from shared.asset_types import TileType, BuildingType, ResourceType, TerraForm
 from engine_antiantilopa import Vector2d
 from .updating_object import UpdatingObject
 
@@ -19,3 +19,9 @@ class Tile(TileData, UpdatingObject):
         sunul building v reku building
         building building building building. 
         """
+    
+    def terraform(self, terraform: TerraForm):
+        if terraform is None:
+            return
+        self.ttype = terraform.to_ttype
+        self.resource = terraform.to_resource
