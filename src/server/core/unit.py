@@ -1,5 +1,5 @@
 from shared.asset_types import UnitType, TileType
-from shared.unit import UnitData
+from shared.unit import SerializedUnit, UnitData
 from engine_antiantilopa import Vector2d
 from .world import World
 from math import floor, ceil
@@ -9,6 +9,8 @@ from . import player as Player
 from .ability import Ability
 from .updating_object import UpdatingObject
 
+SerializedUnit_ = tuple[int, int, tuple[int, int], int, int, tuple[int, int]|None, tuple[int, int]]
+
 class Unit(UnitData, UpdatingObject):
     attached_city: "City.City"
     previous_pos: Vector2d
@@ -16,10 +18,12 @@ class Unit(UnitData, UpdatingObject):
     units: list["Unit"] = []
     def __init__(self, utype: UnitType, owner: int, pos: Vector2d, attached_city: "City.City"):
         UpdatingObject.__init__(self)
+        self.black_list.append("previous_pos")
         UnitData.__init__(self, utype, owner, pos)
         self.attached_city = attached_city
         self.previous_pos = Vector2d(-1, -1)
         Unit.units.append(self)
+        World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 1
     
     def refresh(self):
         self.moved = False
@@ -207,18 +211,56 @@ class Unit(UnitData, UpdatingObject):
         Player.Player.players[self.owner].units.remove(self)
         UpdatingObject.destroy(self)
         del self
-    
-    def __setattr__(self, name, value):
-        if name == "previous_pos":
-            object.__setattr__(self, "previous_pos", value)
-            return
-        if name == "pos":
-            if hasattr(self, "pos"):
-                object.__setattr__(self, "previous_pos", self.pos)
-            else:
-                object.__setattr__(self, "previous_pos", value)
-        return UpdatingObject.__setattr__(self, name, value)
 
     def refresh_updated(self):
         self.previous_pos = self.pos
         return super().refresh_updated()
+    
+    def set_from_data(self, udata: UnitData):
+        self.utype = udata.utype
+        self.owner = udata.owner
+        self.pos = udata.pos
+        self.moved = udata.moved
+        self.attacked = udata.attacked
+        self.health = udata.health
+
+    @staticmethod
+    def from_serializable(serializable: SerializedUnit_) -> "Unit":
+        udata = UnitData.from_serializable(serializable[0:5])
+        unit = Unit(udata.utype, udata.owner, udata.pos, None)
+        unit.previous_pos = Vector2d.from_tuple(serializable[6])
+        unit.set_from_data(udata)
+        if serializable[5] is not None:
+            city = None
+            for c in City.City.cities:
+                if c.pos == Vector2d.from_tuple(serializable[5]):
+                    city = c
+                    break
+            unit.attached_city = city
+        else:
+            unit.attached_city = None
+        del udata
+        return unit
+    
+    @staticmethod
+    def do_serializable(serializable: SerializedUnit_) -> None:
+        prev_pos = Vector2d.from_tuple(serializable[6])
+        if prev_pos == Vector2d(-1, -1):
+            new_unit = Unit.from_serializable(serializable)
+            if new_unit.owner != 0:
+                for player in Player.Player.players:
+                    if player.id == new_unit.owner:
+                        player.units.append(new_unit)
+        else:
+            found = False
+            for unit in Unit.units:
+                if unit.pos == prev_pos:
+                    found = True
+                    udata = UnitData.from_serializable(serializable[0:5])
+                    unit.set_from_data(udata)
+                    break
+            if not found:
+                raise Exception("Imposiible unit data given")
+
+    def to_serializable(self) -> SerializedUnit_:
+        return UnitData.to_serializable(self) + [None if self.attached_city.pos is None else self.attached_city.pos.as_tuple(), self.previous_pos.as_tuple()]

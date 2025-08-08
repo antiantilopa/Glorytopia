@@ -36,7 +36,7 @@ class UnitType(GenericType["UnitType"]):
         self.cost = cost
         self.water = water
         self.abilities = abilities
-
+    
 class TileType(GenericType["TileType"]):
     first_thing_first_ima_say_all_the_word_inside_my_head_im_fired_up_and_tired_off_the_way_that_things_have_been_of_yuyuyyuyuyu: bool = False
     id: int

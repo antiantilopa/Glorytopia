@@ -1,12 +1,17 @@
+from .updating_object import UpdatingObject
 from .world import World
+from .game_event import GameEvent
 from . import unit as Unit
 from . import city as City
 from shared.asset_types import UnitType, BuildingType, BuildingType, TechNode, TerraForm
 from shared.error_codes import ErrorCodes
 from engine_antiantilopa import Vector2d, VectorRange
+from serializator.net import flags_to_int, int_to_flags
 
 
-class Player:
+SerializedPlayer = tuple[int, int, list[int], list[int], bool]
+
+class Player(UpdatingObject):
     
     id: int
     money: int
@@ -19,17 +24,28 @@ class Player:
     ID = 0
     players: list["Player"] = []
 
-    def __init__(self):
+    def __init__(self, new_player: bool = True):
+        UpdatingObject.__init__(self)
+        self.black_list.extend(("units", "cities", "is_dead"))
+        if not new_player:
+            return
         self.id = Player.ID
         Player.ID += 1
         self.money = 8
         self.vision = [[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)]
         self.techs = [TechNode.get("base")]
-        self.units = []
+        self.units = []  
         self.cities = []
         self.is_dead = False
         Player.players.append(self)
     
+    def destroy(self):
+        Player.players.remove(self)
+        self.units = []
+        self.cities = []
+        UpdatingObject.destroy(self)
+
+    @GameEvent.game_event
     def harvest(self, pos: Vector2d):
         if World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
@@ -49,6 +65,7 @@ class Player:
                 return ErrorCodes.ERR_NOT_IN_DOMAIN
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
     
+    @GameEvent.game_event
     def build(self, pos: Vector2d, btype: BuildingType):
         if World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
@@ -85,10 +102,8 @@ class Player:
                         return ErrorCodes.SUCCESS
                 return ErrorCodes.ERR_NOT_IN_DOMAIN
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
-    
-    def destroy(self, pos: Vector2d):
-        return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
+    @GameEvent.game_event
     def terraform(self, pos: Vector2d, terraform: TerraForm):
         if World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
@@ -109,6 +124,7 @@ class Player:
                 return ErrorCodes.SUCCESS
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
+    @GameEvent.game_event
     def create_unit(self, pos: Vector2d, utype: UnitType):
         if World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
@@ -129,6 +145,7 @@ class Player:
                 return ErrorCodes.ERR_NOT_YOUR_CITY
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
+    @GameEvent.game_event
     def move_unit(self, unit: "Unit.Unit", pos: Vector2d):
         if unit.owner != self.id:
             return ErrorCodes.ERR_NOT_YOUR_UNIT
@@ -137,6 +154,7 @@ class Player:
             return ErrorCodes.SUCCESS
         return ErrorCodes.ERR_DEFAULT
 
+    @GameEvent.game_event
     def buy_tech(self, tech: TechNode):
         if tech in self.techs:
             return ErrorCodes.ERR_TECH_IS_ALREADY_RESEARCHED
@@ -148,6 +166,7 @@ class Player:
         self.money -= tech.cost + len(self.cities) * tech.tier
         return ErrorCodes.SUCCESS
 
+    @GameEvent.game_event
     def conquer_city(self, pos: Vector2d):
         for unit in self.units:
             if unit.pos == pos:
@@ -198,13 +217,58 @@ class Player:
                     self.vision[(unit.pos + dv).inty()][(unit.pos + dv).intx()] = 1
         return changed
     
+    @GameEvent.game_event
     def start_turn(self):
         for unit in self.units:
             unit.refresh()
         for city in self.cities:
             self.money += city.level + city.forge + city.is_capital
+        return ErrorCodes.SUCCESS
     
+    @GameEvent.game_event
     def end_turn(self):
         for unit in self.units:
             if not unit.moved and not unit.attacked:
                 unit.heal() 
+        return ErrorCodes.SUCCESS
+
+    def to_serializable(self):
+        return [
+            self.id,
+            self.money,
+            [flags_to_int(*row) for row in self.vision],
+            [tech.id for tech in self.techs], # super bad with mods. who cares now? TODO. maybe names?
+            self.is_dead
+        ]
+    
+    def set_from_data(self, data: SerializedPlayer):
+        self.id = data[0]
+        self.money = data[1]
+        self.vision = [list(int_to_flags(row, World.object.size.x)) for row in data[2]]
+        self.techs = [TechNode.by_id(tech_id) for tech_id in data[3]]
+        self.is_dead = data[4]
+
+    @staticmethod
+    def from_serializable(serializable: SerializedPlayer) -> "Player":
+        player = Player()
+        player.set_from_data(serializable)
+        for unit in Unit.Unit.units:
+            if unit.owner == player.id:
+                player.units.append(unit)
+        for city in City.City.cities:
+            if city.owner == player.id:
+                player.cities.append(city)
+        return player
+
+    @staticmethod
+    def do_serializable(data: SerializedPlayer):
+        player_id = data[0]
+        found = False
+        for player in Player.players:
+            if player.id == player_id:
+                found = True
+                player.set_from_data(data)
+                break
+        if not found:
+            raise Exception("Invalid Player data.")
+        

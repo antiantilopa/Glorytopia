@@ -1,24 +1,78 @@
 from serializator.host import Address
 from serializator.data_format import Format
+from serializator.net import Serializator
 from server.core import *
+from server.core.game_event import GameEvent
 from server.respondings import lobby, game
 from server.respondings.server import Server
-import socket, time, random
+from server.globals.backup import BackupSettings
+import socket, time, random, os
 from engine_antiantilopa import Vector2d
 from shared.loader import load_mains
 from shared.asset_types import *
+from pathlib import Path
 
 load_mains()
+GameEvent.start_recording()
+saves_path = BackupSettings.saves_path
 
-# random.seed(0)
+if os.path.exists(saves_path):
+    saves = os.listdir(saves_path)
+    if len(saves) > 0:
+        print("Available saves:")
+        for i in range(len(saves)):
+            print(f"{i}) {saves[i]}")
+else:
+    os.mkdir(saves_path)
+    saves = []
 
-password = input("input password for admin: ")
+preload_data = None
+name = None
+if len(saves) == 0:
+    print("No saves found. Starting a new game.")
+else:
+    while True:
+        preload_folder_index = (input("preload? (leave empty to start a new game/write folder index to continue): "))
+        if preload_folder_index:
+            try:
+                preload_folder_index = int(preload_folder_index)
+                if os.path.exists(saves_path / saves[preload_folder_index]):
+                    innersaves = os.listdir(saves_path / saves[preload_folder_index])
+                    if len(innersaves) == 0:
+                        print("No saves found in this folder.")
+                        name = saves[preload_folder_index]
+                        break
+                    print("Available turns:")
+                    for i in range(len(innersaves)):
+                        print(f"{i}) {innersaves[i]}")
+                    preload_file_index = int(input("write file index to continue: "))
+                with open(saves_path / saves[preload_folder_index] / innersaves[preload_file_index], "rb") as f:
+                    try:
+                        preload_data = Serializator.decode_full(f.read())
+                        name = saves[preload_folder_index]
+                        print("preloaded successfully")
+                        a = str(preload_data)
+                        tabs = 0
+                        break
+                    except Exception as e:
+                        print(f"error while preloading: {e}")
+            except Exception as e:
+                print(f"wrong file index: {e}")
+        else:
+            break
+
+if preload_data is None:
+    print("Starting a new game.")
+    if name is None:
+        name = input("Enter the game's name: ")
+        os.mkdir(saves_path / name)
+
+BackupSettings.save_folder_name = name
 
 host = Server()
-host.password = password
+host.password = "Ha-Ha-Ha Rana"
 host.respond.merge(lobby.respond)
 host.respond.merge(game.respond)
-
 
 @host.respond.connection()
 def at_connect(self: Server, conn: socket.socket, addr: Address) -> bool:
@@ -50,7 +104,7 @@ def at_disconnect(self: Server, addr: Address):
             recovery_code = random.randint(100000, 999999)
             self.recovery_codes[self.addrs_to_names[addr]] = recovery_code
             print(f"recovery code: {recovery_code}")
-            print("awaiting for players to reconnect...")
+            print("awaiting for player to reconnect...")
     
 @host.respond.request("ORDER")
 def req_order(self: Server, addr: Address, _: tuple):
@@ -59,25 +113,19 @@ def req_order(self: Server, addr: Address, _: tuple):
 host.init_server(6)
 host.start()
 
-for r in host.respond.routes:
-    print(r)
-
 def start_game():
-    host.the_game = Game(Vector2d(17, 17), len(host.addrs_to_names))
+    if preload_data is None:
+        host.the_game = Game(Vector2d(17, 17), len(host.addrs_to_names))
+    else:
+        host.the_game = Game.from_serializable(preload_data)
     for addr in host.order:
         host.players[addr] = host.the_game.players[host.order.index(addr)]
         host.send_to_addr(addr, Format.event("GAME/GAME_START", [0, host.order.index(addr)]))
-    symbol_terrain = "_~=+^"
-    for i in range(host.the_game.world.size.y):
-        for j in range(host.the_game.world.size.x):
-            print(symbol_terrain[host.the_game.world[i][j].ttype.id], end = " ")
-        print()
 
 try:
     while True:
         if not host.game_started:
             if host.game_starting:
-                print(timer)
                 for addr in host.addrs_to_names:
                     host.send_to_addr(addr, Format.event("LOBBY/GAME_START", [timer]))
                     host.send_to_addr(addr, Format.event("LOBBY/MESSAGE", ("GAME STARTS IN", f"{timer}...")))

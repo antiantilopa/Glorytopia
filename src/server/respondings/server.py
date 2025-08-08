@@ -20,4 +20,3 @@ class Server(Host):
         self.password = None
         self.players: dict[Address, Player] = {}
         self.the_game: Game = None
-        self.now_playing_player_index = 0

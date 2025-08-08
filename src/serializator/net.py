@@ -18,19 +18,6 @@ class SerializationTypes:
     FLOAT = 9
     DOUBLE = 10
 
-    size_dict = {
-        CHAR: 1,
-        US_CHAR: 1,
-        SHORT: 2,
-        US_SHORT: 2,
-        INT: 4,
-        US_INT: 4,
-        LONG: 8,
-        US_LONG: 8,
-        FLOAT: 4,
-        DOUBLE: 8
-    }
-
     # In array every element has identical type
     ARRAY_BEGIN = 11
 
@@ -54,7 +41,24 @@ class SerializationTypes:
         "ARRAY_BEGIN",
         "LIST_BEGIN",
         "STRING_BEGIN",
+        "NONE"
     )
+
+    NONE = 14
+
+    size_dict = {
+        CHAR: 1,
+        US_CHAR: 1,
+        SHORT: 2,
+        US_SHORT: 2,
+        INT: 4,
+        US_INT: 4,
+        LONG: 8,
+        US_LONG: 8,
+        FLOAT: 4,
+        DOUBLE: 8,
+        NONE: 0
+    }
 
 def abs(x):
     if x < 0: x*=-1
@@ -69,7 +73,11 @@ class Serializator:
 
     @staticmethod
     def encode_to(obj: int|float|tuple|list|set|str, serialization_type: int, *args: list[int]):
-        if serialization_type in (SerializationTypes.US_CHAR, SerializationTypes.US_SHORT, SerializationTypes.US_INT, SerializationTypes.US_LONG):
+        if serialization_type == SerializationTypes.NONE:
+            if obj is not None:
+                raise TypeError(f"{obj} is not None to be serialized as {SerializationTypes.names[serialization_type]}")
+            return bytes([serialization_type])
+        elif serialization_type in (SerializationTypes.US_CHAR, SerializationTypes.US_SHORT, SerializationTypes.US_INT, SerializationTypes.US_LONG):
             if not isinstance(obj, int):
                 raise TypeError(f"{obj} is not integer to be serialized as {SerializationTypes.names[serialization_type]}")
             if obj < 0 or  obj > 256 ** SerializationTypes.size_dict[serialization_type]:
@@ -133,7 +141,8 @@ class Serializator:
                     result.extend(Serializator.encode_to(inner, SerializationTypes.US_CHAR)[1:])
             result.append(SerializationTypes.END)
             return result
-
+        else:
+            raise ValueError(f"Unknown serialization type {serialization_type} for {obj}")
     @staticmethod    
     def encode(obj: Any):
         if isinstance(obj, int):
@@ -167,6 +176,9 @@ class Serializator:
             return Serializator.encode_to(obj, SerializationTypes.LIST_BEGIN)
         if isinstance(obj, str):
             return Serializator.encode_to(obj, SerializationTypes.STRING_BEGIN)
+        if obj is None:
+            return bytes([SerializationTypes.NONE])
+        raise TypeError(f"{obj} is not serializable, please use int, float, str, list, tuple, set, or None")
 
     @staticmethod
     def decode_full(obj: bytes|bytearray):
@@ -195,6 +207,8 @@ class Serializator:
             result += 1
             result *= 2 ** exp
             return result
+        if int(obj[0]) == SerializationTypes.NONE:
+            return None
         if int(obj[0]) in (SerializationTypes.ARRAY_BEGIN, SerializationTypes.LIST_BEGIN, SerializationTypes.STRING_BEGIN):
             result = []
             i = 1
@@ -209,9 +223,30 @@ class Serializator:
                 elif int(obj[0]) == SerializationTypes.STRING_BEGIN:
                     serialization_type = SerializationTypes.US_CHAR
                 
-                if serialization_type in (SerializationTypes.ARRAY_BEGIN, SerializationTypes.LIST_BEGIN, SerializationTypes.STRING_BEGIN) :
+                if serialization_type in (SerializationTypes.ARRAY_BEGIN, SerializationTypes.LIST_BEGIN) :
                     result.append(Serializator.decode_full(serialization_type.to_bytes() + obj[i:]))
-                    i = obj.find(0, i) + 1
+                    cnt = 1
+                    while True:
+                        if obj[i] == SerializationTypes.END:
+                            cnt -= 1
+                            if cnt == 0:
+                                i += 1
+                                break
+                            i += 1
+                        elif obj[i] == SerializationTypes.LIST_BEGIN:
+                            cnt += 1
+                            i += 1
+                        elif obj[i] == SerializationTypes.STRING_BEGIN:
+                            while obj[i] != SerializationTypes.END:
+                                i += 1
+                            i += 1
+                        else:
+                            i += SerializationTypes.size_dict[obj[i]] + 1
+                elif serialization_type == SerializationTypes.STRING_BEGIN:
+                    result.append(Serializator.decode_full(serialization_type.to_bytes() + obj[i:]))
+                    while obj[i] != SerializationTypes.END:
+                        i += 1
+                    i += 1
                 else:
                     result.append(Serializator.decode_full(serialization_type.to_bytes() + obj[i : i + SerializationTypes.size_dict[serialization_type]]))
                     i += SerializationTypes.size_dict[serialization_type]
@@ -274,4 +309,3 @@ def int_to_flags(integer: int, length: int) -> tuple[bool]:
             integer //= 2
     
     return tuple(result)
-

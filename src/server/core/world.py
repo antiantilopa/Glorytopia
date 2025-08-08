@@ -1,3 +1,4 @@
+from shared.tile import SerializedTile, TileData
 from .tile import Tile
 from engine_antiantilopa import Vector2d
 from shared.asset_types import TileType
@@ -14,6 +15,9 @@ def get_by_height(number: int):
     }
     return mp[number]
     
+SerializedTile_ = tuple[int, int, int, int, bool]
+SerializedWorld = list[list[SerializedTile_]]
+
 class World:
     world: list[list[Tile]]
     cities_mask: list[list[bool]]
@@ -21,12 +25,16 @@ class World:
     size: Vector2d
     object: "World" = None
 
-    def __init__(self, width: int, height: int) -> None:
-        world = pangea(width, height)
+    def __init__(self, width: int, height: int, empty: bool = False) -> None:
         self.cities_mask = [[0] * width for _ in range(height)]
         self.unit_mask = [[0] * width for _ in range(height)]
         self.size = Vector2d(width, height)
-        self.world = [[Tile(Vector2d(i, j), get_by_height(world[j][i]), None) for i in range(width)] for j in range(height)]
+        if empty:
+            self.world = [[Tile(Vector2d(i, j), TileType.get("plain"), None) for i in range(width)] for j in range(height)]
+            return
+        else:
+            world = pangea(width, height)
+            self.world = [[Tile(Vector2d(i, j), get_by_height(world[j][i]), None) for i in range(width)] for j in range(height)]
         World.object = self
     
     def __new__(cls, *_):
@@ -42,3 +50,31 @@ class World:
 
     def is_in(self, pos: Vector2d) -> bool:
         return pos.is_in_box(Vector2d(0, 0), self.size - Vector2d(1, 1))
+
+    def to_serializable(self) -> SerializedWorld:
+        result = []
+        for row in self.world:
+            row_res = []
+            for tile in row:
+                tdata = tile.to_serializable()
+                tdata.pop(2) # pos
+                row_res.append(tdata)
+            result.append(row_res)
+        return result
+
+    @staticmethod
+    def from_serializable(serializable: SerializedWorld) -> "World":
+        width = len(serializable[0])
+        height = len(serializable)
+        world = World(width, height)
+        for j in range(height):
+            for i in range(width):
+                ser = list(serializable[j][i])
+                ser.insert(2, Vector2d(i, j))  # insert position
+                tdata = TileData.from_serializable(ser)
+                t = Tile(Vector2d(i, j), tdata.ttype, tdata.resource)
+                t.building = tdata.building
+                t.owner = tdata.owner
+                del tdata
+                world.world[j][i] = t
+        return world

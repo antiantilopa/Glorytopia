@@ -4,3 +4,5 @@
 .gitignore
 *logs*
 *settings.json*
+*saves*
+*replays*

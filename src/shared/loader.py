@@ -1,5 +1,5 @@
 from pathlib import Path
-
+from server.globals.mod_versions import ModConfig, ModVersions
 from .asset_types import BuildingType, ResourceType, TechNode, UnitType, TileType, TerraForm
 from .util.json import from_file
 from typing import TypeVar
@@ -16,6 +16,9 @@ def load_mod(path: Path):
     resources = path / "resources"
     terraforms = path / "terraforms"
     techs = path / "techs"
+
+    config = from_file(ModConfig, path / "config.json")
+    ModVersions.mods.append(config)
 
     for tile_json in tiles.iterdir():
         tile = from_file(TileType, str(tile_json))
