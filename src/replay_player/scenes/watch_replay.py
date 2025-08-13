@@ -83,6 +83,8 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
         color=ColorComponent.WHITE
     )
     next_frame_button.add_component(OnClickComponent([1, 0, 0], 0, 1, next_frame_click))
+    next_frame_button.add_component(KeyBindComponent([pg.K_SPACE], 1, 1, next_frame_click))
+
 
     techs_button = create_game_object(info_section, "game_screen:info_section:techs_button", at=InGrid((1, 8), (0, 6), (1, 1)), color=(0, 150, 250), shape=Shape.RECT)
     techs_label = create_label(
@@ -260,6 +262,7 @@ def selector_info_update():
             f"can_move?: {"no" if unit_data.moved else "yes"}",
             f"can_attack?: {"no" if unit_data.attacked else "yes"}",
             f"pos: {unit_data.pos}",
+            f"pos: {SelectComponent.selected.get_component(UnitComponent).pos}"
         ))
         if not (unit_data.moved or unit_data.attacked):
             city_found = False
@@ -398,11 +401,15 @@ def update_tile(tiles: list[Tile]):
 
 def update_unit(units: list[Unit]):
     for unit in units:
+        if unit.health <= 0:
+            print(" === !!!", unit.pos)
+            remove_unit_game_object(unit)
+    for unit in units:
+        if unit.health <= 0:
+            continue
         print(unit.previous_pos, unit.pos)
         if unit.previous_pos == Vector2d(-1, -1): 
             create_unit_game_object(unit)
-        elif unit.health <= 0:
-            remove_unit_game_object(unit)
         else:
             move_unit_game_object(unit.previous_pos.as_tuple(), unit)
     selector_info_update()

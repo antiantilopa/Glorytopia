@@ -156,9 +156,14 @@ class Unit(UnitData, UpdatingObject):
     def move(self, pos: Vector2d):
         if not (pos in self.get_possible_moves()):
             return 
-        self.moved = True
-        self.attacked = True
         if World.object.unit_mask[pos.y][pos.x]:
+            self.attacked = True
+            save = False
+            for ability in self.utype.abilities:
+                save |= Ability.get(ability).save_moved(self)
+            if not save:
+                self.moved = True
+            print(self.attacked)
             for unit in Unit.units:
                 if unit.pos == pos:
                     attack, defense = self.calc_attack(unit)
@@ -175,6 +180,12 @@ class Unit(UnitData, UpdatingObject):
                         Ability.get(ability).after_attack(self, unit)
                     break
         else:
+            self.moved = True
+            save = False
+            for ability in self.utype.abilities:
+                save |= Ability.get(ability).save_attacked(self)
+            if not save:
+                self.attacked = True
             World.object.unit_mask[self.pos.y][self.pos.x] = 0
             self.pos = pos
             World.object.unit_mask[self.pos.y][self.pos.x] = 1
@@ -252,11 +263,12 @@ class Unit(UnitData, UpdatingObject):
                     if player.id == new_unit.owner:
                         player.units.append(new_unit)
         else:
+            udata = UnitData.from_serializable(serializable[0:5])
             found = False
             for unit in Unit.units:
-                if unit.pos == prev_pos:
+                if unit.pos == prev_pos and unit.owner == udata.owner: # TODO BUG WTF check not only owner. this shit is so hard
                     found = True
-                    udata = UnitData.from_serializable(serializable[0:5])
+                    
                     unit.set_from_data(udata)
                     break
             if not found:

@@ -21,6 +21,9 @@ class UnitComponent(PositionComponent):
     def __init__(self, unit_data: UnitData, pos: Vector2d):
         super().__init__(pos)
         self.unit_data = unit_data
+    
+    def __setattr__(self, name, value):
+        return object.__setattr__(self, name, value)
 
 class CityComponent(PositionComponent):
     def __init__(self, city_data: CityData, pos: Vector2d):
@@ -147,22 +150,26 @@ def create_unit_game_object(unit_data: UnitData):
         text=f"{unit_data.health}", 
         font=pg.font.SysFont("consolas", block_size.x // 4), 
         color=Replay.colors[unit_data.owner][1], 
-        tags="game_screen:world_section:world:unit_layer:unit:health"
+        tags="game_screen:world_section:world:unit_layer:unit:health:number" 
     )
 
-def remove_unit_game_object(pos: tuple[int, int]):
+def remove_unit_game_object(unit_data: UnitData):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
-    for unit in unit_layer.childs:
-        if unit.get_component(PositionComponent).pos == Vector2d(*pos):
-            unit.need_blit_set_true()
-            unit.destroy()
-            break
     unit_layer.need_draw = True
+    for unit in unit_layer.childs:
+        if (unit.get_component(UnitComponent).pos == unit_data.pos) and (unit.get_component(UnitComponent).unit_data.owner == unit_data.owner):
+            unit.need_blit_set_true()
+            unit.need_draw_set_true()
+            unit.destroy()
+            return
+        elif (unit.get_component(UnitComponent).pos == unit_data.pos):
+            print("SUPER WTF !!!! THERE ARE 2 UNITS ON THE SAME POSITION!!")
+    print(f"WTF !!! TRIED TO REMOVE UNIT ON {unit_data.pos}")
 
 def move_unit_game_object(pos: tuple[int, int], unit_data: UnitData):
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
     for unit in unit_layer.childs:
-        if unit.get_component(PositionComponent).pos == Vector2d(*pos):
+        if unit.get_component(UnitComponent).pos == Vector2d(*pos):
             unit.get_component(UnitComponent).unit_data = unit_data
             unit.get_component(UnitComponent).pos = unit_data.pos
             unit.get_component(Transform).set_pos(InGrid(World.object.size, unit_data.pos).get_pos(unit_layer))
@@ -174,9 +181,10 @@ def move_unit_game_object(pos: tuple[int, int], unit_data: UnitData):
                         text=f"{unit_data.health}", 
                         font=pg.font.SysFont("consolas", block_size.x // 4), 
                         color=Replay.colors[unit_data.owner][1], 
-                        tags="game_screen:world_section:world:unit_layer:unit:health"
+                        tags="game_screen:world_section:world:unit_layer:unit:health:number"
                     )
-            break
+            return
+    print(f"WTF !!! TRIED TO MOVE UNIT FROM {pos} to {unit_data.pos}")
 
 def update_city_name_label(city: GameObject):
     city_data = city.get_component(CityComponent).city_data
@@ -240,7 +248,7 @@ def create_city_game_object(city_data: CityData):
     city_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:city_layer")
     for city in GameObject.get_group_by_tag("game_screen:world_section:world:city_layer:city"):
         if city.contains_component(CityComponent):
-            if city.get_component(PositionComponent).pos == city_data.pos:
+            if city.get_component(CityComponent).pos == city_data.pos:
                 city.get_component(CityComponent).city_data = city_data
                 update_city_name_label(city)
                 update_city_upgrades(city)

@@ -8,5 +8,5 @@ class Dash(Ability):
     name = "dash"
 
     @staticmethod
-    def after_movement(unit: Unit):
-        unit.attacked = False
+    def save_attacked(unit):
+        return True

@@ -46,6 +46,14 @@ class Ability(GenericType[Type["Ability"]]):
         return 0
     
     @staticmethod
+    def save_moved(unit: "Unit.Unit") -> bool:
+        return False
+    
+    @staticmethod
+    def save_attacked(unit: "Unit.Unit") -> bool:
+        return False
+
+    @staticmethod
     def get_vision_range(unit: "Unit.Unit") -> int:
         return 0
     
