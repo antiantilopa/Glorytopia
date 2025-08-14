@@ -3,5 +3,6 @@
     "cost": 4,
     "parent": "organization",
     "tier": 2,
-    "buildings": ["farm"]
+    "buildings": ["farm"],
+    "units": ["legionnaire"]
 }

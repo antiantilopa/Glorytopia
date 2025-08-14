@@ -60,3 +60,38 @@ class Ability(GenericType[Type["Ability"]]):
     @staticmethod
     def get_visibility(unit: "Unit.Unit") -> bool:
         return 1
+
+    @staticmethod
+    def additional_attack(unit: "Unit.Unit", other: "Unit.Unit") -> int:
+        return 0
+
+    @staticmethod
+    def additional_defence(unit: "Unit.Unit", other: "Unit.Unit") -> int:
+        return 0
+
+    # TODO THIS SHIT IS NOT USED NOW
+    @staticmethod
+    def on_end_turn(unit: "Unit.Unit"):
+        pass
+
+    @staticmethod
+    def on_start_turn(unit: "Unit.Unit"):
+        pass
+
+    @staticmethod
+    def after_heal(unit: "Unit.Unit"):
+        pass
+
+    @staticmethod
+    def additional_heal(unit: "Unit.Unit"):
+        return 0
+    
+    @staticmethod
+    def on_death(unit: "Unit.Unit"):
+        pass
+
+    @staticmethod
+    def on_spawn(unit: "Unit.Unit"):
+        pass
+
+    

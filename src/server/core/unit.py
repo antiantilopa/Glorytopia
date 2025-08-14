@@ -120,6 +120,14 @@ class Unit(UnitData, UpdatingObject):
         for ability in other.utype.abilities:
             defense_bonus *= Ability.get(ability).defense_bonus(other)
 
+        attack_value = other.utype.attack
+        for ability in self.utype.abilities:
+            attack_value += Ability.get(ability).additional_attack(other, self) 
+
+        defense_value = other.utype.defense
+        for ability in self.utype.abilities:
+            defense_value += Ability.get(ability).additional_defense(self, other) 
+
         attack_force = self.utype.attack * (self.health / self.utype.health)
         defense_force = other.utype.defense * (other.health / other.utype.health) * defense_bonus
         total_damage = attack_force + defense_force
@@ -128,12 +136,9 @@ class Unit(UnitData, UpdatingObject):
 
         # Fucking python rounds it fucking wrong!
         # 0.5 -> 0; 1.5 -> 2; 2.5 -> 2; 3.5 -> 4
-        # Fuck you, python :)
+        # Fuck you, python :) 
         def round_to_nearest(x: float) -> int:
-            if x - floor(x) < 0.5:
-                return floor(x)
-            else:
-                return ceil(x)
+            return floor(x + 0.5)
         attack_result = round_to_nearest(attack_result)
         defense_result = round_to_nearest(defense_result)
 
