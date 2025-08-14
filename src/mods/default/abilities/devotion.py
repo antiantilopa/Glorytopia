@@ -8,5 +8,15 @@ class Devotion(Ability):
     name = "devotion"
     
     @staticmethod
-    def retaliation_bonus(unit: Unit, defense_result: int) -> int:
-        return defense_result
+    def additional_defense(unit: Unit, other: Unit) -> int:
+        print("devotion additional attack was used")
+        if World.object.get(unit.pos).owner == unit.owner:
+            return 1
+        return 0
+
+    @staticmethod
+    def additional_attack(unit: Unit, other: Unit) -> int:
+        print("devotion additional defense was used")
+        if World.object.get(other.pos).owner == unit.owner:
+            return 1
+        return 0

@@ -66,7 +66,7 @@ class Ability(GenericType[Type["Ability"]]):
         return 0
 
     @staticmethod
-    def additional_defence(unit: "Unit.Unit", other: "Unit.Unit") -> int:
+    def additional_defense(unit: "Unit.Unit", other: "Unit.Unit") -> int:
         return 0
 
     # TODO THIS SHIT IS NOT USED NOW

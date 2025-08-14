@@ -4,5 +4,5 @@
     "parent": "organization",
     "tier": 2,
     "buildings": ["farm"],
-    "units": ["legionnaire"]
+    "units": ["militia"]
 }

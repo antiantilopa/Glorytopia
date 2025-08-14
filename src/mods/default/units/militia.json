@@ -1,14 +1,14 @@
 {
-  "name": "legionnaire",
-  "health": 10,
+  "name": "militia",
+  "health": 15,
   "attack": 2,
   "defense": 2,
   "movement": 1,
   "attack_range": 1,
-  "cost": 3,
+  "cost": 2,
   "water": false,
   "abilities": [
     "dash",
-    "devotion"
+    "fortify"
   ]
 }

@@ -120,19 +120,19 @@ class Unit(UnitData, UpdatingObject):
         for ability in other.utype.abilities:
             defense_bonus *= Ability.get(ability).defense_bonus(other)
 
-        attack_value = other.utype.attack
-        for ability in self.utype.abilities:
-            attack_value += Ability.get(ability).additional_attack(other, self) 
+        defense_value = other.utype.attack
+        for ability in other.utype.abilities:
+            defense_value += Ability.get(ability).additional_defense(other, self) 
 
-        defense_value = other.utype.defense
+        attack_value = self.utype.defense
         for ability in self.utype.abilities:
-            defense_value += Ability.get(ability).additional_defense(self, other) 
+            attack_value += Ability.get(ability).additional_attack(self, other) 
 
-        attack_force = self.utype.attack * (self.health / self.utype.health)
-        defense_force = other.utype.defense * (other.health / other.utype.health) * defense_bonus
+        attack_force = attack_value * (self.health / self.utype.health)
+        defense_force = defense_value * (other.health / other.utype.health) * defense_bonus
         total_damage = attack_force + defense_force
-        attack_result = ((attack_force / total_damage) * self.utype.attack * 4.5)
-        defense_result = ((defense_force / total_damage) * other.utype.defense * 4.5)
+        attack_result = ((attack_force / total_damage) * attack_value * 4.5)
+        defense_result = ((defense_force / total_damage) * defense_value * 4.5)
 
         # Fucking python rounds it fucking wrong!
         # 0.5 -> 0; 1.5 -> 2; 2.5 -> 2; 3.5 -> 4

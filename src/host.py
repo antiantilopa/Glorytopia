@@ -115,7 +115,7 @@ host.start()
 
 def start_game():
     if preload_data is None:
-        host.the_game = Game(Vector2d(17, 17), len(host.addrs_to_names))
+        host.the_game = Game(Vector2d(10, 10), len(host.addrs_to_names))
     else:
         host.the_game = Game.from_serializable(preload_data)
     for addr in host.order:

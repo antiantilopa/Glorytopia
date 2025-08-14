@@ -31,7 +31,7 @@ class Player(UpdatingObject):
             return
         self.id = Player.ID
         Player.ID += 1
-        self.money = 8
+        self.money = 8000
         self.vision = [[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)]
         self.techs = [TechNode.get("base")]
         self.units = []  
