@@ -67,6 +67,7 @@ def abs(x):
 def binary(x):
     return "0" * ((2 - len(bin(x))) % 8) + bin(x).removeprefix("0b") 
 
+Stop = "\n" # TODO BUG THIS IS SO FUCKED...
 
 
 class Serializator:
@@ -258,36 +259,38 @@ class Serializator:
             
     @staticmethod
     def decode_with_batching(conn: socket.socket):
-        result = None
+        result = Stop
         typ = conn.recv(1)
         if len(typ) == 0:
             print("CONNECTION LOST")
             exit()
         if typ[0] == SerializationTypes.END:
-            return None
+            return Stop
         elif typ[0] in SerializationTypes.size_dict:
-            recv = conn.recv(SerializationTypes.size_dict[typ[0]])
-            return Serializator.decode_full(typ + recv)
-        else:
-            if typ[0] == SerializationTypes.STRING_BEGIN:
-                result = bytearray()
-                while True:
-                    recv = conn.recv(1)
-                    if recv[0] == SerializationTypes.END:
-                        break    
-                    result.append(recv[0])
-                return result.decode()
-            elif typ[0] == SerializationTypes.LIST_BEGIN:
-                result = []
-                while True:
-                    next_element = Serializator.decode_with_batching(conn)
-                    if next_element is None:
-                        break
-                    else:
-                        result.append(next_element)
-                return result
+            if SerializationTypes.size_dict[typ[0]] != 0:
+                recv = conn.recv(SerializationTypes.size_dict[typ[0]])
             else:
-                raise ValueError(f"Unknown serialization type {typ[0]}")
+                recv = bytes()
+            return Serializator.decode_full(typ + recv)
+        elif typ[0] == SerializationTypes.STRING_BEGIN:
+            result = bytearray()
+            while True:
+                recv = conn.recv(1)
+                if recv[0] == SerializationTypes.END:
+                    break    
+                result.append(recv[0])
+            return result.decode()
+        elif typ[0] == SerializationTypes.LIST_BEGIN:
+            result = []
+            while True:
+                next_element = Serializator.decode_with_batching(conn)
+                if next_element == Stop:
+                    break
+                else:
+                    result.append(next_element)
+            return result
+        else:
+            raise ValueError(f"Unknown serialization type {typ[0]}")
 
 def flags_to_int(*flags: tuple[bool]) -> int:
     result = 0

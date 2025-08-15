@@ -1,3 +1,4 @@
+from pygame_tools_tafh import Vector2d
 from server.core.ability import Ability
 from server.core.player import Player
 from server.core.world import World
@@ -10,12 +11,14 @@ class Infiltrate(Ability):
     name = "infiltrate"
 
     def infiltrate(unit: Unit, city: City):
-        queue = []
+        queue: list[Vector2d] = []
         if World.object.unit_mask[city.pos.y][city.pos.x] == 0:
             queue.append(city.pos)
         
         for pos in city.domain:
             if pos == city.pos:
+                continue
+            if World.object.get(pos).ttype.is_water:
                 continue
             if World.object.unit_mask[pos.y][pos.x] == 0:
                 queue.append(pos)
@@ -33,6 +36,8 @@ class Infiltrate(Ability):
         if World.object.cities_mask[unit.pos.y][unit.pos.x]:
             for city in City.cities:
                 if city.pos == unit.pos:
+                    if city.owner == -1:
+                        return
                     if city.owner != unit.owner:
                         unit.health = 0
                         World.object.unit_mask[unit.pos.y][unit.pos.x] = 0
@@ -45,10 +50,22 @@ class Infiltrate(Ability):
     def after_attack(unit, other):
         if World.object.cities_mask[other.pos.y][other.pos.x]:
             for city in City.cities:
-                if city.pos == unit.pos:
+                if city.pos == other.pos:
+                    if city.owner == -1:
+                        return
                     if city.owner != unit.owner:
                         unit.health = 0
                         Infiltrate.infiltrate(unit, city)
                         break
                     else:
                         break
+        else:
+            unit.attacked = False
+
+    @staticmethod
+    def save_moved(unit):
+        return 1
+    
+    @staticmethod
+    def retaliation_mitigate(unit, defense_result):
+        return 0

@@ -402,12 +402,10 @@ def update_tile(tiles: list[Tile]):
 def update_unit(units: list[Unit]):
     for unit in units:
         if unit.health <= 0:
-            print(" === !!!", unit.pos)
             remove_unit_game_object(unit)
     for unit in units:
         if unit.health <= 0:
             continue
-        print(unit.previous_pos, unit.pos)
         if unit.previous_pos == Vector2d(-1, -1): 
             create_unit_game_object(unit)
         else:

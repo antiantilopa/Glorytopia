@@ -168,7 +168,6 @@ class Unit(UnitData, UpdatingObject):
                 save |= Ability.get(ability).save_moved(self)
             if not save:
                 self.moved = True
-            print(self.attacked)
             for unit in Unit.units:
                 if unit.pos == pos:
                     attack, defense = self.calc_attack(unit)
@@ -280,4 +279,4 @@ class Unit(UnitData, UpdatingObject):
                 raise Exception("Imposiible unit data given")
 
     def to_serializable(self) -> SerializedUnit_:
-        return UnitData.to_serializable(self) + [None if self.attached_city.pos is None else self.attached_city.pos.as_tuple(), self.previous_pos.as_tuple()]
+        return UnitData.to_serializable(self) + [None if self.attached_city is None else self.attached_city.pos.as_tuple(), self.previous_pos.as_tuple()]

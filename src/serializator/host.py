@@ -184,6 +184,7 @@ class Host:
                 else:
                     return
             except ConnectionResetError:
+                print(f"ConnectionResetError with {addr}")
                 self.conns[addr].close()
                 self.conns.pop(addr)
                 self.respond.at_disconnect(self, addr)
