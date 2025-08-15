@@ -5,6 +5,7 @@ from server.core import *
 from server.respondings.server import Server
 from shared.asset_types import BuildingType, TechNode, TerraForm, UnitType
 from shared.error_codes import ErrorCodes
+from shared.unit import UnitData
 from engine_antiantilopa import Vector2d
 from datetime import datetime
 
@@ -41,7 +42,7 @@ def update_unit(self: Server, unit: Unit, previous_pos: Vector2d = None):
         last = ()
         prev = ()
         if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
-            last = unit.to_serializable()
+            last = UnitData.to_serializable(unit)
         if unit.previous_pos == Vector2d(-1, -1):
             prev = ()
         elif self.players[player_addr].vision[previous_pos.y][previous_pos.x]:
@@ -238,6 +239,9 @@ def eve_game_conquer_city(self: Server, addr: Address, message: tuple[tuple[int,
 
 @respond.event("BUY_TECH")
 def eve_game_buy_tech(self: Server, addr: Address, message: tuple[int]):
+    if addr != self.order[self.the_game.now_playing_player_index]:
+        self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Not your move right now.")))
+        return
     if addr not in self.order:
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"You are not playing.")))
         return

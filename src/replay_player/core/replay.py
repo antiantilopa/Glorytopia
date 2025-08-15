@@ -36,11 +36,13 @@ class Replay:
     def next_frame(self):
         self.current_frame += 1
         changes = self.frames[self.current_frame].changes
+        self.watch_as = self.frames[self.current_frame].player_id
         func_name = "Unknown"
         for name in GameEvent.event_ids:
             if GameEvent.event_ids[name] == self.frames[self.current_frame].func:
                 func_name = name
                 break
+        
         for change in changes:
             UpdatingObject.sub_clss[change.cls_id].do_serializable(change.cls_serialized)
         print(f"{self.current_frame + 1}/{len(self.frames)}")
