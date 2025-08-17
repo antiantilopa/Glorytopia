@@ -5,10 +5,11 @@
   "defense": 2,
   "movement": 1,
   "attack_range": 1,
-  "cost": 2,
+  "cost": 3,
   "water": false,
   "abilities": [
     "dash",
-    "fortify"
+    "fortify",
+    "devotion"
   ]
 }

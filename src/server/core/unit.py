@@ -120,11 +120,11 @@ class Unit(UnitData, UpdatingObject):
         for ability in other.utype.abilities:
             defense_bonus *= Ability.get(ability).defense_bonus(other)
 
-        defense_value = other.utype.attack
+        defense_value = other.utype.defense
         for ability in other.utype.abilities:
             defense_value += Ability.get(ability).additional_defense(other, self) 
 
-        attack_value = self.utype.defense
+        attack_value = self.utype.attack
         for ability in self.utype.abilities:
             attack_value += Ability.get(ability).additional_attack(self, other) 
 

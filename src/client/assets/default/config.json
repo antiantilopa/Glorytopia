@@ -60,6 +60,7 @@
             "archer": "archer.png",
             "defender": "defender.png",
             "militia": "militia.png",
+            "siege_tower": "siege_tower.png",
             "swordsman": "swordsman.png",
             "dagger": "dagger.png",
             "rider": "rider.png",
@@ -68,7 +69,8 @@
             "catapult": "catapult.png",
             "mindbender": "mindbender.png",
             "cloack": "cloak.png",
-            "giant": "giant.png"
+            "giant": "giant.png",
+            "hi": "city.png"
         },
         "city": {
             "city": "city.png",

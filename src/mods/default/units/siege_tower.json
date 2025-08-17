@@ -1,0 +1,13 @@
+{
+  "name": "siege_tower",
+  "health": 20,
+  "attack": 4,
+  "defense": 2,
+  "movement": 1,
+  "attack_range": 1,
+  "cost": 8,
+  "water": false,
+  "abilities": [
+    "siege"
+  ]
+}
