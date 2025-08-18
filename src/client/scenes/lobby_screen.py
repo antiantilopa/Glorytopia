@@ -5,6 +5,7 @@ from client.respondings.lobby import respond, UpdateCodes
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.sound import SoundComponent
 from serializator.data_format import Format
+from shared.asset_types import Nation
 from . import game_screen
 import threading
 import pygame as pg
@@ -38,6 +39,10 @@ def send_change_color(g, k, p, i):
     c = Client.object
     c.send(Format.event("LOBBY/COLOR_CHANGE", [i]))
 
+def send_change_nation(g, k, p, i):
+    c = Client.object
+    c.send(Format.event("LOBBY/NATION_CHANGE", [i]))
+
 def load(screen_size: Vector2d = Vector2d(1200, 800)):
     global scroll_num
     scene = create_game_object(tags="lobby_screen", size=screen_size)
@@ -68,17 +73,49 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
         color=ColorComponent.WHITE
     )
 
+    color_change_box = create_list_game_object(
+        parent=info_section,
+        tags="lobby_screen:info_section:color_change_box",
+        at=InGrid((6, 5), (0, 1), (6, 1)),
+        color=ColorComponent.WHITE,
+        shape=Shape.RECTBORDER,
+        surface_margin=Vector2d(2, 2),
+        width=2,
+        axis=(1, 0),
+    )
     for i in range(8):
-        color_change_button = create_game_object(info_section, "lobby_screen:info_section:change_color_button", InGrid((6, 5), (1 + i % 4, 2 + i // 4)), color=Client.colors[i][0], shape=Shape.RECT, margin=Vector2d(5, 5))
+        color_change_button = create_game_object(color_change_box, "lobby_screen:info_section:color_change_box:button", InGrid((8, 1), (i, 0), (1, 1)), color=Client.colors[i][0], shape=Shape.RECT, margin=Vector2d(5, 5))
         color_change_button.add_component(OnClickComponent([1, 0, 0], 0, 1, send_change_color, i))
         color_change_button_label = create_label(
             parent=color_change_button, 
-            tags=["lobby_screen:info_section:change_color_button:label", f"{i}"], 
+            tags=["lobby_screen:info_section:change_color_box:button:label", f"{i}"], 
             text="O", 
             font=pg.font.SysFont("consolas", screen_size.y // 12), 
             color=Client.colors[i][1]
         )
     
+    nation_change_box = create_list_game_object(
+        parent=info_section,
+        tags="lobby_screen:info_section:nation_change_box",
+        at=InGrid((6, 5), (0, 2), (6, 1)),
+        color=ColorComponent.WHITE,
+        shape=Shape.RECTBORDER,
+        surface_margin=Vector2d(2, 2),
+        width=2,
+        axis=(1, 0)
+    )
+    nations = Nation.values()
+    for i in range(len(nations)):
+        nation_change_button = create_game_object(nation_change_box, "lobby_screen:info_section:nation_change_box:button", InGrid((8, 1), (i, 0), (1, 1)), color=Client.colors[i][0], shape=Shape.RECT, margin=Vector2d(5, 5))
+        nation_change_button.add_component(OnClickComponent([1, 0, 0], 0, 1, send_change_nation, nations[i].id))
+        nation_change_button_label = create_label(
+            parent=nation_change_button, 
+            tags=["lobby_screen:info_section:change_nation_box:button:label", f"{i}"], 
+            text="O", 
+            font=pg.font.SysFont("consolas", screen_size.y // 12), 
+            color=Client.colors[i][1]
+        )
+
     scene.disable()
     return scene
 
@@ -201,7 +238,7 @@ def init():
     
     @Client.object.check_update(UpdateCodes.INIT_COLORS)
     def init_colors():
-        for label in GameObject.get_group_by_tag("lobby_screen:info_section:change_color_button:label"):
+        for label in GameObject.get_group_by_tag("lobby_screen:info_section:change_color_box:button:label"):
             label.get_component(LabelComponent).text = "X" if int(label.tags[1]) in Client.object.names_to_colors.values() else "O" 
             label.need_draw_set_true()
             label.need_blit_set_true()
@@ -253,7 +290,7 @@ def init():
             l2 = create_label(
                 parent=g, 
                 tags="lobby_screen:ready_section:name:ready_label", 
-                text="X", 
+                text="O" if self.readiness[self.names[int(g.tags[1])]] else "X", 
                 font=pg.font.SysFont("consolas", scene_size.y // 40), 
                 at=Position.RIGHT, 
                 color=self.get_main_color(self.names[int(g.tags[1])]), 
@@ -262,7 +299,7 @@ def init():
             l1.first_iteration()
             l2.first_iteration()
         
-        for label in GameObject.get_group_by_tag("lobby_screen:info_section:change_color_button:label"):
+        for label in GameObject.get_group_by_tag("lobby_screen:info_section:change_color_box:button:label"):
             label.get_component(LabelComponent).text = "X" if int(label.tags[1]) in Client.object.names_to_colors.values() else "O" 
             label.need_draw_set_true()
             label.need_blit_set_true()

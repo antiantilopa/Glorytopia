@@ -4,7 +4,7 @@ from server.core.ability import Ability
 from server.core.game import Game
 from server.globals.replay import RecordReplaySettings
 from serializator.net import *
-from server.globals.mod_versions import ModVersions, ModConfig
+from shared.globals.mod_versions import ModVersions, ModConfig
 from shared import *
 from shared.loader import load_mains
 from .frame import Frame

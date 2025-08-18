@@ -184,3 +184,16 @@ class TechNode(GenericType["TechNode"]):
                 if tech2 == tech1.parent:
                     tech2.childs.append(tech1)
                     break
+
+class Nation(GenericType["Nation"]):
+    id: int
+    name: str
+    base_tech: TechNode
+
+    ID = 0
+
+    def __init__(self, name: str = "default", base_tech: str = "base") -> None:
+        self.id = TerraForm.ID
+        TerraForm.ID += 1
+        self.name = name
+        self.base_tech = Ref(TechNode).create(base_tech)

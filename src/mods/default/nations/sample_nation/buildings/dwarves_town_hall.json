@@ -1,0 +1,7 @@
+{
+    "name": "dwarves_town_hall",
+    "ttypes": ["plain", "mountain"],
+    "adjacent_bonus": "mountain_hut",
+    "cost": 5,
+    "population": 1
+}

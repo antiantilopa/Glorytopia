@@ -41,6 +41,7 @@ def disconnect(self: "Client", message: tuple[str]):
             break
     self.readiness.pop(message[0])
     self.names.remove(message[0])
+    self.names_to_colors.pop(message[0])
     self.updated |= 2 ** UpdateCodes.DISCONNECT.value
 
 @respond.info("ORDER")
@@ -65,7 +66,6 @@ class Client(SerClient):
     def __init__(self):
         SerClient.__init__(self)
         self.respond.merge(respond)
-        self.names: list[str] = []
         self.readiness: dict[str, bool] = {}
         self.names_to_colors: dict[str, int] = {} 
         self.game_started = False

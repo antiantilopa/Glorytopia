@@ -1,0 +1,6 @@
+{
+    "name": "mountain_hut",
+    "cost": 2,
+    "ttypes": ["mountain"],
+    "population": 1
+}

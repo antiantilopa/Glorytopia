@@ -1,0 +1,15 @@
+{
+  "name": "dwarf",
+  "health": 10,
+  "attack": 2,
+  "defense": 2,
+  "movement": 1,
+  "attack_range": 1,
+  "cost": 3,
+  "water": true,
+  "abilities": [
+    "dash",
+    "fortify",
+    "high_ground"
+  ]
+}

@@ -69,8 +69,7 @@
             "catapult": "catapult.png",
             "mindbender": "mindbender.png",
             "cloack": "cloak.png",
-            "giant": "giant.png",
-            "hi": "city.png"
+            "giant": "giant.png"
         },
         "city": {
             "city": "city.png",

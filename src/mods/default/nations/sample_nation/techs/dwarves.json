@@ -1,0 +1,8 @@
+{
+    "name": "dwarves",
+    "cost": 4,
+    "tier": 1,
+    "parent": "uplanding",
+    "terraforms": ["geology_search"],
+    "units": ["dwarf"]
+}

@@ -1,0 +1,8 @@
+{
+    "name": "mountain_rush",
+    "cost": 4,
+    "tier": 2,
+    "parent": "dwarves",
+    "terraforms": ["raise_mountain"],
+    "buildings": ["dwarves_town_hall"]
+}

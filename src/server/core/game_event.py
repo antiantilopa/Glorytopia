@@ -3,7 +3,7 @@ from . import player as Player
 from shared.error_codes import ErrorCodes
 from .updating_object import UpdatingObject
 from typing import Callable
-from server.globals.mod_versions import ModVersions
+from shared.globals.mod_versions import ModVersions
 from server.globals.replay import RecordReplaySettings
 from serializator.net import Serializator
 from engine_antiantilopa import Vector2d
