@@ -6,7 +6,7 @@ from .world import World, SerializedWorld
 from .player import Player, SerializedPlayer
 from .city import City
 from .unit import Unit
-from shared.asset_types import TileType, ResourceType, UnitType
+from shared.asset_types import Nation, TileType, ResourceType, UnitType
 from engine_antiantilopa import Vector2d, Angle
 from math import pi
 from random import random, randint

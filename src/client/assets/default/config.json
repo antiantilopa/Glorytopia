@@ -77,7 +77,8 @@
             "city_forge": "city_forge.png"
         },
         "nations": {
-            "dwarfs": "dwarfs.png"
+            "dwarfs": "dwarfs.png",
+            "nazi": "nazi.png"
         }
     }
 }

@@ -116,6 +116,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
             color=(0, 255, 0),
             size=Vector2d(64, 64)
         )
+        print(nation.name)
         nation_change_button_icon.add_component(SpriteComponent(nickname=nation.name, size=Vector2d(64, 64)))
 
     scene.disable()

@@ -4,7 +4,7 @@ from serializator.net import Serializator
 from server.core import *
 from server.core.game_event import GameEvent
 from server.network import game, lobby
-from server.network.server import Server
+from server.network.server import Server, Connection
 from server.globals.backup import BackupSettings
 import socket, time, random, os
 from engine_antiantilopa import Vector2d
@@ -76,7 +76,7 @@ host.respond.merge(game.respond)
 
 @host.respond.connection()
 def at_connect(self: Server, conn: socket.socket, addr: Address) -> bool:
-    if len(self.addrs_to_names) == self.player_number:
+    if len(Connection.conns) == self.player_number:
         self.send_to_conn(conn, Format.error("CONNECTION", ["this server is already full."]))
         conn.close()
         return False
@@ -86,49 +86,53 @@ def at_connect(self: Server, conn: socket.socket, addr: Address) -> bool:
 @host.respond.disconnection()
 def at_disconnect(self: Server, addr: Address):
     print(f"Connection with {addr} has lost.")
-    if addr in self.addrs_to_names:
+    if addr in [conn.addr for conn in Connection.conns]:
         if not self.game_started:
             for i in self.conns:
-                self.send_to_addr(i, Format.event("DISCONNECT", [self.addrs_to_names[addr]]))
-            self.names_to_colors.pop(self.addrs_to_names[addr], None)
-            self.names_to_addrs.pop(self.addrs_to_names[addr], None)
-            self.addrs_to_names.pop(addr)
-            self.readiness.pop(addr)
-            self.order.remove(addr)
-            for i in self.readiness:
-                self.readiness[i] = False
+                self.send_to_addr(i, Format.event("DISCONNECT", [Connection.get_by_addr(addr).name]))
+            removed_idx = Connection.get_by_addr(addr).idx
+            Connection.conns.remove(Connection.get_by_addr(addr))
+            Connection.IDX -= 1
+            for conn in Connection.conns:
+                if conn.idx > removed_idx:
+                    conn.idx -= 1
+                conn.ready = False
         else:
             for i in self.conns:
-                self.send_to_addr(i, Format.event("GAME/DISCONNECT", [self.addrs_to_names[addr]]))
-            print(f"{self.addrs_to_names[addr]} has disconnected from the game.")
+                self.send_to_addr(i, Format.event("GAME/DISCONNECT", [Connection.get_by_addr(addr).name]))
+            print(f"{Connection.get_by_addr(addr).name} has disconnected from the game.")
             recovery_code = random.randint(100000, 999999)
-            self.recovery_codes[self.addrs_to_names[addr]] = recovery_code
+            Connection.get_by_addr(addr).recovery_code = recovery_code
             print(f"recovery code: {recovery_code}")
             print("awaiting for player to reconnect...")
     
 @host.respond.request("ORDER")
 def req_order(self: Server, addr: Address, _: tuple):
-    self.send_to_addr(addr, Format.info("ORDER", [self.addrs_to_names[addr1] for addr1 in self.order]))
+    self.send_to_addr(addr, Format.info("ORDER", [conn.name for conn in Connection.conns]))
 
 host.init_server(6)
 host.start()
 
 def start_game():
     if preload_data is None:
-        host.the_game = Game(Vector2d(17, 17), len(host.addrs_to_names))
+        host.the_game = Game(Vector2d(17, 17), len(Connection.conns))
+        for conn in Connection.conns:
+            conn.player = host.the_game.players[conn.idx]
+            conn.player.set_nation(Nation.by_id(conn.nation))
+            host.send_to_addr(conn.addr, Format.event("GAME/GAME_START", [0, conn.idx]))
     else:
         host.the_game = Game.from_serializable(preload_data)
-    for addr in host.order:
-        host.players[addr] = host.the_game.players[host.order.index(addr)]
-        host.send_to_addr(addr, Format.event("GAME/GAME_START", [0, host.order.index(addr)]))
+        for conn in Connection.conns:
+            conn.player = host.the_game.players[conn.idx]
+            host.send_to_addr(conn.addr, Format.event("GAME/GAME_START", [0, conn.idx]))
 
 try:
     while True:
         if not host.game_started:
             if host.game_starting:
-                for addr in host.addrs_to_names:
-                    host.send_to_addr(addr, Format.event("LOBBY/GAME_START", [timer]))
-                    host.send_to_addr(addr, Format.event("LOBBY/MESSAGE", ("GAME STARTS IN", f"{timer}...")))
+                for conn in Connection.conns:
+                    host.send_to_addr(conn.addr, Format.event("LOBBY/GAME_START", [timer]))
+                    host.send_to_addr(conn.addr, Format.event("LOBBY/MESSAGE", ("GAME STARTS IN", f"{timer}...")))
                 timer -= 1
                 time.sleep(1)
                 if timer == 0:

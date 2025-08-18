@@ -322,10 +322,11 @@ def create_tech_tree_node(tech_win: GameObject, tech: TechNode, number: int, dep
 def create_tech_tree():
     tech_win = GameObject.get_game_object_by_tags("game_screen:techs_window")
 
-    roots = []
+    roots: list[TechNode] = []
     for tech in TechNode.values():
         if tech.parent is None:
             roots.append(tech)
 
+    width = 0
     for i in range(len(roots)):
-        create_tech_tree_node(tech_win, roots[i], i, 0)
+        width += create_tech_tree_node(tech_win, roots[i], width, 0)

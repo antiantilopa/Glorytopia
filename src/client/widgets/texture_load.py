@@ -47,7 +47,7 @@ def load_textures(texture_packs: list[str] = ["default"]):
                 print(f"error occured while reading {texture_pack}")
                 print(e)
                     
-    for name, types in {"tiles": TileType.values(), "resources": ResourceType.values(), "techs": TechNode.values(), "buildings": BuildingType.values(), "units": UnitType.values()}.items():
+    for name, types in {"tiles": TileType.values(), "resources": ResourceType.values(), "techs": TechNode.values(), "buildings": BuildingType.values(), "units": UnitType.values(), "nations": Nation.values()}.items():
         for type in types:
             if f":{type.name}" not in SpriteComponent.downloaded:
                 print(f"Texture for {name[:-1]} {type.name} not found in any texture pack!")
@@ -62,6 +62,8 @@ def load_textures(texture_packs: list[str] = ["default"]):
                         SpriteComponent(path + "default" + "/textures" + "/default_building.png", Vector2d(100, 100), nickname=type.name)
                     elif name == "resources":
                         SpriteComponent(path + "default" + "/textures" + "/default_resource.png", Vector2d(100, 100), nickname=type.name)
+                    else:
+                        SpriteComponent(path + "default" + "/textures" + "/default.png", Vector2d(100, 100), nickname=type.name)
                 except FileNotFoundError:
                     SpriteComponent(path + "default" + "/textures" + "/default.png", Vector2d(100, 100), nickname=type.name)
                 

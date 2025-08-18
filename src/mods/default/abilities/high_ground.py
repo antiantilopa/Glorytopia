@@ -21,3 +21,9 @@ class HighGround(Ability):
         elif World.object.get(unit.pos).ttype == TileType.get("mountain"):
             return 1
         return 0
+
+    @staticmethod
+    def on_terrain_movement(unit, tile, movement):
+        if tile.ttype == TileType.get("mountain"):
+            return movement - 1
+        return 0

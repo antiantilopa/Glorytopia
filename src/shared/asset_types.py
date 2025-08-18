@@ -193,7 +193,7 @@ class Nation(GenericType["Nation"]):
     ID = 0
 
     def __init__(self, name: str = "default", base_tech: str = "base") -> None:
-        self.id = TerraForm.ID
-        TerraForm.ID += 1
+        self.id = Nation.ID
+        Nation.ID += 1
         self.name = name
         self.base_tech = Ref(TechNode).create(base_tech)

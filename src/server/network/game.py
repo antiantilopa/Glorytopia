@@ -2,7 +2,7 @@ from serializator.host import Address, Respond
 from serializator.data_format import Format
 from serializator.net import flags_to_int
 from server.core import *
-from server.network.server import Server
+from server.network.server import Server, Connection
 from shared.asset_types import BuildingType, TechNode, TerraForm, UnitType
 from shared.error_codes import ErrorCodes
 from shared.unit import UnitData
@@ -22,56 +22,58 @@ def get_now_playing_player_index(self: Server, addr: Address, message: tuple):
 
 @respond.request("WORLD")
 def req_game_world(self: Server, addr: Address, message: list[tuple[int, int]]):
+    conn = Connection.get_by_addr(addr)
     if len(message) != 0:
         result = []
         for pos in message:
-            if self.players[addr].vision[pos[1]][pos[0]]:
+            if conn.player.vision[pos[1]][pos[0]]:
                 result.append(self.the_game.world.get(Vector2d(pos[0], pos[1])).to_serializable())
     else:
         result = []
         for i in range(self.the_game.world.size.x):
             for j in range(self.the_game.world.size.y):
-                if self.players[addr].vision[j][i]:
+                if conn.player.vision[j][i]:
                     result.append(self.the_game.world[j][i].to_serializable())
     self.send_to_addr(addr, Format.info("GAME/WORLD", result))
 
 def update_unit(self: Server, unit: Unit, previous_pos: Vector2d = None):
     if previous_pos is None:
         previous_pos = unit.previous_pos
-    for player_addr in self.players:
+    for conn in Connection.conns:
         last = ()
         prev = ()
-        if self.players[player_addr].vision[unit.pos.y][unit.pos.x]:
+        if conn.player.vision[unit.pos.y][unit.pos.x]:
             last = UnitData.to_serializable(unit)
         if unit.previous_pos == Vector2d(-1, -1):
             prev = ()
-        elif self.players[player_addr].vision[previous_pos.y][previous_pos.x]:
+        elif conn.player.vision[previous_pos.y][previous_pos.x]:
             prev = previous_pos.as_tuple()
         if len(last) + len(prev) == 0:
             continue
-        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/UNIT", [prev, last]))
+        self.send_to_addr(conn.addr, Format.event("GAME/UPDATE/UNIT", [prev, last]))
     unit.refresh_updated()
 
 def update_city(self: Server, city: City):
-    for player_addr in self.players:
-        if city is not None and self.players[player_addr].vision[city.pos.y][city.pos.x]:
-            self.send_to_addr(player_addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
+    for conn in Connection.conns:
+        if city is not None and conn.player.vision[city.pos.y][city.pos.x]:
+            self.send_to_addr(conn.addr, Format.event("GAME/UPDATE/CITY", [city.to_serializable()]))
     city.refresh_updated()
 
 def update_tile(self: Server, tile: Tile):
-    for player_addr in self.players:
-        if tile is not None and self.players[player_addr].vision[tile.pos.y][tile.pos.x]:
-            self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TILE", [tile.to_serializable()]))
+    for conn in Connection.conns:
+        if tile is not None and conn.player.vision[tile.pos.y][tile.pos.x]:
+            self.send_to_addr(conn.addr, Format.event("GAME/UPDATE/TILE", [tile.to_serializable()]))
     tile.refresh_updated()
 
 def update_player(self: Server, player_addr: Address):
-    if self.players[player_addr].updated:
-        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TECH", [tech.id for tech in self.players[player_addr].techs]))
-        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/MONEY", [self.players[player_addr].money]))
-    vision_changes = self.players[player_addr].update_vision()
+    conn = Connection.get_by_addr(player_addr)
+    if conn.player.updated:
+        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/TECH", [tech.id for tech in conn.player.techs]))
+        self.send_to_addr(player_addr, Format.event("GAME/UPDATE/MONEY", [conn.player.money]))
+    vision_changes = conn.player.update_vision()
     if len(vision_changes) != 0:
         update_vision(self, player_addr, vision_changes)
-    self.players[player_addr].refresh_updated()
+    conn.player.refresh_updated()
 
 def update_updating_objects(self: Server):
     for unit in Unit.units:
@@ -89,8 +91,8 @@ def update_updating_objects(self: Server):
         if city.updated:
             update_city(self, city)
 
-    for addr in self.players:
-        update_player(self, addr)
+    for conn in Connection.conns:
+        update_player(self, conn.addr)
     
     self.the_game.remove_dead_units()
     
@@ -99,13 +101,13 @@ def req_game_units(self: Server, addr: Address, message: list[tuple[int, int]]):
     if len(message) != 0:
         result = []
         for unit in Unit.units:
-            if self.players[addr].vision[unit.pos.y][unit.pos.x]:
+            if Connection.get_by_addr(addr).player.vision[unit.pos.y][unit.pos.x]:
                 if (unit.pos.x, unit.pos.y in message):
                     result.append(unit.to_serializable())
     else:
         result = []
         for unit in Unit.units:
-            if self.players[addr].vision[unit.pos.y][unit.pos.x]:
+            if Connection.get_by_addr(addr).player.vision[unit.pos.y][unit.pos.x]:
                 result.append(unit.to_serializable())
     self.send_to_addr(addr, Format.info("GAME/UNITS", result))
 
@@ -114,7 +116,7 @@ def req_game_cities(self: Server, addr: Address, message: list[tuple[int, int]])
     if len(message) != 0:
         result = []
         for city in City.cities:
-            if self.players[addr].vision[city.pos.y][city.pos.x]:
+            if Connection.get_by_addr(addr).player.vision[city.pos.y][city.pos.x]:
                 for pos in message:
                     if city.pos.x == pos[0] and city.pos.y == pos[1]:
                         result.append(city.to_serializable())
@@ -122,35 +124,35 @@ def req_game_cities(self: Server, addr: Address, message: list[tuple[int, int]])
     else:
         result = []
         for city in City.cities:
-            if self.players[addr].vision[city.pos.y][city.pos.x]:
+            if Connection.get_by_addr(addr).player.vision[city.pos.y][city.pos.x]:
                 result.append(city.to_serializable())
     self.send_to_addr(addr, Format.info("GAME/CITIES", result))
 
 @respond.request("MY_TECHS")
 def req_game_me_techs(self: Server, addr: Address, message: tuple):
-    result = [tech.id for tech in self.players[addr].techs]
+    result = [tech.id for tech in Connection.get_by_addr(addr).player.techs]
     self.send_to_addr(addr, Format.info("GAME/MY_TECHS", result))
 
 @respond.request("MY_CITIES")
 def req_game_me_cities(self: Server, addr: Address, message: tuple):
-    result = [city.to_serializable() for city in self.players[addr].cities]
+    result = [city.to_serializable() for city in Connection.get_by_addr(addr).player.cities]
     self.send_to_addr(addr, Format.info("GAME/MY_CITIES", result))
 
 @respond.request("MY_UNITS")
 def req_game_me_units(self: Server, addr: Address, message: tuple):
-    result = [unit.to_serializable() for unit in self.players[addr].units]
+    result = [unit.to_serializable() for unit in Connection.get_by_addr(addr).player.units]
     self.send_to_addr(addr, Format.info("GAME/MY_UNITS", result))
 
 @respond.request("MY_VISION")
 def req_game_me_vision(self: Server, addr: Address, message: tuple[None]):
     result = []
-    for row in self.players[addr].vision:
+    for row in Connection.get_by_addr(addr).player.vision:
         result.append(flags_to_int(*row))
     self.send_to_addr(addr, Format.info("GAME/MY_VISION", result))
 
 @respond.request("MY_MONEY")
 def req_game_me_cities(self: Server, addr: Address, message: tuple):
-    result = [self.players[addr].money]
+    result = [Connection.get_by_addr(addr).player.money]
     self.send_to_addr(addr, Format.info("GAME/MY_MONEY", result))
 
 def update_vision(self: Server, addr: Address, changed_poss: list[Vector2d]):
@@ -176,7 +178,7 @@ def update_vision(self: Server, addr: Address, changed_poss: list[Vector2d]):
 
 @respond.event("MOVE_UNIT")
 def eve_game_mov_unit(self: Server, addr: Address, message: tuple[tuple[int, int], tuple[int, int]]):
-    if addr != self.order[self.the_game.now_playing_player_index]:
+    if Connection.get_by_addr(addr).idx + 1 == self.the_game.now_playing_player_index:
         self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"Not your move right now.")))
         return
     if World.object.unit_mask[message[0][1]][message[0][0]] == 0:
@@ -191,7 +193,7 @@ def eve_game_mov_unit(self: Server, addr: Address, message: tuple[tuple[int, int
             moving_unit = unit
             break
 
-    result = self.players[addr].move_unit(moving_unit, Vector2d.from_tuple(pos2))
+    result = Connection.get_by_addr(addr).player.move_unit(moving_unit, Vector2d.from_tuple(pos2))
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/MOVE_UNIT", (f"Cannot move unit: {result.name}")))
         return
@@ -200,10 +202,11 @@ def eve_game_mov_unit(self: Server, addr: Address, message: tuple[tuple[int, int
         
 @respond.event("CREATE_UNIT")
 def eve_game_create_unit(self: Server, addr: Address, message: tuple[tuple[int, int], int]):
-    if addr != self.order[self.the_game.now_playing_player_index]:
+    if Connection.get_by_addr(addr).idx + 1 == self.the_game.now_playing_player_index:
         self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Not your move right now.")))
         return
-    result = self.players[addr].create_unit(Vector2d.from_tuple(message[0]), UnitType.by_id(message[1]))
+    conn = Connection.get_by_addr(addr)
+    result = conn.player.create_unit(Vector2d.from_tuple(message[0]), UnitType.by_id(message[1]))
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/CREATE_UNIT", (f"Cannot create unit: {result.name}")))
         return
@@ -212,7 +215,7 @@ def eve_game_create_unit(self: Server, addr: Address, message: tuple[tuple[int, 
 
 @respond.event("CONQUER_CITY")
 def eve_game_conquer_city(self: Server, addr: Address, message: tuple[tuple[int, int]]):
-    if addr != self.order[self.the_game.now_playing_player_index]:
+    if Connection.get_by_addr(addr).idx + 1 == self.the_game.now_playing_player_index:
         self.send_to_addr(addr, Format.error("GAME/CONQUER_CITY", (f"Not your move right now.")))
         return
     unit = None
@@ -228,8 +231,8 @@ def eve_game_conquer_city(self: Server, addr: Address, message: tuple[tuple[int,
         return ErrorCodes.ERR_NOT_YOUR_UNIT
     if city is None:
         return ErrorCodes.ERR_NOT_A_CITY
-    
-    result = self.players[addr].conquer_city(Vector2d.from_tuple(message[0]))
+    conn = Connection.get_by_addr(addr)
+    result = conn.player.conquer_city(Vector2d.from_tuple(message[0]))
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/CONQUER_CITY", (f"Cannot conquer city: {result.name}")))
         return
@@ -239,17 +242,15 @@ def eve_game_conquer_city(self: Server, addr: Address, message: tuple[tuple[int,
 
 @respond.event("BUY_TECH")
 def eve_game_buy_tech(self: Server, addr: Address, message: tuple[int]):
-    if addr != self.order[self.the_game.now_playing_player_index]:
+    if Connection.get_by_addr(addr).idx + 1 == self.the_game.now_playing_player_index:
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Not your move right now.")))
-        return
-    if addr not in self.order:
-        self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"You are not playing.")))
         return
     if message[0] < 0 or message[0] >= len(TechNode.values()):
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH.name}")))
         return 
+    conn = Connection.get_by_addr(addr)
     tech = TechNode.by_id(message[0])
-    result = self.players[addr].buy_tech(tech)
+    result = conn.player.buy_tech(tech)
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/BUY_TECH", (f"Cannot buy tech: {result.name}")))
         return
@@ -258,11 +259,12 @@ def eve_game_buy_tech(self: Server, addr: Address, message: tuple[int]):
 
 @respond.event("HARVEST")
 def eve_game_harvest(self: Server, addr: Address, message: tuple[tuple[int, int]]):
-    if addr != self.order[self.the_game.now_playing_player_index]:
+    if Connection.get_by_addr(addr).idx + 1 == self.the_game.now_playing_player_index:
         self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Not your move right now.")))
         return
+    conn = Connection.get_by_addr(addr)
     pos = Vector2d.from_tuple(message[0])
-    result = self.players[addr].harvest(pos)
+    result = conn.player.harvest(pos)
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/HARVEST", (f"Cannot harvest: {result.name}")))
         return
@@ -271,11 +273,12 @@ def eve_game_harvest(self: Server, addr: Address, message: tuple[tuple[int, int]
 
 @respond.event("BUILD")
 def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], int]):
-    if addr != self.order[self.the_game.now_playing_player_index]:
+    if Connection.get_by_addr(addr).idx + 1 == self.the_game.now_playing_player_index:
         self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Not your move right now.")))
         return
+    conn = Connection.get_by_addr(addr)
     pos = Vector2d.from_tuple(message[0])
-    result = self.players[addr].build(pos, BuildingType.by_id(message[1]))
+    result = conn.player.build(pos, BuildingType.by_id(message[1]))
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/BUILD", (f"Cannot build: {result.name}")))
         return
@@ -284,12 +287,13 @@ def eve_game_build(self: Server, addr: Address, message: tuple[tuple[int, int], 
 
 @respond.event("TERRAFORM")
 def eve_game_terraform(self: Server, addr: Address, message: tuple[tuple[int, int], int]):
-    if addr != self.order[self.the_game.now_playing_player_index]:
+    if Connection.get_by_addr(addr).idx + 1 == self.the_game.now_playing_player_index:
         self.send_to_addr(addr, Format.error("GAME/TERRAFORM", (f"Not your move right now.")))
         return
+    conn = Connection.get_by_addr(addr)
     pos = Vector2d.from_tuple(message[0])
     terraform = TerraForm.by_id(message[1])
-    result = self.players[addr].terraform(pos, terraform)
+    result = conn.player.terraform(pos, terraform)
     if result != ErrorCodes.SUCCESS:
         self.send_to_addr(addr, Format.error("GAME/TERRAFORM", (f"Cannot terraform: {result.name}")))
         return
@@ -298,27 +302,27 @@ def eve_game_terraform(self: Server, addr: Address, message: tuple[tuple[int, in
 
 @respond.event("END_TURN")
 def game_end_turn(self: Server, addr: Address, message: tuple):
-    if addr != self.order[self.the_game.now_playing_player_index]:
+    if Connection.get_by_addr(addr).idx + 1 == self.the_game.now_playing_player_index:
         self.send_to_addr(addr, Format.error("GAME/END_TURN", (f"Not your move right now.")))
         return
 
     dead = []
-    for addr in self.players:
-        if self.players[addr].is_dead:
-            dead.append(addr)
+    for conn in Connection.conns:
+        if conn.player.is_dead:
+            dead.append(conn)
 
     self.the_game.next_player_turn()
 
-    for addr in self.players:
-        if self.players[addr].is_dead:
-            if addr in dead:
+    for conn in Connection.conns:
+        if conn.player.is_dead:
+            if conn in dead:
                 continue
             else:
                 for addr1 in self.conns:
-                    self.send_to_addr(addr1, Format.event("GAME/GAME_OVER", [self.addrs_to_names[addr]]))
-                req_game_world(self, self.order.index(addr), [])
-                req_game_cities(self, self.order.index(addr), [])
-                req_game_units(self, self.order.index(addr), [])
+                    self.send_to_addr(addr1, Format.event("GAME/GAME_OVER", [conn.name]))
+                req_game_world(self, conn.idx, [])
+                req_game_cities(self, conn.idx, [])
+                req_game_units(self, conn.idx, [])
 
     for addr1 in self.conns:
         self.send_to_addr(addr1, Format.event("GAME/END_TURN", [self.the_game.now_playing_player_index]))

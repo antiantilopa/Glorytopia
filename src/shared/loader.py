@@ -18,7 +18,8 @@ def load_nation(path: Path) -> Nation:
     terraforms = path / "terraforms"
     techs = path / "techs"
 
-    config = from_file(Nation, path / "config.json")
+    nation = from_file(Nation, path / "config.json")
+    Nation.add(nation)
 
     if tiles.exists():
         for tile_json in tiles.iterdir():
@@ -50,7 +51,7 @@ def load_nation(path: Path) -> Nation:
             tech = from_file(TechNode, str(tech_json))
             TechNode.add(tech)
 
-    return config
+    return nation
         
 
 def load_mod(path: Path):

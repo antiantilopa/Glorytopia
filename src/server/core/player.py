@@ -3,7 +3,7 @@ from .world import World
 from .game_event import GameEvent
 from . import unit as Unit
 from . import city as City
-from shared.asset_types import UnitType, BuildingType, BuildingType, TechNode, TerraForm
+from shared.asset_types import Nation, UnitType, BuildingType, BuildingType, TechNode, TerraForm
 from shared.error_codes import ErrorCodes
 from engine_antiantilopa import Vector2d, VectorRange
 from serializator.net import flags_to_int, int_to_flags
@@ -19,12 +19,13 @@ class Player(UpdatingObject):
     techs: list[TechNode]
     units: list["Unit.Unit"]
     cities: list["City.City"]
+    nation: Nation
     is_dead: bool
 
     ID = 0
     players: list["Player"] = []
 
-    def __init__(self, new_player: bool = True):
+    def __init__(self, new_player: bool = True, nation: Nation = None):
         UpdatingObject.__init__(self)
         self.black_list.extend(("units", "cities", "is_dead"))
         if not new_player:
@@ -33,12 +34,19 @@ class Player(UpdatingObject):
         Player.ID += 1
         self.money = 8
         self.vision = [[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)]
+        self.set_nation(nation)
         self.techs = [TechNode.get("base")]
         self.units = []  
         self.cities = []
         self.is_dead = False
         Player.players.append(self)
     
+    def set_nation(self, nation: Nation):
+        self.nation = nation
+        if nation is None:
+            return
+        self.techs.append(nation.base_tech)
+
     def destroy(self):
         Player.players.remove(self)
         self.units = []
