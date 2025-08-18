@@ -1,7 +1,7 @@
 from engine_antiantilopa import *
-from client.respondings.client import Client
+from client.network.client import Client
 from client.globals.settings import Settings
-from client.respondings.lobby import respond, UpdateCodes
+from client.network.lobby import respond, UpdateCodes
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.sound import SoundComponent
 from serializator.data_format import Format
@@ -45,6 +45,7 @@ def send_change_nation(g, k, p, i):
 
 def load(screen_size: Vector2d = Vector2d(1200, 800)):
     global scroll_num
+
     scene = create_game_object(tags="lobby_screen", size=screen_size)
     scene_size = screen_size
     
@@ -83,15 +84,16 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
         width=2,
         axis=(1, 0),
     )
-    for i in range(8):
-        color_change_button = create_game_object(color_change_box, "lobby_screen:info_section:color_change_box:button", InGrid((8, 1), (i, 0), (1, 1)), color=Client.colors[i][0], shape=Shape.RECT, margin=Vector2d(5, 5))
+
+    for i, color in enumerate(Client.colors):
+        color_change_button = create_game_object(color_change_box, "lobby_screen:info_section:color_change_box:button", InGrid((8, 1), (i, 0), (1, 1)), color=color[0], shape=Shape.RECT, margin=Vector2d(5, 5))
         color_change_button.add_component(OnClickComponent([1, 0, 0], 0, 1, send_change_color, i))
         color_change_button_label = create_label(
             parent=color_change_button, 
             tags=["lobby_screen:info_section:change_color_box:button:label", f"{i}"], 
             text="O", 
             font=pg.font.SysFont("consolas", screen_size.y // 12), 
-            color=Client.colors[i][1]
+            color=color[1]
         )
     
     nation_change_box = create_list_game_object(
@@ -104,17 +106,17 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
         width=2,
         axis=(1, 0)
     )
-    nations = Nation.values()
-    for i in range(len(nations)):
-        nation_change_button = create_game_object(nation_change_box, "lobby_screen:info_section:nation_change_box:button", InGrid((8, 1), (i, 0), (1, 1)), color=Client.colors[i][0], shape=Shape.RECT, margin=Vector2d(5, 5))
-        nation_change_button.add_component(OnClickComponent([1, 0, 0], 0, 1, send_change_nation, nations[i].id))
-        nation_change_button_label = create_label(
+    
+    for i, nation in enumerate(Nation.values()):
+        nation_change_button = create_game_object(nation_change_box, "lobby_screen:info_section:nation_change_box:button", InGrid((8, 1), (i, 0), (1, 1)), color=(255, 255, 255), shape=Shape.RECT, margin=Vector2d(5, 5))
+        nation_change_button.add_component(OnClickComponent([1, 0, 0], 0, 1, send_change_nation, nation.id))
+        nation_change_button_icon = create_game_object(
             parent=nation_change_button, 
-            tags=["lobby_screen:info_section:change_nation_box:button:label", f"{i}"], 
-            text="O", 
-            font=pg.font.SysFont("consolas", screen_size.y // 12), 
-            color=Client.colors[i][1]
+            tags=["lobby_screen:info_section:change_nation_box:button:icon", f"{i}"], 
+            color=(0, 255, 0),
+            size=Vector2d(64, 64)
         )
+        nation_change_button_icon.add_component(SpriteComponent(nickname=nation.name, size=Vector2d(64, 64)))
 
     scene.disable()
     return scene

@@ -100,11 +100,10 @@ def ready(self: Server, addr: Address, player_readiness: tuple[int]):
 def color_change(self: Server, addr: Address, message: tuple[int]):
     if self.game_started:
         self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["this game has already started."]))
-        return
     if addr not in self.addrs_to_names:
         self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["you did not joined the lobby."]))
         return
-    if message[0] in self.names_to_colors.values():
+    if message[0] in self.names_to_colors.values() and not self.addrs_to_names[addr].isdigit():
         self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["this color is already taken."]))
         return
     if message[0] < 0:

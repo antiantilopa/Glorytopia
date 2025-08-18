@@ -1,6 +1,5 @@
 import json, os, datetime
-
-from anyio import Path
+from pathlib import Path
 
 class ChosenVar:
     variants: list

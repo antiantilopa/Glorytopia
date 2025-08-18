@@ -75,6 +75,9 @@
             "city": "city.png",
             "city_walls": "city_walls.png",
             "city_forge": "city_forge.png"
+        },
+        "nations": {
+            "dwarfs": "dwarfs.png"
         }
     }
 }

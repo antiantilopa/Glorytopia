@@ -16,7 +16,7 @@ def load_textures(texture_packs: list[str] = ["default"]):
             textures_json = (json.load(f))
             
 
-        for name, types in {"tiles": TileType.values(), "resources": ResourceType.values(), "techs": TechNode.values(), "buildings": BuildingType.values(), "units": UnitType.values()}.items():
+        for name, types in {"tiles": TileType.values(), "resources": ResourceType.values(), "techs": TechNode.values(), "buildings": BuildingType.values(), "units": UnitType.values(), "nations": Nation.values()}.items():
             for type in types:
                 try:
                     if f":{type.name}" in SpriteComponent.downloaded:

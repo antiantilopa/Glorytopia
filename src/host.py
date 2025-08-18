@@ -3,8 +3,8 @@ from serializator.data_format import Format
 from serializator.net import Serializator
 from server.core import *
 from server.core.game_event import GameEvent
-from server.respondings import lobby, game
-from server.respondings.server import Server
+from server.network import game, lobby
+from server.network.server import Server
 from server.globals.backup import BackupSettings
 import socket, time, random, os
 from engine_antiantilopa import Vector2d

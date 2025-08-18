@@ -2,7 +2,7 @@ from serializator.host import Address, Respond
 from serializator.data_format import Format
 from serializator.net import flags_to_int
 from server.core import *
-from server.respondings.server import Server
+from server.network.server import Server
 from shared.asset_types import BuildingType, TechNode, TerraForm, UnitType
 from shared.error_codes import ErrorCodes
 from shared.unit import UnitData

@@ -1,6 +1,6 @@
 from engine_antiantilopa import *
 from shared import *
-from client.respondings.client import Client
+from client.network.client import Client
 from .fastgameobjectcreator import *
 from .select import SelectComponent
 from .sound import SoundComponent

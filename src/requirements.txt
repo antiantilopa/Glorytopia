@@ -1,2 +1,3 @@
 pygame
-primitive-engine-antiantilopa==0.1.3
+numpy
+primitive-engine-antiantilopa

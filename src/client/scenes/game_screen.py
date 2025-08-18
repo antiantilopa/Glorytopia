@@ -1,22 +1,19 @@
 from engine_antiantilopa import *
-from client.respondings.client import Client
+from client.network.client import Client
 from client.globals.settings import Settings
-from client.respondings.lobby import respond, UpdateCodes
+from client.network.lobby import respond, UpdateCodes
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.game_objects_for_game_elements import *
-from client.widgets.texture_load import load_textures
 from client.widgets.select import SelectComponent
 from client.widgets.sound import SoundComponent
 from serializator.data_format import Format
 from shared import *
 import pygame as pg
-from copy import deepcopy
 
 block_size = Vector2d(100, 100)
 
 def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
     global block_size
-    load_textures(Settings.texture_packs.order)
 
     scene = create_game_object(tags="game_screen", size=screen_size)
 
@@ -119,10 +116,8 @@ def reset_ui(*_):
             i += 1
 
     for unit_data in Client.object.units:
-        if unit_data.health > 0:
-            create_unit_game_object(unit_data)
-        else:
-            print("WTF! Unit with health <= 0 found in Client.object.units. It should not be there.")
+        assert unit_data.health > 0, "WTF! Unit with health <= 0 found in Client.object.units. It should not be there."
+        create_unit_game_object(unit_data)
 
 def selecting(coords: Vector2d):
     self = Client.object
