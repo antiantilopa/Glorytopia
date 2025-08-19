@@ -1,11 +1,9 @@
-from typing import Type
 from shared.generic_types import GenericType
 from .tile import Tile
 from . import unit as Unit
 
-class Ability(GenericType[Type["Ability"]]):
-    index: int
-    
+class Ability(GenericType["Ability"]):
+
     def __init_subclass__(cls):
         Ability.add(cls)
 
@@ -23,6 +21,10 @@ class Ability(GenericType[Type["Ability"]]):
 
     @staticmethod
     def defense_bonus(unit: "Unit.Unit") -> float:
+        return 1
+
+    @staticmethod
+    def attack_bonus(unit: "Unit.Unit") -> float:
         return 1
 
     @staticmethod
@@ -69,11 +71,6 @@ class Ability(GenericType[Type["Ability"]]):
     def additional_defense(unit: "Unit.Unit", other: "Unit.Unit") -> int:
         return 0
 
-    # TODO THIS SHIT IS NOT USED NOW
-    @staticmethod
-    def on_end_turn(unit: "Unit.Unit"):
-        pass
-
     @staticmethod
     def on_start_turn(unit: "Unit.Unit"):
         pass
@@ -94,4 +91,7 @@ class Ability(GenericType[Type["Ability"]]):
     def on_spawn(unit: "Unit.Unit"):
         pass
 
+    @staticmethod
+    def on_end_turn(unit: "Unit.Unit"):
+        pass
     

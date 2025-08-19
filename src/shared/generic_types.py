@@ -4,6 +4,8 @@ T = TypeVar("T")
 
 class GenericType[T]:
     types: dict[str, T] = {}
+    name: str
+    id: int
 
     def __init_subclass__(cls):
         types = {}

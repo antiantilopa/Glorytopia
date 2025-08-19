@@ -29,7 +29,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)) -> GameObject:
 
     scene = create_game_object(tags="game_screen", size=screen_size)
 
-    block_size = screen_size // Vector2d(12, 8)
+    block_size = screen_size // Vector2d(12, 8) // 2
     init_block_size_for_game_elements_creator(block_size)
 
     def deleteme(*_):

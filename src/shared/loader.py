@@ -99,6 +99,8 @@ def load_mains():
         try:
             for ability_path in (path / "abilities").iterdir():
                 __import__(str(ability_path).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
+            for effect_path in (path / "effects").iterdir():
+                __import__(str(effect_path).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
             __import__(str(path / "main").replace("\\", "."), fromlist=str(path).split("\\")).load_mod()
         except Exception as e:
             print(f"Error loading mod {path.name}: {e}")

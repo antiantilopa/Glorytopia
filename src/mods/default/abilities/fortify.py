@@ -3,6 +3,7 @@ from server.core.world import World
 from server.core.city import City
 from server.core.unit import Unit
 from server.core.tile import Tile
+from shared.effect import Effect
 
 class Fortify(Ability):
     name = "fortify"

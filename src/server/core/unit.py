@@ -1,5 +1,5 @@
 from shared.asset_types import UnitType, TileType
-from shared.unit import SerializedUnit, UnitData
+from shared.unit import SerializedUnit, UnitData, SerializedEffect
 from engine_antiantilopa import Vector2d
 from .world import World
 from math import floor, ceil
@@ -9,7 +9,7 @@ from . import player as Player
 from .ability import Ability
 from .updating_object import UpdatingObject
 
-SerializedUnit_ = tuple[int, int, tuple[int, int], int, int, tuple[int, int]|None, tuple[int, int]]
+SerializedUnit_ = tuple[int, int, tuple[int, int], int, int, list[SerializedEffect], tuple[int, int]|None, tuple[int, int]]
 
 class Unit(UnitData, UpdatingObject):
     attached_city: "City.City"
@@ -24,8 +24,16 @@ class Unit(UnitData, UpdatingObject):
         self.previous_pos = Vector2d(-1, -1)
         Unit.units.append(self)
         World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 1
+        for ability in self.utype.abilities:
+            Ability.get(ability).on_spawn(self)
+        for effect in self.effects:
+            effect.on_spawn(self)
     
     def refresh(self):
+        for ability in self.utype.abilities:
+            Ability.get(ability).on_start_turn(self)
+        for effect in self.effects:
+            effect.on_start_turn(self)
         self.moved = False
         self.attacked = False
 
@@ -43,6 +51,8 @@ class Unit(UnitData, UpdatingObject):
             res = 0 if tile.ttype.stops_movement else movement - 1 * (1 - 0.5 * tile.has_road)
             for ability in self.utype.abilities:
                 res = max(res, Ability.get(ability).on_terrain_movement(self, tile, movement))
+            for effect in self.effects:
+                res = max(res, effect.on_terrain_movement(self, tile, movement))
             return res
         while len(s_poses) != 0:
             s_pos = s_poses.pop(0)
@@ -119,16 +129,28 @@ class Unit(UnitData, UpdatingObject):
                 break
         for ability in other.utype.abilities:
             defense_bonus *= Ability.get(ability).defense_bonus(other)
+        for effect in other.effects:
+            defense_bonus *= effect.defense_bonus(other)
+
+        attack_bonus = 1
+        for ability in self.utype.abilities:
+            attack_bonus *= Ability.get(ability).attack_bonus(self)
+        for effect in self.effects:
+            attack_bonus *= effect.attack_bonus(self)
 
         defense_value = other.utype.defense
         for ability in other.utype.abilities:
             defense_value += Ability.get(ability).additional_defense(other, self) 
+        for effect in other.effects:
+            defense_value += effect.additional_defense(other, self) 
 
         attack_value = self.utype.attack
         for ability in self.utype.abilities:
             attack_value += Ability.get(ability).additional_attack(self, other) 
+        for effect in self.effects:
+            attack_value += effect.additional_attack(self, other) 
 
-        attack_force = attack_value * (self.health / self.utype.health)
+        attack_force = attack_value * (self.health / self.utype.health) * attack_bonus
         defense_force = defense_value * (other.health / other.utype.health) * defense_bonus
         total_damage = attack_force + defense_force
         attack_result = ((attack_force / total_damage) * attack_value * 4.5)
@@ -148,8 +170,12 @@ class Unit(UnitData, UpdatingObject):
             if (self in other.get_attacks()):
                 for ability in other.utype.abilities:
                     defense_result = Ability.get(ability).retaliation_bonus(other, defense_result)
+                for effect in other.effects:
+                    defense_result = effect.retaliation_bonus(other, defense_result)
                 for ability in self.utype.abilities:
                     defense_result = Ability.get(ability).retaliation_mitigate(self, defense_result)
+                for effect in self.effects:
+                    defense_result = effect.retaliation_mitigate(self, defense_result)
                 result[1] = defense_result
         return result
     
@@ -166,6 +192,9 @@ class Unit(UnitData, UpdatingObject):
             save = False
             for ability in self.utype.abilities:
                 save |= Ability.get(ability).save_moved(self)
+            for effect in self.effects:
+                save |= effect.save_moved(self)
+
             if not save:
                 self.moved = True
             for unit in Unit.units:
@@ -179,15 +208,21 @@ class Unit(UnitData, UpdatingObject):
                     if unit.health <= 0:
                         for ability in self.utype.abilities:
                             Ability.get(ability).after_kill(self, unit)
+                        for effect in self.effects:
+                            effect.after_kill(self, unit)
 
                     for ability in self.utype.abilities:
                         Ability.get(ability).after_attack(self, unit)
+                    for effect in self.effects:
+                        effect.after_attack(self, unit)
                     break
         else:
             self.moved = True
             save = False
             for ability in self.utype.abilities:
                 save |= Ability.get(ability).save_attacked(self)
+            for effect in self.effects:
+                save |= effect.save_attacked(self)
             if not save:
                 self.attacked = True
             World.object.unit_mask[self.pos.y][self.pos.x] = 0
@@ -195,26 +230,60 @@ class Unit(UnitData, UpdatingObject):
             World.object.unit_mask[self.pos.y][self.pos.x] = 1
             for ability in self.utype.abilities:
                 Ability.get(ability).after_movement(self)
+            for effect in self.effects:
+                effect.after_movement(self)
     
     def heal(self):
+        heal_value = 0
         if World.object.get(self.pos).owner == self.owner:
-            self.health = min(self.health + 4, self.utype.health)
+            heal_value = 4
         else:
-            self.health = min(self.health + 2, self.utype.health)
+            heal_value = 2
+        for ability in self.utype.abilities:
+            heal_value += Ability.get(ability).additional_heal(self)
+        for effect in self.effects:
+            heal_value += effect.additional_heal(self)
+        self.health = min(self.health + heal_value, self.utype.health)
+        for ability in self.utype.abilities:
+            Ability.get(ability).after_heal(self)
+        for effect in self.effects:
+            effect.after_heal(self)
     
     def get_vision_range(self) -> int:
         vision = World.object.get(self.pos).ttype.vision_range
         for ability in self.utype.abilities:
             vision = max(vision, Ability.get(ability).get_vision_range(self))
+        for effect in self.effects:
+            max(vision, effect.get_vision_range(self))
         return vision
 
     def get_visibility(self) -> bool:
         visibility = 1
         for ability in self.utype.abilities:
             visibility = visibility and Ability.get(ability).get_visibility(self)
+        for effect in self.effects:
+            visibility = visibility and effect.get_visibility(self)
         return visibility
     
+    def end_turn(self):
+        for ability in self.utype.abilities:
+            Ability.get(ability).on_end_turn(self)
+        for effect in self.effects:
+            effect.on_end_turn(self)
+            effect.duration -= 1
+        
+        i = 0
+        while i < len(self.effects):
+            if effect.duration <= 0:
+                self.effects.remove(effect)
+            else:
+                i += 1 
+
     def destroy(self):
+        for ability in self.utype.abilities:
+            Ability.get(ability).on_death(self)
+        for effect in self.effects:
+            effect.on_death(self)
         if self.attached_city is not None:
             self.attached_city.fullness -= 1
         World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 0
@@ -238,17 +307,18 @@ class Unit(UnitData, UpdatingObject):
         self.moved = udata.moved
         self.attacked = udata.attacked
         self.health = udata.health
+        self.effects = udata.effects
 
     @staticmethod
     def from_serializable(serializable: SerializedUnit_) -> "Unit":
-        udata = UnitData.from_serializable(serializable[0:5])
+        udata = UnitData.from_serializable(serializable[0:6])
         unit = Unit(udata.utype, udata.owner, udata.pos, None)
-        unit.previous_pos = Vector2d.from_tuple(serializable[6])
+        unit.previous_pos = Vector2d.from_tuple(serializable[7])
         unit.set_from_data(udata)
         if serializable[5] is not None:
             city = None
             for c in City.City.cities:
-                if c.pos == Vector2d.from_tuple(serializable[5]):
+                if c.pos == Vector2d.from_tuple(serializable[6]):
                     city = c
                     break
             unit.attached_city = city
@@ -259,7 +329,7 @@ class Unit(UnitData, UpdatingObject):
     
     @staticmethod
     def do_serializable(serializable: SerializedUnit_) -> None:
-        prev_pos = Vector2d.from_tuple(serializable[6])
+        prev_pos = Vector2d.from_tuple(serializable[7])
         if prev_pos == Vector2d(-1, -1):
             new_unit = Unit.from_serializable(serializable)
             if new_unit.owner != 0:
@@ -267,7 +337,7 @@ class Unit(UnitData, UpdatingObject):
                     if player.id == new_unit.owner:
                         player.units.append(new_unit)
         else:
-            udata = UnitData.from_serializable(serializable[0:5])
+            udata = UnitData.from_serializable(serializable[0:6])
             found = False
             for unit in Unit.units:
                 if unit.pos == prev_pos and unit.owner == udata.owner: # TODO BUG WTF check not only owner. this shit is so hard

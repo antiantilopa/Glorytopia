@@ -1,0 +1,14 @@
+{
+  "name": "gas_trooper",
+  "health": 10,
+  "attack": 0,
+  "defense": 1,
+  "movement": 1,
+  "attack_range": 2,
+  "cost": 5,
+  "water": false,
+  "abilities": [
+    "poisoning",
+    "dash"
+  ]
+}

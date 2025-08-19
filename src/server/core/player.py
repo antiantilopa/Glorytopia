@@ -1,3 +1,4 @@
+from shared.player import PlayerData, SerializedPlayer
 from .updating_object import UpdatingObject
 from .world import World
 from .game_event import GameEvent
@@ -8,19 +9,9 @@ from shared.error_codes import ErrorCodes
 from engine_antiantilopa import Vector2d, VectorRange
 from serializator.net import flags_to_int, int_to_flags
 
-
-SerializedPlayer = tuple[int, int, list[int], list[int], bool]
-
-class Player(UpdatingObject):
-    
-    id: int
-    money: int
-    vision: list[list[int]]
-    techs: list[TechNode]
+class Player(UpdatingObject, PlayerData):
     units: list["Unit.Unit"]
     cities: list["City.City"]
-    nation: Nation
-    is_dead: bool
 
     ID = 0
     players: list["Player"] = []
@@ -30,22 +21,17 @@ class Player(UpdatingObject):
         self.black_list.extend(("units", "cities", "is_dead"))
         if not new_player:
             return
-        self.id = Player.ID
+        PlayerData.__init__(
+            self, 
+            id=Player.ID, 
+            money=8, 
+            vision=[[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)],
+            techs=[TechNode.get("base")],)
         Player.ID += 1
-        self.money = 8
-        self.vision = [[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)]
         self.set_nation(nation)
-        self.techs = [TechNode.get("base")]
         self.units = []  
         self.cities = []
-        self.is_dead = False
         Player.players.append(self)
-    
-    def set_nation(self, nation: Nation):
-        self.nation = nation
-        if nation is None:
-            return
-        self.techs.append(nation.base_tech)
 
     def destroy(self):
         Player.players.remove(self)
@@ -238,28 +224,20 @@ class Player(UpdatingObject):
         for unit in self.units:
             if not unit.moved and not unit.attacked:
                 unit.heal() 
+            unit.end_turn()
         return ErrorCodes.SUCCESS
-
-    def to_serializable(self):
-        return [
-            self.id,
-            self.money,
-            [flags_to_int(*row) for row in self.vision],
-            [tech.id for tech in self.techs], # super bad with mods. who cares now? TODO. maybe names?
-            self.is_dead
-        ]
     
-    def set_from_data(self, data: SerializedPlayer):
-        self.id = data[0]
-        self.money = data[1]
-        self.vision = [list(int_to_flags(row, World.object.size.x)) for row in data[2]]
-        self.techs = [TechNode.by_id(tech_id) for tech_id in data[3]]
-        self.is_dead = data[4]
-
+    def set_from_data(self, pdata: PlayerData):
+        self.id = pdata.id
+        self.money = pdata.money
+        self.vision = pdata.vision
+        self.nation = pdata.nation
+        self.techs = pdata.techs
+        
     @staticmethod
     def from_serializable(serializable: SerializedPlayer) -> "Player":
         player = Player()
-        player.set_from_data(serializable)
+        player.set_from_data(PlayerData.from_serializable(serializable))
         for unit in Unit.Unit.units:
             if unit.owner == player.id:
                 player.units.append(unit)
@@ -275,7 +253,7 @@ class Player(UpdatingObject):
         for player in Player.players:
             if player.id == player_id:
                 found = True
-                player.set_from_data(data)
+                player.set_from_data(PlayerData.from_serializable(data))
                 break
         if not found:
             raise Exception("Invalid Player data.")
