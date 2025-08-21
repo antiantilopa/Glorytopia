@@ -43,12 +43,15 @@ class Game:
             for unit in Unit.units:
                 unit.refresh()
             
-            for obj in UpdatingObject.objs:
-                obj.refresh_updated()
+            i = 0
+            while i < len(UpdatingObject.objs):
+                if UpdatingObject.objs[i].updated:
+                    UpdatingObject.objs[i].refresh_updated()
+                else:
+                    i += 1
             
             self.turn_number = 0
             UpdatingObject.updated_objs.clear()
-            self.players[0].start_turn()
         else:
             if World.object is None:
                 self.world = World(size.x, size.y, empty=True)
@@ -59,6 +62,9 @@ class Game:
             else:
                 self.players = Player.players
     
+    def start(self):
+        self.players[0].start_turn()
+
     def place_random_city(self):
         # another algorithm would be better. For example, we could:
         # have a map of possible places, and shuffle around them, then discard those that are too close. boom, and every possible city place is used.
@@ -160,7 +166,7 @@ class Game:
         if prev >= self.now_playing_player_index:
             self.turn_number += 1
 
-        self.players[self.now_playing_player_index].start_turn()
+        self.players[self.now_playing_player_index].start_turn(ignore_updated_objs = 1)
 
     def save(self, folder_name: str = "", name: str = "glorytopia.save"):
         if BackupSettings.backup_number.value == 0:
@@ -172,7 +178,6 @@ class Game:
                 os.remove(Path("../saves/") / folder_name / saves[0])
         with open(Path("../saves/") / folder_name / name, "wb") as f:
             f.write(Serializator.encode(self.to_serializable()))
-        
 
     def to_serializable(self) -> SerializedGame:
         return [

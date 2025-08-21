@@ -1,13 +1,15 @@
 from typing import TypeVar, Self
 
+from shared.io.serializable import Serializable
+
 T = TypeVar("T")
 
-class GenericType[T]:
+class GenericType[T](Serializable):
     types: dict[str, T] = {}
     name: str
     id: int
 
-    def __init_subclass__(cls):
+    def __init_subclass__(cls, use_from_serializable: bool = True):
         types = {}
 
         def values():
@@ -25,10 +27,16 @@ class GenericType[T]:
                     return ttype
             raise KeyError(id)
         
+        def from_serializable(id):
+            return cls.by_id(id)
+
         cls.get = get
         cls.add = add
         cls.by_id = func
         cls.values = values
+
+        if use_from_serializable:
+            cls.from_serializable = from_serializable
 
     @staticmethod
     def values() -> list[T]:
@@ -50,6 +58,13 @@ class GenericType[T]:
                 return ttype
         raise KeyError(id)
     
+    def to_serializable(self):
+        return self.id
+    
+    @staticmethod
+    def from_serializable(id):
+        return GenericType.by_id(id)
+
     def __eq__(self, value):
         if value is None:
             return False

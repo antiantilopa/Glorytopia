@@ -31,9 +31,11 @@ class GameEvent:
     def game_event(func: Callable) -> Callable:
         GameEvent.event_ids[func.__name__] = GameEvent.ID
         GameEvent.ID += 1
-        def wrapper(self: "Player.Player", *args, **kwargs):
-            if len(UpdatingObject.updated_objs) > 0:
-                print(f"WTF!!! called {func.__name__} but should not")
+        def wrapper(self: "Player.Player", *args, ignore_updated_objs: bool = False, **kwargs):
+            if len(UpdatingObject.updated_objs) > 0 and not ignore_updated_objs:
+                print(f"WTF!!! called {func.__name__} but should not, because:")
+                for obj in UpdatingObject.updated_objs:
+                    print(f"\t{obj.__class__.__name__} {obj.to_serializable()}")
             result = func(self, *args, **kwargs)
             if result == ErrorCodes.SUCCESS:
                 GameEvent.record_event(self, func.__name__, *args)

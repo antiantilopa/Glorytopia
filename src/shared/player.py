@@ -1,14 +1,16 @@
 from engine_antiantilopa import Vector2d
 from serializator.net import flags_to_int
 from shared.asset_types import Nation, TechNode
+from shared.io.serializable import Serializable
 
 SerializedPlayer = tuple[int, int, list[int], list[int], bool]
 
-class PlayerData:
+class PlayerData(Serializable):
     id: int
     money: int
     vision: list[list[int]]
     techs: list[TechNode]
+    serialized_fields = ["id", "money", "vision", "techs", "nation"]
     nation: Nation
     is_dead: bool
 
@@ -24,19 +26,5 @@ class PlayerData:
         self.nation = nation
         if nation is None:
             return
-        self.techs.append(nation.base_tech)
-
-    def to_serializable(self):
-        return [
-            self.id,
-            self.money,
-            [flags_to_int(*row) for row in self.vision],
-            [tech.id for tech in self.techs], # super bad with mods. who cares now? TODO. maybe names?
-            self.is_dead
-        ]
-
-    @staticmethod
-    def from_serializable(serializable: SerializedPlayer) -> "PlayerData":
-        player = PlayerData()
-        # TODO BUG FUCK IT! TAFH, I BELIEVE IN YOUR NEW SUPER METHOD !!!
-        return player
+        self.techs.append(TechNode.get(nation.base_tech.name))
+        # Wow... here Ref probles came out. we need to redo them TODO

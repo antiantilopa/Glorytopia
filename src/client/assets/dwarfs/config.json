@@ -1,0 +1,26 @@
+{
+    "name": "Default Config Dwarf Nation",
+    "version": "0.0.0",
+    "description": "This is the texture pack configuration file for the dwarfs nation.",
+    "author": "Kamenov Sanzhar Nurlanovich",
+    "textures": {
+        "buildings": {
+            "mountain_hut": "mountain_hut.png",
+            "dwarves_town_hall": "dwarves_town_hall.png"
+        },
+        "techs": {
+            "uplanding": "uplanding.png",
+            "dwarves": "dwarves.png",
+            "mountain_rush": "mountain_rush.png",
+            "subterrain_engineering": "subterrain_engineering.png"
+        },
+        "units": {
+            "dwarf": "dwarf.png",
+            "dwarf_builder": "dwarf_builder.png"
+        },
+
+        "nations": {
+            "dwarfs": "dwarfs.png"
+        }
+    }
+}

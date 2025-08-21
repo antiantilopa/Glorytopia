@@ -1,12 +1,11 @@
 class UpdatingObject:
     objs: list["UpdatingObject"] = []
     updated_objs: list["UpdatingObject"] = []
-    black_list: list[str]
+    black_list: list[str] = ["objs", "updated_objs", "black_list, updated"]
     sub_clss: list[type["UpdatingObject"]] = []
 
     def __init__(self):
         UpdatingObject.objs.append(self)
-        self.black_list = ["objs", "updated_objs", "black_list, updated"]
         self.updated = False
 
     def __init_subclass__(cls):

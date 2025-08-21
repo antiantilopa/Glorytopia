@@ -56,23 +56,28 @@ else:
                         break
                     except Exception as e:
                         print(f"error while preloading: {e}")
+                        raise e
             except Exception as e:
                 print(f"wrong file index: {e}")
+                raise e
         else:
             break
+
+
+host = Server()
+host.password = "Ha-Ha-Ha Rana"
+host.respond.merge(lobby.respond)
+host.respond.merge(game.respond)
 
 if preload_data is None:
     print("Starting a new game.")
     if name is None:
         name = input("Enter the game's name: ")
         os.mkdir(saves_path / name)
+else:
+    host.the_game = Game.from_serializable(preload_data)
 
 BackupSettings.save_folder_name = name
-
-host = Server()
-host.password = "Ha-Ha-Ha Rana"
-host.respond.merge(lobby.respond)
-host.respond.merge(game.respond)
 
 @host.respond.connection()
 def at_connect(self: Server, conn: socket.socket, addr: Address) -> bool:
@@ -120,8 +125,8 @@ def start_game():
             conn.player = host.the_game.players[conn.idx]
             conn.player.set_nation(Nation.by_id(conn.nation))
             host.send_to_addr(conn.addr, Format.event("GAME/GAME_START", [0, conn.idx]))
+        host.the_game.start()
     else:
-        host.the_game = Game.from_serializable(preload_data)
         for conn in Connection.conns:
             conn.player = host.the_game.players[conn.idx]
             host.send_to_addr(conn.addr, Format.event("GAME/GAME_START", [0, conn.idx]))

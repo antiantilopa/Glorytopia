@@ -1,8 +1,11 @@
 from client.scenes.main_menu import launch
 from client.network import lobby, client, gameevents, gameinfo
 from client.globals.settings import Settings
+from shared.loader import load_mains
 from engine_antiantilopa import Vector2d
 import pygame as pg
+
+load_mains()
 
 c = client.Client()
 c.respond.merge(lobby.respond)

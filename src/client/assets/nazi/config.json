@@ -1,0 +1,20 @@
+{
+    "name": "Default Config Nazi Nation",
+    "version": "6.6.6",
+    "description": "This is the texture pack configuration file for the nazi nation.",
+    "author": "Hidolf Atler",
+    "textures": {
+        "buildings": {
+            
+        },
+        "techs": {
+            "supremacy": "supremacy.png"
+        },
+        "units": {
+            "gas_trooper": "gas_trooper.png"
+        },
+        "nations": {
+            "nazi": "nazi.png"
+        }
+    }
+}

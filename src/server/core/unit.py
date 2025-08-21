@@ -1,4 +1,5 @@
 from shared.asset_types import UnitType, TileType
+from shared.io.serializable import Serializable
 from shared.unit import SerializedUnit, UnitData, SerializedEffect
 from engine_antiantilopa import Vector2d
 from .world import World
@@ -14,11 +15,14 @@ SerializedUnit_ = tuple[int, int, tuple[int, int], int, int, list[SerializedEffe
 class Unit(UnitData, UpdatingObject):
     attached_city: "City.City"
     previous_pos: Vector2d
+    _attached_city_pos: Vector2d
 
+    black_list = UpdatingObject.black_list + ["previous_pos"]
+    serialized_fields = ["utype", "owner", "pos", "health", "moved", "attacked", "effects", "previous_pos", "_attached_city_pos"]
     units: list["Unit"] = []
+
     def __init__(self, utype: UnitType, owner: int, pos: Vector2d, attached_city: "City.City"):
         UpdatingObject.__init__(self)
-        self.black_list.append("previous_pos")
         UnitData.__init__(self, utype, owner, pos)
         self.attached_city = attached_city
         self.previous_pos = Vector2d(-1, -1)
@@ -28,7 +32,7 @@ class Unit(UnitData, UpdatingObject):
             Ability.get(ability).on_spawn(self)
         for effect in self.effects:
             effect.on_spawn(self)
-    
+
     def refresh(self):
         for ability in self.utype.abilities:
             Ability.get(ability).on_start_turn(self)
@@ -308,25 +312,13 @@ class Unit(UnitData, UpdatingObject):
         self.attacked = udata.attacked
         self.health = udata.health
         self.effects = udata.effects
-
-    @staticmethod
-    def from_serializable(serializable: SerializedUnit_) -> "Unit":
-        udata = UnitData.from_serializable(serializable[0:6])
-        unit = Unit(udata.utype, udata.owner, udata.pos, None)
-        unit.previous_pos = Vector2d.from_tuple(serializable[7])
-        unit.set_from_data(udata)
-        if serializable[5] is not None:
-            city = None
-            for c in City.City.cities:
-                if c.pos == Vector2d.from_tuple(serializable[6]):
-                    city = c
-                    break
-            unit.attached_city = city
-        else:
-            unit.attached_city = None
-        del udata
+     
+    @classmethod
+    def from_serializable(cls, data):
+        unit = super().from_serializable(data)
+        Unit.__init__(unit, unit.utype, unit.owner, unit.pos, unit.attached_city)
         return unit
-    
+
     @staticmethod
     def do_serializable(serializable: SerializedUnit_) -> None:
         prev_pos = Vector2d.from_tuple(serializable[7])
@@ -337,16 +329,28 @@ class Unit(UnitData, UpdatingObject):
                     if player.id == new_unit.owner:
                         player.units.append(new_unit)
         else:
-            udata = UnitData.from_serializable(serializable[0:6])
+            udata = UnitData.from_serializable(serializable)
             found = False
             for unit in Unit.units:
                 if unit.pos == prev_pos and unit.owner == udata.owner: # TODO BUG WTF check not only owner. this shit is so hard
                     found = True
-                    
                     unit.set_from_data(udata)
                     break
             if not found:
                 raise Exception("Imposiible unit data given")
 
-    def to_serializable(self) -> SerializedUnit_:
-        return UnitData.to_serializable(self) + [None if self.attached_city is None else self.attached_city.pos.as_tuple(), self.previous_pos.as_tuple()]
+    @property
+    def _attached_city_pos(self):
+        return None if self.attached_city is None else self.attached_city.pos
+    
+    @_attached_city_pos.setter
+    def _attached_city_pos(self, new_attached_city_pos: Vector2d|None):
+        if new_attached_city_pos is None:
+            self.attached_city is None
+        for city in City.City.cities:
+            if city.pos == new_attached_city_pos:
+                object.__setattr__(self, "attached_city", city)
+                return
+        raise KeyError(f"city on position {new_attached_city_pos} is not found")
+
+    

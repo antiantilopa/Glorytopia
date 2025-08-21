@@ -1,5 +1,6 @@
 import socket, threading
 from typing import Any
+from engine_antiantilopa import Vector2d
 
 class SerializationTypes:
     END = 0
@@ -26,6 +27,8 @@ class SerializationTypes:
 
     STRING_BEGIN = 13
 
+    VECTOR2D = 14
+
     names = (
         "END", 
         "CHAR",
@@ -41,10 +44,11 @@ class SerializationTypes:
         "ARRAY_BEGIN",
         "LIST_BEGIN",
         "STRING_BEGIN",
+        "VECTOR2D",
         "NONE"
     )
 
-    NONE = 14
+    NONE = 15
 
     size_dict = {
         CHAR: 1,
@@ -67,8 +71,7 @@ def abs(x):
 def binary(x):
     return "0" * ((2 - len(bin(x))) % 8) + bin(x).removeprefix("0b") 
 
-Stop = "\n" # TODO BUG THIS IS SO FUCKED...
-
+class End: pass
 
 class Serializator:
 
@@ -122,6 +125,13 @@ class Serializator:
             for inner in obj:
                 result.extend(Serializator.encode_to(inner, args[0], args[1:])[1:])
             result.append(SerializationTypes.END)
+            return result
+        elif serialization_type == SerializationTypes.VECTOR2D:
+            if not isinstance(obj, Vector2d):
+                raise TypeError(f"{obj} is not a Vector2d to be serialized as {SerializationTypes.names[serialization_type]}")
+            result = bytearray([serialization_type])
+            result.extend(Serializator.encode(obj.x))
+            result.extend(Serializator.encode(obj.y))
             return result
         elif serialization_type == SerializationTypes.LIST_BEGIN:
             if not isinstance(obj, tuple|list|set):
@@ -177,6 +187,8 @@ class Serializator:
             return Serializator.encode_to(obj, SerializationTypes.LIST_BEGIN)
         if isinstance(obj, str):
             return Serializator.encode_to(obj, SerializationTypes.STRING_BEGIN)
+        if isinstance(obj, Vector2d):
+            return Serializator.encode_to(obj, SerializationTypes.VECTOR2D)
         if obj is None:
             return bytes([SerializationTypes.NONE])
         raise TypeError(f"{obj} is not serializable, please use int, float, str, list, tuple, set, or None")
@@ -210,6 +222,12 @@ class Serializator:
             return result
         if int(obj[0]) == SerializationTypes.NONE:
             return None
+        if int(obj[0]) == SerializationTypes.VECTOR2D:
+            t1 = obj[1]
+            x = Serializator.decode_full(obj[1 : SerializationTypes.size_dict[t1] + 2])
+            t2 = obj[SerializationTypes.size_dict[t1] + 2]
+            y = Serializator.decode_full(obj[SerializationTypes.size_dict[t1] + 2 : SerializationTypes.size_dict[t1] + SerializationTypes.size_dict[t2] + 3])
+            return Vector2d(x, y)
         if int(obj[0]) in (SerializationTypes.ARRAY_BEGIN, SerializationTypes.LIST_BEGIN, SerializationTypes.STRING_BEGIN):
             result = []
             i = 1
@@ -224,7 +242,7 @@ class Serializator:
                 elif int(obj[0]) == SerializationTypes.STRING_BEGIN:
                     serialization_type = SerializationTypes.US_CHAR
                 
-                if serialization_type in (SerializationTypes.ARRAY_BEGIN, SerializationTypes.LIST_BEGIN) :
+                if serialization_type in (SerializationTypes.ARRAY_BEGIN, SerializationTypes.LIST_BEGIN):
                     result.append(Serializator.decode_full(serialization_type.to_bytes() + obj[i:]))
                     cnt = 1
                     while True:
@@ -241,6 +259,10 @@ class Serializator:
                             while obj[i] != SerializationTypes.END:
                                 i += 1
                             i += 1
+                        elif obj[i] == SerializationTypes.VECTOR2D:
+                            t1 = obj[i + 1]
+                            t2 = obj[i + SerializationTypes.size_dict[t1] + 2]
+                            i += 3 + SerializationTypes.size_dict[t1] + SerializationTypes.size_dict[t2]
                         else:
                             i += SerializationTypes.size_dict[obj[i]] + 1
                 elif serialization_type == SerializationTypes.STRING_BEGIN:
@@ -248,6 +270,13 @@ class Serializator:
                     while obj[i] != SerializationTypes.END:
                         i += 1
                     i += 1
+                elif serialization_type == SerializationTypes.VECTOR2D:
+                    t1 = obj[i]
+                    x = Serializator.decode_full(obj[i : i + SerializationTypes.size_dict[t1] + 1])
+                    t2 = obj[i + SerializationTypes.size_dict[t1] + 1]
+                    y = Serializator.decode_full(obj[i + SerializationTypes.size_dict[t1] + 1 : i + SerializationTypes.size_dict[t1] + SerializationTypes.size_dict[t2] + 2])
+                    result.append(Vector2d(x, y))
+                    i += 2 + SerializationTypes.size_dict[t1] + SerializationTypes.size_dict[t2]
                 else:
                     result.append(Serializator.decode_full(serialization_type.to_bytes() + obj[i : i + SerializationTypes.size_dict[serialization_type]]))
                     i += SerializationTypes.size_dict[serialization_type]
@@ -259,19 +288,27 @@ class Serializator:
             
     @staticmethod
     def decode_with_batching(conn: socket.socket):
-        result = Stop
+        result = End()
         typ = conn.recv(1)
         if len(typ) == 0:
             print("CONNECTION LOST")
             exit()
         if typ[0] == SerializationTypes.END:
-            return Stop
+            return End()
         elif typ[0] in SerializationTypes.size_dict:
             if SerializationTypes.size_dict[typ[0]] != 0:
                 recv = conn.recv(SerializationTypes.size_dict[typ[0]])
             else:
                 recv = bytes()
             return Serializator.decode_full(typ + recv)
+        elif typ[0] == SerializationTypes.VECTOR2D:
+            t1 = conn.recv(1)
+            x_data = conn.recv(SerializationTypes.size_dict[t1[0]])
+            t2 = conn.recv(1)
+            y_data = conn.recv(SerializationTypes.size_dict[t2[0]])
+            x = Serializator.decode_full(t1 + x_data)
+            y = Serializator.decode_full(t2 + y_data)
+            return Vector2d(x, y)
         elif typ[0] == SerializationTypes.STRING_BEGIN:
             result = bytearray()
             while True:
@@ -284,7 +321,7 @@ class Serializator:
             result = []
             while True:
                 next_element = Serializator.decode_with_batching(conn)
-                if next_element == Stop:
+                if isinstance(next_element, End):
                     break
                 else:
                     result.append(next_element)

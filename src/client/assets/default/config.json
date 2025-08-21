@@ -57,18 +57,18 @@
         },
         "units": {
             "warrior": "warrior.png",
-            "archer": "archer.png",
             "defender": "defender.png",
             "militia": "militia.png",
             "siege_tower": "siege_tower.png",
-            "swordsman": "swordsman.png",
-            "dagger": "dagger.png",
             "rider": "rider.png",
             "horse_archer": "horse_archer.png",
             "knight": "knight.png",
+            "archer": "archer.png",
             "catapult": "catapult.png",
+            "swordsman": "swordsman.png",
             "mindbender": "mindbender.png",
-            "cloack": "cloak.png",
+            "cloack": "cloack.png",
+            "dagger": "dagger.png",
             "giant": "giant.png"
         },
         "city": {

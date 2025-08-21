@@ -234,6 +234,9 @@ class Player(UpdatingObject, PlayerData):
         self.nation = pdata.nation
         self.techs = pdata.techs
         
+    def to_serializable(self):
+        return PlayerData.to_serializable(self)
+
     @staticmethod
     def from_serializable(serializable: SerializedPlayer) -> "Player":
         player = Player()
