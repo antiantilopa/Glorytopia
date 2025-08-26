@@ -1,8 +1,8 @@
-from shared.generic_types import GenericType
+from netio import GenericType
 from .tile import Tile
 from . import unit as Unit
 
-class Ability(GenericType["Ability"]):
+class Ability(GenericType):
 
     def __init_subclass__(cls):
         Ability.add(cls)

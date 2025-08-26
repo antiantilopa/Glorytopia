@@ -1,43 +1,17 @@
-from shared.generic_types import GenericType
-from shared.io.serializable import Serializable
+from typing import Annotated
+from netio import GenericType, Serializable, SerializeField
 from . import unit as Unit
 from . import tile as Tile
 
-class Effect(GenericType["Effect"], use_from_serializable = 0):
-    id = -1
+class Effect(GenericType["Effect"], Serializable):
+    stackable = True
+
     duration: int
     name: str
-    stackable = True
     args: list
-    serialized_fields = ["id", "args"]
-
-    ID = 0
-
-    def __init_subclass__(cls):
-        Effect.add(cls)
-        cls.id = Effect.ID
-        Effect.ID += 1
-
-        @classmethod
-        def from_serializable(cls: type[Effect], data):
-            return Serializable.from_serializable.__func__(cls, data)
-        
-        def to_serializable(self):
-            return Effect.to_serializable(self)
-    
-        cls.serialized_fields = cls.args
-        cls.from_serializable = from_serializable
-        cls.to_serializable = to_serializable
     
     def __init__(self, duration = -1):
         self.duration = duration
-
-    @classmethod
-    def from_serializable(cls: type["Effect"], data):
-        return Effect.by_id(data[cls.serialized_fields.index("id")]).from_serializable(data[cls.serialized_fields.index("args")])
-
-    def to_serializable(self):
-        return [self.id, Serializable.to_serializable(self)]
 
     def after_movement(self, unit: "Unit.UnitData"):
         pass

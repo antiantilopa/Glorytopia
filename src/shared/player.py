@@ -1,30 +1,31 @@
+from typing import Annotated
 from engine_antiantilopa import Vector2d
-from serializator.net import flags_to_int
+from netio import SerializeField, PlayerData as PD
 from shared.asset_types import Nation, TechNode
-from shared.io.serializable import Serializable
+from shared.connection_data import ConnectionData
 
-SerializedPlayer = tuple[int, int, list[int], list[int], bool]
+class PlayerData(PD):
+    id: Annotated[int, SerializeField()]
+    nation: Annotated[Nation, SerializeField(by_id=True)]
+    is_dead: Annotated[bool, SerializeField()]
+    nickname: Annotated[str, SerializeField()]
+    is_ready: Annotated[bool, SerializeField()]
+    color: Annotated[int, SerializeField()]
 
-class PlayerData(Serializable):
-    id: int
-    money: int
-    vision: list[list[int]]
-    techs: list[TechNode]
-    serialized_fields = ["id", "money", "vision", "techs", "nation"]
-    nation: Nation
-    is_dead: bool
+    recovery_code: int
 
-    def __init__(self, id: int, money: int, vision: list[list[int]], techs: list[TechNode], nation: Nation = None):
-        self.id = id
-        self.money = money
-        self.vision = vision
-        self.techs = techs
-        self.nation = nation
-        self.is_dead = False
-    
-    def set_nation(self, nation: Nation):
-        self.nation = nation
-        if nation is None:
-            return
-        self.techs.append(TechNode.get(nation.base_tech.name))
-        # Wow... here Ref probles came out. we need to redo them TODO
+    ID = 0
+
+    @classmethod
+    def create(cls, addr, conn_data: ConnectionData):
+        obj = super().create(addr, conn_data)
+        obj.id = PlayerData.ID
+        PlayerData.ID += 1
+
+        obj.color = 0
+        obj.recovery_code = None
+        obj.is_ready = False
+        obj.nickname = conn_data.nickname
+        obj.nation = None
+        obj.is_dead = False
+        return obj

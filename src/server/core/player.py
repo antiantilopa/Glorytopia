@@ -1,5 +1,4 @@
-from shared.player import PlayerData, SerializedPlayer
-from .updating_object import UpdatingObject
+from shared.player import PlayerData
 from .world import World
 from .game_event import GameEvent
 from . import unit as Unit
@@ -7,37 +6,42 @@ from . import city as City
 from shared.asset_types import Nation, UnitType, BuildingType, BuildingType, TechNode, TerraForm
 from shared.error_codes import ErrorCodes
 from engine_antiantilopa import Vector2d, VectorRange
-from serializator.net import flags_to_int, int_to_flags
 
-class Player(UpdatingObject, PlayerData):
+class Player(PlayerData):
     units: list["Unit.Unit"]
     cities: list["City.City"]
+    vision: list[list[int]]
+    money: int
+    techs: list[TechNode]
 
     ID = 0
     players: list["Player"] = []
 
     def __init__(self, new_player: bool = True, nation: Nation = None):
-        UpdatingObject.__init__(self)
-        self.black_list.extend(("units", "cities", "is_dead"))
         if not new_player:
             return
         PlayerData.__init__(
             self, 
-            id=Player.ID, 
-            money=8, 
-            vision=[[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)],
-            techs=[TechNode.get("base")],)
+            id=Player.ID)
+        self.money=8, 
+        self.techs=[TechNode.get("base")]
+        self.vision=[[0 for i in range(World.object.size.x)] for _ in range(World.object.size.y)]
         Player.ID += 1
         self.set_nation(nation)
         self.units = []  
         self.cities = []
         Player.players.append(self)
+    
+    def set_nation(self, nation: Nation):
+        self.nation = nation
+        if nation is None:
+            return
+        self.techs.append(TechNode.get(nation.base_tech.name))
 
     def destroy(self):
         Player.players.remove(self)
         self.units = []
         self.cities = []
-        UpdatingObject.destroy(self)
 
     @GameEvent.game_event
     def harvest(self, pos: Vector2d):

@@ -1,8 +1,7 @@
 from typing import TypeVar
 import json
-from ..generic_types import GenericType
 
-T = TypeVar("T", bound=GenericType)
+T = TypeVar("T")
 
 def to_cls(cls: type, data: dict):
     new = cls.__new__(cls)

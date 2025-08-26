@@ -15,9 +15,6 @@ def get_by_height(number: int):
     }
     return mp[number]
     
-SerializedTile_ = tuple[int, int, int, int, bool]
-SerializedWorld = list[list[SerializedTile_]]
-
 class World:
     world: list[list[Tile]]
     cities_mask: list[list[bool]]

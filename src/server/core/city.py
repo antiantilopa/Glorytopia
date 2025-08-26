@@ -1,19 +1,17 @@
 from .random_names import random_funny_name as random_name
 from engine_antiantilopa import Vector2d
 from shared.asset_types import UnitType, BuildingType
-from shared.city import CityData, SerializedCity
-from .updating_object import UpdatingObject
+from shared.city import CityData
 
 
 from .world import World
 from . import unit as Unit
 from . import player as Player
 
-class City(CityData, UpdatingObject):
+class City(CityData):
     cities: list["City"] = []
 
     def __init__(self, pos: Vector2d, owner: int):
-        UpdatingObject.__init__(self)
         CityData.__init__(self, pos, owner, random_name(), 1, 0, 0, False, False, False, [pos])
         City.cities.append(self)
         World.object.cities_mask[self.pos.inty()][self.pos.intx()] = 1
@@ -87,40 +85,5 @@ class City(CityData, UpdatingObject):
         World.object.cities_mask[self.pos.inty()][self.pos.intx()] = 0
         City.cities.remove(self)
         Player.Player.players[self.owner].cities.remove(self)
-        UpdatingObject.destroy(self)
         del self
     
-    def set_from_data(self, cdata: CityData):
-        self.owner = cdata.owner
-        self.pos = cdata.pos
-        self.name = cdata.name
-        self.level = cdata.level
-        self.fullness = cdata.fullness
-        self.forge = cdata.forge
-        self.walls = cdata.walls
-        self.is_capital = cdata.is_capital
-        self.population = cdata.population
-        self.domain = cdata.domain
-
-    @staticmethod
-    def from_serializable(serializable: SerializedCity) -> "City":
-        cdata = CityData.from_serializable(serializable)
-        city = City(cdata.pos, cdata.owner)
-        city.set_from_data(cdata)
-        del cdata  # Clear the reference to the temporary object
-        return city
-    
-    def to_serializable(self):
-        return CityData.to_serializable(self)
-    
-    @staticmethod
-    def do_serializable(serializable: SerializedCity):
-        cdata = CityData.from_serializable(serializable)
-        found = False
-        for city in City.cities:
-            if city.pos == cdata.pos:
-                found = True
-                city.set_from_data(cdata)
-                break
-        if not found:
-            raise Exception("Imposiible city data given")

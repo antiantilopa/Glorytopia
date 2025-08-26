@@ -1,22 +1,17 @@
 import os
-from shared.city import SerializedCity
-from shared.unit import SerializedUnit
 from server.globals.backup import BackupSettings
-from .world import World, SerializedWorld
-from .player import Player, SerializedPlayer
+from .world import World
+from .player import Player
 from .city import City
 from .unit import Unit
 from shared.asset_types import Nation, TileType, ResourceType, UnitType
 from engine_antiantilopa import Vector2d, Angle
 from math import pi
 from random import random, randint
-from .updating_object import UpdatingObject
-from serializator.net import Serializator
 from pathlib import Path
+
 def abs(x):
     return x * ((x > 0) * 2 - 1)
-
-SerializedGame = tuple[list[SerializedPlayer], SerializedWorld, list[SerializedCity], list[SerializedUnit], int, int]
 
 class Game:
     now_playing_player_index: int
@@ -43,15 +38,7 @@ class Game:
             for unit in Unit.units:
                 unit.refresh()
             
-            i = 0
-            while i < len(UpdatingObject.objs):
-                if UpdatingObject.objs[i].updated:
-                    UpdatingObject.objs[i].refresh_updated()
-                else:
-                    i += 1
-            
             self.turn_number = 0
-            UpdatingObject.updated_objs.clear()
         else:
             if World.object is None:
                 self.world = World(size.x, size.y, empty=True)
@@ -178,39 +165,6 @@ class Game:
                 os.remove(Path("../saves/") / folder_name / saves[0])
         with open(Path("../saves/") / folder_name / name, "wb") as f:
             f.write(Serializator.encode(self.to_serializable()))
-
-    def to_serializable(self) -> SerializedGame:
-        return [
-            [player.to_serializable() for player in self.players],
-            World.object.to_serializable(),
-            [city.to_serializable() for city in City.cities],
-            [unit.to_serializable() for unit in Unit.units],
-            self.now_playing_player_index,
-            self.turn_number
-        ]
-
-    @staticmethod
-    def from_serializable(serializable: SerializedGame) -> "Game":
-        world = World.from_serializable(serializable[1])
-        cities = [City.from_serializable(city) for city in serializable[2]]
-        units = [Unit.from_serializable(unit) for unit in serializable[3]]
-        players = [Player.from_serializable(player) for player in serializable[0]]
-        
-        game = Game(world.size, len(players), start_new_game=False)
-        game.now_playing_player_index = serializable[4]
-        game.turn_number = serializable[5]
-        game.players = players
-        game.players.sort(key=lambda p: p.id)
-        game.world = world
-        City.cities = cities
-        Unit.units = units
-        
-        for player in game.players:
-            player.update_vision()
-        
-        while 0 < len(UpdatingObject.updated_objs):
-            UpdatingObject.updated_objs[0].refresh_updated()
-        return game
 
     @staticmethod
     def clear_game() -> None:

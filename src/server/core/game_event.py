@@ -1,46 +1,15 @@
 import os
 from . import player as Player
 from shared.error_codes import ErrorCodes
-from .updating_object import UpdatingObject
 from typing import Callable
 from shared.globals.mod_versions import ModVersions
 from server.globals.replay import RecordReplaySettings
-from serializator.net import Serializator
 from engine_antiantilopa import Vector2d
-
-def to_serializable(obj):
-    if hasattr(obj, "to_serializable"):
-        return obj.to_serializable()
-    if isinstance(obj, int|float|str|bool|None):
-        return obj
-    if isinstance(obj, list|tuple):
-        return [to_serializable(item) for item in obj]
-    if isinstance(obj, Vector2d):
-        return obj.as_tuple()
-    if hasattr(obj, "id"):
-        return obj.id
-    
-
 
 class GameEvent:
     initialized: bool = False
     event_ids: dict[str, int] = {}
     ID = 0
-
-    @staticmethod
-    def game_event(func: Callable) -> Callable:
-        GameEvent.event_ids[func.__name__] = GameEvent.ID
-        GameEvent.ID += 1
-        def wrapper(self: "Player.Player", *args, ignore_updated_objs: bool = False, **kwargs):
-            if len(UpdatingObject.updated_objs) > 0 and not ignore_updated_objs:
-                print(f"WTF!!! called {func.__name__} but should not, because:")
-                for obj in UpdatingObject.updated_objs:
-                    print(f"\t{obj.__class__.__name__} {obj.to_serializable()}")
-            result = func(self, *args, **kwargs)
-            if result == ErrorCodes.SUCCESS:
-                GameEvent.record_event(self, func.__name__, *args)
-            return result
-        return wrapper
         
     @staticmethod
     def start_recording() -> None:

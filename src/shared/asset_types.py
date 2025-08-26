@@ -1,7 +1,6 @@
-from .generic_types import GenericType
-from .util.reference import Ref
+from netio import LazyRef, GenericType
 
-class UnitType(GenericType["UnitType"]):
+class UnitType(GenericType):
     id: int
     name: str
     health: int
@@ -37,7 +36,7 @@ class UnitType(GenericType["UnitType"]):
         self.water = water
         self.abilities = abilities
     
-class TileType(GenericType["TileType"]):
+class TileType(GenericType):
     first_thing_first_ima_say_all_the_word_inside_my_head_im_fired_up_and_tired_off_the_way_that_things_have_been_of_yuyuyyuyuyu: bool = False
     id: int
     name: str
@@ -62,7 +61,7 @@ class TileType(GenericType["TileType"]):
     def __repr__(self) -> str:
         return self.name
 
-class BuildingType(GenericType["BuildingType"]):
+class BuildingType(GenericType):
     id: int
     name: str
     ttypes: list[TileType]
@@ -83,16 +82,16 @@ class BuildingType(GenericType["BuildingType"]):
         self.id = BuildingType.ID
         BuildingType.ID += 1
         self.name = name
-        self.ttypes = [Ref(TileType).create(i) for i in ttypes]
-        self.required_resource = Ref(ResourceType).create(required_resource)
+        self.ttypes = [LazyRef(TileType).create(i) for i in ttypes]
+        self.required_resource = LazyRef(ResourceType).create(required_resource)
         self.cost = cost
         self.population = population
-        self.adjacent_bonus = Ref(BuildingType).create(adjacent_bonus)
+        self.adjacent_bonus = LazyRef(BuildingType).create(adjacent_bonus)
     
     def __repr__(self) -> str:
         return self.name
 
-class ResourceType(GenericType["ResourceType"]):
+class ResourceType(GenericType):
     id: int
     name: str
     ttypes: list[TileType]
@@ -104,10 +103,10 @@ class ResourceType(GenericType["ResourceType"]):
         self.id = ResourceType.ID
         ResourceType.ID += 1
         self.name = name
-        self.ttypes = [Ref(TileType).create(i) for i in ttypes]
+        self.ttypes = [LazyRef(TileType).create(i) for i in ttypes]
         self.spawn_rates = dict(spawn_rates)
 
-class TerraForm(GenericType["TerraForm"]):
+class TerraForm(GenericType):
     id: int
     name: str
     cost: int
@@ -123,14 +122,14 @@ class TerraForm(GenericType["TerraForm"]):
         TerraForm.ID += 1
         self.name = name
         self.cost = cost
-        self.from_ttype = Ref(TileType).create(from_ttype)
-        self.from_resource = Ref(ResourceType).create(from_resource)
-        self.to_ttype = Ref(TileType).create(to_ttype)
-        self.to_resource = Ref(ResourceType).create(to_resource)
+        self.from_ttype = LazyRef(TileType).create(from_ttype)
+        self.from_resource = LazyRef(ResourceType).create(from_resource)
+        self.to_ttype = LazyRef(TileType).create(to_ttype)
+        self.to_resource = LazyRef(ResourceType).create(to_resource)
 
 
 
-class TechNode(GenericType["TechNode"]):
+class TechNode(GenericType):
     id: int
     name: str
     cost: int
@@ -164,17 +163,17 @@ class TechNode(GenericType["TechNode"]):
         self.name = name
         self.cost = cost
         if parent is not None:
-            self.parent = Ref(TechNode).create(parent)
+            self.parent = LazyRef(TechNode).create(parent)
         else:
             self.parent = None
         self.tier = tier
-        self.units = [Ref(UnitType).create(unit_name) for unit_name in units] 
-        self.buildings = [Ref(BuildingType).create(building_name) for building_name in buildings] 
+        self.units = [LazyRef(UnitType).create(unit_name) for unit_name in units] 
+        self.buildings = [LazyRef(BuildingType).create(building_name) for building_name in buildings] 
         self.achievements = achievements # TODO do not exist XD
-        self.harvestables = [Ref(ResourceType).create(resource_name) for resource_name in harvestables]
-        self.defence = [Ref(TileType).create(tile_name) for tile_name in defence]
-        self.accessable = [Ref(TileType).create(tile_name) for tile_name in accessable]
-        self.terraforms = [Ref(TerraForm).create(terraform_name) for terraform_name in terraforms]
+        self.harvestables = [LazyRef(ResourceType).create(resource_name) for resource_name in harvestables]
+        self.defence = [LazyRef(TileType).create(tile_name) for tile_name in defence]
+        self.accessable = [LazyRef(TileType).create(tile_name) for tile_name in accessable]
+        self.terraforms = [LazyRef(TerraForm).create(terraform_name) for terraform_name in terraforms]
         self.childs = []
 
     @staticmethod
@@ -185,7 +184,7 @@ class TechNode(GenericType["TechNode"]):
                     tech2.childs.append(tech1)
                     break
 
-class Nation(GenericType["Nation"]):
+class Nation(GenericType):
     id: int
     name: str
     base_tech: TechNode
@@ -196,4 +195,4 @@ class Nation(GenericType["Nation"]):
         self.id = Nation.ID
         Nation.ID += 1
         self.name = name
-        self.base_tech = Ref(TechNode).create(base_tech)
+        self.base_tech = LazyRef(TechNode).create(base_tech)

@@ -1,24 +1,25 @@
-from serializator.host import Respond, Address
-from serializator.data_format import Format
+from netio.router import ServerRouter
+from netio.serialization.routing import MessageType
 from shared.asset_types import Nation
-from .server import Server, Connection
+from shared.player import PlayerData
 
-respond = Respond("LOBBY")
+router = ServerRouter("LOBBY")
 
-@respond.event("JOIN")
-def join(self: Server, addr: Address, name: tuple[str]):
-    if self.game_started:
-        self.send_to_addr(addr, Format.error("LOBBY/JOIN", ["this game has already started."]))
+@router.event("JOIN")
+def join(player_data: PlayerData, name: tuple[str]):
+    if router.host.game_started:
+        router.host.game_manager.send_error(player_data.address, "", "This game has already started.")
         return
-    if (name[0] in [i.name for i in Connection.conns]) or (name[0] == "") or not (name[0].isascii()):
-        self.send_to_addr(addr, Format.error("LOBBY/JOIN", ["this name is already taken, or it is prohibited."]))
+    if (name[0] in [i.nickname for i in router.host.game_manager.players]) or (name[0] == "") or not (name[0].isascii()):
+        router.host.game_manager.send_error(player_data.address, "", "This name is already taken, or it is prohibited.")
         return
     if len(name[0]) > 15:
-        self.send_to_addr(addr, Format.error("LOBBY/JOIN", ["this name is too long. 15 symbols maximum"]))
+        router.host.game_manager.send_error(player_data.address, "", "This name is too long. 15 symbols maximum.")
+        return
 
     print(f"{name[0]} joined the game!")
 
-    used_colors = list(dict.fromkeys([conn.color for conn in Connection.conns]))
+    used_colors = list(dict.fromkeys([player.color for player in router.host.game_manager.players]))
     
     def mex(ordered_list: list[int]) -> int:
         l = 0 
