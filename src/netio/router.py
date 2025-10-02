@@ -94,18 +94,18 @@ class BaseRouter:
 
 
 class ClientRouter(BaseRouter):
-    from .client import Client
+    from . import client as Client
 
-    client: Client
-
+    client: "Client.Client"
+    
     def handle_request(self, route, data):
         raise NotImplementedError("Are you sure this should be called?")
 
 
 class ServerRouter(BaseRouter):
-    from .server import Host
+    from . import server as Server
     
-    host: Host
+    host: "Server.Host"
     
     _response_handlers: dict[str, tuple[Callable[[PlayerData, tuple], None], type[Serializable] | None]]
     _request_handlers: dict[str, tuple[Callable[[PlayerData, tuple], tuple | Serializable], type[Serializable] | None]]

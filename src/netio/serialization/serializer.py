@@ -81,6 +81,12 @@ class BaseWriter:
             elif isinstance(field, list):
                 conn.sendall(bytes([SerializationTypes.LIST.value]))
                 self._write_object(conn, field)
+            elif isinstance(field, Serializable):
+                # I know that it is not how you wanted it to be
+                # but it is easiest way to do objs in lists
+                # TODO
+                conn.sendall(bytes([SerializationTypes.OBJECT.value]))
+                self._write_object(conn, field.serialize())
             elif field == None:
                 conn.sendall(bytes([SerializationTypes.NONE.value]))
             elif field == SpecialTypes.NOTHING:
@@ -146,7 +152,7 @@ class BaseReader:
             mantissa += 1
 
         return mantissa * (2 ** exp) * (-1 if sign else 1)
-    
+
     def _read_object(self, conn: socket.socket) -> tuple:
         obj = []
         while (field := self._read_field(conn)) != SpecialTypes.END:
@@ -214,6 +220,8 @@ class Serializable:
         Serializable.__classes.append(cls)
         orig_init = cls.__init__
 
+        cls._class_id = get_class_id(cls)
+
         def new_init(self: Serializable, *a, **kw):
             self.__updates = {}
 
@@ -221,7 +229,6 @@ class Serializable:
             
             self._id = Serializable.__ID
             Serializable.__ID += 1
-            self._class_id = get_class_id(cls)
 
             for key, value in get_all_annotations(self).items():
                 attr = getattr(self, key, None)
@@ -402,7 +409,7 @@ class Serializable:
         return obj
 
     def validate(self, player_data) -> bool:
-        return self.serialize()
+        return bool(self.serialize())
     
     def client_on_create(self):
         pass

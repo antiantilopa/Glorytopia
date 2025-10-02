@@ -1,7 +1,11 @@
 
-class ModConfig:
-    name: str
-    version: str
+from typing import Annotated
+from netio import Serializable, SerializeField
+
+
+class ModConfig(Serializable):
+    name: Annotated[str, SerializeField()]
+    version: Annotated[str, SerializeField()]
 
     def __init__(self, name: str, version: str):
         self.name = name

@@ -1,5 +1,5 @@
 from netio import GenericType
-from .tile import Tile
+from . import tile as Tile
 from . import unit as Unit
 
 class Ability(GenericType):
@@ -44,7 +44,7 @@ class Ability(GenericType):
         return attack_result
     
     @staticmethod
-    def on_terrain_movement(unit: "Unit.Unit", tile: Tile, movement: int) -> int:
+    def on_terrain_movement(unit: "Unit.Unit", tile: "Tile.Tile", movement: int) -> int:
         return 0
     
     @staticmethod

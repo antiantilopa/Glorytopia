@@ -2,10 +2,10 @@ import socket
 import threading
 from typing import Self
 
-from .datatypes import PlayerData, ConnectionData
+from .datatypes import PlayerData, ConnectionData, Address
 from .serialization.routing import Writer, Reader, MessageType
 from .serialization.serializer import Serializable, SpecialTypes, get_class_id
-from .router import ServerRouter, Address
+from . import router as Router
 from .logger import serverLogger
 
 class GameManager:
@@ -20,7 +20,7 @@ class GameManager:
     def __init__(
             self, 
             serializer: Writer, 
-            router: ServerRouter,            
+            router: "Router.ServerRouter",            
             player_data_type: type[PlayerData] = PlayerData, 
             connection_data_type: type[ConnectionData] = ConnectionData
             ):
@@ -79,8 +79,6 @@ class GameManager:
                 self.router.fire_event(route, self.get_player_data(addr), data)
             case MessageType.REQUEST:
                 resp = self.router.handle_request(route, self.get_player_data(addr), data)
-                if isinstance(resp, Serializable):
-                    resp = resp.serialize()
                 self.send_message(addr, MessageType.RESPONSE, route, resp)
             case MessageType.RESPONSE:
                 self.router.handle_response(route, self.get_player_data(addr), data)
@@ -149,11 +147,13 @@ class Host:
             self, 
             host: str, 
             port: int, 
-            router: ServerRouter = ServerRouter(), 
+            router: "Router.ServerRouter" = None, 
             player_data_type: type[PlayerData] = PlayerData, 
             connection_data_type: type[ConnectionData] = ConnectionData):
         self.serializer = Writer()
         self.deserializer = Reader()
+        if router is None:
+            router = Router.ServerRouter()
         self.router = router
         self.game_manager = GameManager(self.serializer, router, player_data_type, connection_data_type)
 
@@ -192,24 +192,24 @@ class Host:
         self.game_manager.synchronize()
 
     def handle_connection(self, addr: tuple):
-        while True:
-            try:
-                tp, route, data = self.deserializer.get_message(self.game_manager.conns[addr])
-                serverLogger.debug("%s -> %s Route: %s", addr[0], tp.name, route)
-                self.game_manager.handle_message(addr, tp, route, data)
-            except socket.timeout:
-                pass
-            except ConnectionResetError:
-                serverLogger.error(f"ConnectionResetError with {addr}")
-                return
-            except UnicodeDecodeError:
-                serverLogger.error(f"UnicodeDecodeError with {addr}")
-                return
-            except Exception as e:
-                raise e
-            finally:
-                self.game_manager.disconnect_player(addr)
-
+        try:
+            while True:
+                try:
+                    tp, route, data = self.deserializer.get_message(self.game_manager.conns[addr])
+                    serverLogger.debug("%s -> %s Route: %s", addr[0], tp.name, route)
+                    self.game_manager.handle_message(addr, tp, route, data)
+                except socket.timeout:
+                    pass
+        except ConnectionResetError:
+            serverLogger.error(f"ConnectionResetError with {addr}")
+            return
+        except UnicodeDecodeError:
+            serverLogger.error(f"UnicodeDecodeError with {addr}")
+            return
+        except Exception as e:
+            raise e
+        finally:
+            self.game_manager.disconnect_player(addr)
 
     def start(self):
         t = threading.Thread(target=self.await_connection)

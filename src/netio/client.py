@@ -4,7 +4,7 @@ import threading
 from .serialization.serializer import Serializable
 from .datatypes import ConnectionData, PlayerData
 from .serialization.routing import Writer, Reader, MessageType
-from .router import ClientRouter
+from . import router as Router 
 from .logger import clientLogger
 
 
@@ -16,10 +16,12 @@ class Client:
             self, 
             host: str, 
             port: int, 
-            router: ClientRouter = ClientRouter(), 
+            router: "Router.ClientRouter" = None, 
             pdata_type: type[PlayerData] = PlayerData
             ):
         self.address = (host, port)
+        if router is None:
+            router = Router.ClientRouter()
         self.router = router
         self.router.client = self
         
@@ -57,7 +59,7 @@ class Client:
                         raise ValueError("WTF?")
                     case MessageType.CREATE:
                         clientLogger.info("Creating new object with id: %s", data[1])
-                        obj = Serializable.deserialize(data)
+                        obj = Serializable.get_class(data[0]).deserialize(data)
                         self._objects.append(obj)
                         obj.client_on_create()
                     case MessageType.SYNCHRONIZE:

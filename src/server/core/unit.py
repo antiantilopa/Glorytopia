@@ -1,13 +1,14 @@
 from shared.asset_types import UnitType, TileType
-from shared.unit import SerializedUnit, UnitData, SerializedEffect
+from shared.player import PlayerData_
+from shared.unit import UnitData
 from engine_antiantilopa import Vector2d
-from .world import World
 from math import floor, ceil
-from .tile import Tile
+
+from . import world as World
+from . import tile as Tile
 from . import city as City
 from . import player as Player
 from .ability import Ability
-
 
 class Unit(UnitData):
     attached_city: "City.City"
@@ -19,7 +20,7 @@ class Unit(UnitData):
         self.attached_city = attached_city
         self.previous_pos = Vector2d(-1, -1)
         Unit.units.append(self)
-        World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 1
+        World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 1
         for ability in self.utype.abilities:
             Ability.get(ability).on_spawn(self)
         for effect in self.effects:
@@ -43,7 +44,7 @@ class Unit(UnitData):
                     return array.index(poss)
             return -1
 
-        def get_mv(movement: float, tile: Tile) -> float:
+        def get_mv(movement: float, tile: "Tile.Tile") -> float:
             res = 0 if tile.ttype.stops_movement else movement - 1 * (1 - 0.5 * tile.has_road)
             for ability in self.utype.abilities:
                 res = max(res, Ability.get(ability).on_terrain_movement(self, tile, movement))
@@ -53,15 +54,15 @@ class Unit(UnitData):
         while len(s_poses) != 0:
             s_pos = s_poses.pop(0)
             if s_pos[1] <= 0:
-                if not World.object.unit_mask[s_pos[0].y][s_pos[0].x]:
+                if not World.World.object.unit_mask[s_pos[0].y][s_pos[0].x]:
                     e_poses.append(s_pos)
                 continue
             for (dx, dy) in ((-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1)):
                 n_pos = s_pos[0] + Vector2d(dx, dy)
-                if not World.object.is_in(n_pos):
+                if not World.World.object.is_in(n_pos):
                     continue
                 tmp = False
-                if World.object.unit_mask[n_pos.y][n_pos.x]:
+                if World.World.object.unit_mask[n_pos.y][n_pos.x]:
                     for unit in Unit.units:
                         if unit.pos == n_pos:
                             if unit.owner != self.owner:
@@ -69,16 +70,16 @@ class Unit(UnitData):
                             break
                 if tmp is True:
                     continue
-                if World.object.get(n_pos).ttype.is_water != self.utype.water:
+                if World.World.object.get(n_pos).ttype.is_water != self.utype.water:
                     continue
                 available = False
                 for tech in Player.Player.players[self.owner].techs:
-                    if World.object.get(n_pos).ttype in tech.accessable:
+                    if World.World.object.get(n_pos).ttype in tech.accessable:
                         available = True
                         break
                 if not available:
                     continue
-                next_mv = get_mv(s_pos[1], World.object.get(n_pos))
+                next_mv = get_mv(s_pos[1], World.World.object.get(n_pos))
                 if next_mv < 0:
                     continue
                 r = is_in(n_pos, s_poses)
@@ -92,7 +93,7 @@ class Unit(UnitData):
                         s_poses.append([n_pos, next_mv])
                     continue
                 s_poses.append([n_pos, next_mv])
-            if World.object.unit_mask[s_pos[0].y][s_pos[0].x] == False:
+            if World.World.object.unit_mask[s_pos[0].y][s_pos[0].x] == False:
                 e_poses.append(s_pos)
         return e_poses
     
@@ -120,7 +121,7 @@ class Unit(UnitData):
     def calc_attack(self, other: "Unit") -> tuple[int, int]:
         defense_bonus = 1
         for tech in Player.Player.players[other.owner].techs:
-            if World.object.get(other.pos).ttype in tech.defence:
+            if World.World.object.get(other.pos).ttype in tech.defence:
                 defense_bonus = 1.5
                 break
         for ability in other.utype.abilities:
@@ -183,7 +184,7 @@ class Unit(UnitData):
     def move(self, pos: Vector2d):
         if not (pos in self.get_possible_moves()):
             return 
-        if World.object.unit_mask[pos.y][pos.x]:
+        if World.World.object.unit_mask[pos.y][pos.x]:
             self.attacked = True
             save = False
             for ability in self.utype.abilities:
@@ -199,7 +200,7 @@ class Unit(UnitData):
                     unit.recv_damage(attack)
                     self.recv_damage(defense)
                     if unit.health <= 0 and self.utype.attack_range == 1:
-                        World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 0
+                        World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 0
                         self.pos = unit.pos
                     if unit.health <= 0:
                         for ability in self.utype.abilities:
@@ -221,9 +222,9 @@ class Unit(UnitData):
                 save |= effect.save_attacked(self)
             if not save:
                 self.attacked = True
-            World.object.unit_mask[self.pos.y][self.pos.x] = 0
+            World.World.object.unit_mask[self.pos.y][self.pos.x] = 0
             self.pos = pos
-            World.object.unit_mask[self.pos.y][self.pos.x] = 1
+            World.World.object.unit_mask[self.pos.y][self.pos.x] = 1
             for ability in self.utype.abilities:
                 Ability.get(ability).after_movement(self)
             for effect in self.effects:
@@ -231,7 +232,7 @@ class Unit(UnitData):
     
     def heal(self):
         heal_value = 0
-        if World.object.get(self.pos).owner == self.owner:
+        if World.World.object.get(self.pos).owner == self.owner:
             heal_value = 4
         else:
             heal_value = 2
@@ -246,7 +247,7 @@ class Unit(UnitData):
             effect.after_heal(self)
     
     def get_vision_range(self) -> int:
-        vision = World.object.get(self.pos).ttype.vision_range
+        vision = World.World.object.get(self.pos).ttype.vision_range
         for ability in self.utype.abilities:
             vision = max(vision, Ability.get(ability).get_vision_range(self))
         for effect in self.effects:
@@ -275,6 +276,10 @@ class Unit(UnitData):
             else:
                 i += 1 
 
+    def validate(self, player_data: PlayerData_):
+        player = Player.Player.by_id(player_data.id)
+        return player.vision[self.pos.y][self.pos.x] and self.get_visibility()
+
     def destroy(self):
         for ability in self.utype.abilities:
             Ability.get(ability).on_death(self)
@@ -282,10 +287,10 @@ class Unit(UnitData):
             effect.on_death(self)
         if self.attached_city is not None:
             self.attached_city.fullness -= 1
-        World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 0
+        World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 0
         for unit in Unit.units:
             if unit.pos == self.pos and unit != self:
-                World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 1
+                World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 1
                 break
         Unit.units.remove(self)
         Player.Player.players[self.owner].units.remove(self)

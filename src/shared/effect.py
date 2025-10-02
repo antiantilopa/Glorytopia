@@ -3,7 +3,7 @@ from netio import GenericType, Serializable, SerializeField
 from . import unit as Unit
 from . import tile as Tile
 
-class Effect(GenericType["Effect"], Serializable):
+class Effect(GenericType):
     stackable = True
 
     duration: int

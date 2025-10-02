@@ -1,21 +1,35 @@
-from netio.router import ServerRouter
+from server.network.game_server import GameServerRouter
 from netio.serialization.routing import MessageType
 from shared.asset_types import Nation
-from shared.player import PlayerData
+from shared.player import PlayerData_
 
-router = ServerRouter("LOBBY")
+router = GameServerRouter("LOBBY")
 
 @router.event("JOIN")
-def join(player_data: PlayerData, name: tuple[str]):
+def join(pdata: PlayerData_, data: tuple[str]):
     if router.host.game_started:
-        router.host.game_manager.send_error(player_data.address, "", "This game has already started.")
+        router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", "This game has already started.")
         return
-    if (name[0] in [i.nickname for i in router.host.game_manager.players]) or (name[0] == "") or not (name[0].isascii()):
-        router.host.game_manager.send_error(player_data.address, "", "This name is already taken, or it is prohibited.")
+    name = data[0]
+    if pdata.id != -1:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", "You have already joined the lobby.")
         return
-    if len(name[0]) > 15:
-        router.host.game_manager.send_error(player_data.address, "", "This name is too long. 15 symbols maximum.")
+    if name in [i.nickname for i in router.host.game_manager.players]:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", "This name is already taken.")
         return
+    if name == "":
+        router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", "Name cannot be empty.")
+        return
+    if not (name.isascii()):
+        router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", "This name contains non-ascii characters.")
+        return
+    if len(name) > 15:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", f"This name is too long: {len(name)}. 15 symbols maximum.")
+        return
+    for prohibited_name in router.host.prohibited_names:
+        if prohibited_name in name.lower():
+            router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", f"This name contains prohibited substring: {prohibited_name}.")
+            return
 
     print(f"{name[0]} joined the game!")
 
@@ -33,139 +47,143 @@ def join(player_data: PlayerData, name: tuple[str]):
             else:
                 l = mid + 1
         return len(ordered_list)
+    
+    pdata.color = mex(used_colors)
+    pdata.nation = Nation.by_id(0)
+    pdata.id = max([-1] + [player.id for player in router.host.game_manager.players]) + 1
+    pdata.is_dead = False
+    pdata.nickname = name
 
-    new_conn = Connection(addr, name[0], self.conns[addr])
-    new_conn.color = mex(used_colors)
+    for pdata2 in router.host.game_manager.players:
+        router.host.send_message(pdata2.address, MessageType.EVENT, "LOBBY/JOIN", (name, pdata.color, pdata.nation))
 
-    self.game_starting = False
-    for j in self.conns:
-        self.send_to_addr(j, Format.event("LOBBY/JOIN", [new_conn.name]))
-        self.send_to_addr(j, Format.event("LOBBY/COLOR_CHANGE", (new_conn.name, new_conn.color)))
+# TODO !!! SAVE PLAYER DATA NOT DONE YET !!!
 
-@respond.event("RECONNECT")
-def reconnect(self: Server, addr: Address, name_and_recovery: tuple[str, int]):
-    if not self.game_started:
-        self.send_to_addr(addr, Format.error("LOBBY/RECONNECT", ["this game has not started yet."]))
+# @router.event("RECONNECT")
+# def reconnect(pdata: PlayerData_, data: tuple):
+#     if not self.game_started:
+#         router.host.game_manager.send_error(pdata.address, "LOBBY/RECONNECT", ["this game has not started yet."]))
+#         return
+#     if addr in [pdata.addr for pdata in router.host.game_manager.players]:
+#         router.host.game_manager.send_error(pdata.address, "LOBBY/RECONNECT", ["you are already connected."]))
+#         return
+#     name, recovery_code = name_and_recovery
+#     if name not in [pdata.nickname for pdata in router.host.game_manager.players]:
+#         router.host.game_manager.send_error(pdata.address, "LOBBY/RECONNECT", ["you are not registered in this game."]))
+#         return
+#     pdata = Connection.get_by_name(name)
+#     if pdata.recovery_code != recovery_code:
+#         router.host.game_manager.send_error(pdata.address, "LOBBY/RECONNECT", ["recovery code is not correct."]))
+#         return
+    
+#     pdata.recovery_code = None
+#     pdata.addr = addr
+#     pdata.pdata = router.host.game_manager.players[addr]
+    
+#     for j in router.host.game_manager.players:
+#         self.send_to_addr(j, Format.event("LOBBY/RECONNECT", [pdata.nickname]))
+
+@router.event("MESSAGE")
+def message_event(pdata: PlayerData_, data: tuple[str]):
+    message = data[0]
+    if pdata.id == -1:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "you did not joined the lobby.")
         return
-    if addr in [conn.addr for conn in Connection.conns]:
-        self.send_to_addr(addr, Format.error("LOBBY/RECONNECT", ["you are already connected."]))
+    if message == "":
+        router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "message cannot be empty.")
         return
-    name, recovery_code = name_and_recovery
-    if name not in [conn.name for conn in Connection.conns]:
-        self.send_to_addr(addr, Format.error("LOBBY/RECONNECT", ["you are not registered in this game."]))
+    if not message.isascii():
+        router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "this message contains non-ascii characters.")
         return
-    conn = Connection.get_by_name(name)
-    if conn.recovery_code != recovery_code:
-        self.send_to_addr(addr, Format.error("LOBBY/RECONNECT", ["recovery code is not correct."]))
+    if message.isspace():
+        router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "message cannot be only spaces.")
+        return
+    if len(message) > 50:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "message is too long. 50 characters maximum.")
         return
     
-    conn.recovery_code = None
-    conn.addr = addr
-    conn.conn = self.conns[addr]
-    
-    for j in self.conns:
-        self.send_to_addr(j, Format.event("LOBBY/RECONNECT", [conn.name]))
+    print(f"<{pdata.nickname}> {message[0]}")
+    for pdata2 in router.host.game_manager.players:
+        router.host.send_message(pdata2.address, MessageType.EVENT, "LOBBY/MESSAGE", (pdata.nickname, message))
 
-@respond.event("MESSAGE")
-def message(self: Server, addr: Address, message: tuple[str]):
-    if message[0] == "":
-        self.send_to_addr(addr, Format.error("LOBBY/MESSAGE", ["message cannot be empty."]))
+@router.event("READY")
+def ready(pdata: PlayerData_, data: tuple[bool]):
+    if pdata.id == -1:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "you did not joined the lobby.")
         return
-    if len(message[0]) > 50:
-        self.send_to_addr(addr, Format.error("LOBBY/MESSAGE", ["message is too long. 64 characters maximum."]))
+    if router.host.game_started:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/READY", "this game has already started.")
         return
-    conn = Connection.get_by_addr(addr)
-    print(f"<{conn.name}> {message[0]}")
-    for i in self.conns:
-        self.send_to_addr(i, Format.event("LOBBY/MESSAGE", (conn.name, message[0])))
+    if data[0]:
+        print(f"! <{pdata.nickname}> ready")
+    else:
+        print(f"! <{pdata.nickname}> not ready")
+    pdata.is_ready = bool(data[0])
+    for pdata2 in router.host.game_manager.players:
+        router.host.send_message(pdata2.address, MessageType.EVENT, "LOBBY/READY", (pdata.nickname, pdata.is_ready))
 
-@respond.event("READY")
-def ready(self: Server, addr: Address, player_readiness: tuple[int]):
-    if self.game_started:
-        self.send_to_addr(addr, Format.error("LOBBY/READY", ["this game has already started."]))
-        return
-    if addr not in [i.addr for i in Connection.conns]:
-        self.send_to_addr(addr, Format.error("LOBBY/READY", ["you did not joined the lobby."]))
-        return
-    conn = Connection.get_by_addr(addr)
-    print(f"! <{conn.name}> ready = {(player_readiness[0])}")
-    conn.ready = int(bool(player_readiness[0]))
-    for i in self.conns:
-        self.send_to_addr(i, Format.event("LOBBY/READY", (conn.name, int(bool(player_readiness[0])))))
-
-    if player_readiness[0]:
+    if data[0]:
         start = True
-        for ready in [i.ready for i in Connection.conns]:
+        for ready in [i.is_ready for i in router.host.game_manager.players]:
             start = start and ready
         if start:
-            self.game_starting = True
+            router.host.game_starting = True
             return
     else:
-        self.game_starting = False
+        router.host.game_starting = False
 
-@respond.event("COLOR_CHANGE")
-def color_change(self: Server, addr: Address, message: tuple[int]):
-    if self.game_started:
-        self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["this game has already started."]))
-    if addr not in [i.addr for i in Connection.conns]:
-        self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["you did not joined the lobby."]))
+@router.event("COLOR_CHANGE")
+def color_change(pdata: PlayerData_, data: tuple[int]):
+    if pdata.id == -1:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "you did not joined the lobby.")
         return
-    if message[0] in [conn.color for conn in Connection.conns]:
-        self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["this color is already taken."]))
+    if router.host.game_started:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/READY", "this game has already started.")
         return
-    if message[0] < 0:
-        self.send_to_addr(addr, Format.error("LOBBY/COLOR_CHANGE", ["color is out of range. [0; +inf) are allowed."]))
+    color = int(data[0])
+    if color in [i.color for i in router.host.game_manager.players]:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/COLOR_CHANGE", f"this color {color} is already taken.")
         return
-    conn = Connection.get_by_addr(addr)
-    conn.color = message[0]
-    for i in self.conns:
-        self.send_to_addr(i, Format.event("LOBBY/COLOR_CHANGE", (conn.name, message[0])))
+    if color < 0:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/COLOR_CHANGE", f"this color {color} is out of range. [0; +inf) are allowed.")
+        return
 
-@respond.event("NATION_CHANGE")
-def nation_change(self: Server, addr: Address, message: tuple[int]):
-    if self.game_started:
-        self.send_to_addr(addr, Format.error("LOBBY/NATION_CHANGE", ["this game has already started."]))
-        return
-    if addr not in [i.addr for i in Connection.conns]:
-        self.send_to_addr(addr, Format.error("LOBBY/NATION_CHANGE", ["you did not joined the lobby."]))
-        return
-    if not (0 <= message[0] < len(Nation.values())):
-        self.send_to_addr(addr, Format.error("LOBBY/NATION_CHANGE", [f"nation is out of range. [0; {len(Nation.values())}) are allowed."]))
-        return
-    conn = Connection.get_by_addr(addr)
-    conn.nation = message[0]
-    for i in self.conns:
-        self.send_to_addr(i, Format.event("LOBBY/NATION_CHANGE", (conn.name, message[0])))
+    pdata.color = color
+    for i in router.host.game_manager.players:
+        router.host.send_message(i.address, MessageType.EVENT, "LOBBY/COLOR_CHANGE", (pdata.nickname, color))
 
-@respond.event("ADMIN")
-def eve_lobby_admin(self: Server, addr: Address, message: tuple[str]):
-    if self.game_started:
-        self.send_to_addr(addr, Format.error("LOBBY/ADMIN", ["this game has already started."]))
+@router.event("NATION_CHANGE")
+def nation_change(pdata: PlayerData_, data: tuple[int]):
+    if pdata.id == -1:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "you did not joined the lobby.")
         return
-    if self.admin_addr == Address(("", 0)):
-        self.send_to_addr(addr, Format.error("LOBBY/ADMIN", ["this lobby has admin."]))
+    if router.host.game_started:
+        router.host.game_manager.send_error(pdata.address, "LOBBY/READY", "this game has already started.")
         return
-    if message[0] != self.password:
-        self.send_to_addr(addr, Format.error("LOBBY/ADMIN", ["password is not correct."]))
+    if not (0 <= int(data[0]) < len(Nation.values())):
+        router.host.game_manager.send_error(pdata.address, "LOBBY/NATION_CHANGE", [f"this nation {int(data[0])} is out of range. [0; {len(Nation.values())}) are allowed."])
         return
-    self.admin_addr = addr
+    
+    nation = Nation.by_id(int(data[0]))
 
-@respond.event("ADMIN/CHANGE_ORDER")
-def eve_lobby_change_order(self: Server, addr: Address, message: tuple[str, str]):
+    pdata.nation = nation
+
+@router.event("ADMIN/CHANGE_ORDER")
+def eve_lobby_change_order(pdata: PlayerData_, data: tuple):
     raise NotImplementedError("ADMIN/CHANGE_ORDER")
 
-@respond.request("READINESS")
-def req_readiness(self: Server, addr: Address, _: tuple):
-    self.send_to_addr(addr, Format.info("LOBBY/READINESS", [(conn.name, conn.ready) for conn in Connection.conns]))
+@router.request("READINESS")
+def req_readiness(pdata: PlayerData_, data: tuple):
+    return [(pdata.nickname, pdata.is_ready) for pdata in router.host.game_manager.players]
 
-@respond.request("NAMES")
-def req_readiness(self: Server, addr: Address, _: tuple):
-    self.send_to_addr(addr, Format.info("LOBBY/NAMES", [conn.name for conn in Connection.conns]))
+@router.request("NAMES")
+def req_readiness(pdata: PlayerData_, data: tuple):
+    return[pdata.nickname for pdata in router.host.game_manager.players]
 
-@respond.request("COLORS")
-def req_color(self: Server, addr: Address, _: tuple):
-    self.send_to_addr(addr, Format.info("LOBBY/COLORS", [(conn.name, conn.color) for conn in Connection.conns]))
+@router.request("COLORS")
+def req_color(pdata: PlayerData_, data: tuple):
+    return[(pdata.nickname, pdata.color) for pdata in router.host.game_manager.players]
 
-@respond.request("NATIONS")
-def req_color(self: Server, addr: Address, _: tuple):
-    self.send_to_addr(addr, Format.info("LOBBY/NATIONS", [(conn.name, conn.color) for conn in Connection.conns]))
+@router.request("NATIONS")
+def req_color(pdata: PlayerData_, data: tuple):
+    return[(pdata.nickname, pdata.color) for pdata in router.host.game_manager.players]

@@ -23,6 +23,7 @@ class PlayerData(Serializable):
     @classmethod
     def create(cls, addr: Address, conn_data: ConnectionData) -> Self:
         obj = cls.__new__(cls)
+        cls.__init__(obj)
         assert isinstance(obj, PlayerData)
         obj.address = addr
         return obj

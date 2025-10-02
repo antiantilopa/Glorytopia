@@ -1,9 +1,9 @@
-from shared.tile import SerializedTile, TileData
-from .tile import Tile
+from shared.tile import TileData
 from engine_antiantilopa import Vector2d
 from shared.asset_types import TileType
 from .random_map import pangea
 
+from .tile import Tile
 
 def get_by_height(number: int):
     mp = {
@@ -47,31 +47,3 @@ class World:
 
     def is_in(self, pos: Vector2d) -> bool:
         return pos.is_in_box(Vector2d(0, 0), self.size - Vector2d(1, 1))
-
-    def to_serializable(self) -> SerializedWorld:
-        result = []
-        for row in self.world:
-            row_res = []
-            for tile in row:
-                tdata = tile.to_serializable()
-                tdata.pop(2) # pos
-                row_res.append(tdata)
-            result.append(row_res)
-        return result
-
-    @staticmethod
-    def from_serializable(serializable: SerializedWorld) -> "World":
-        width = len(serializable[0])
-        height = len(serializable)
-        world = World(width, height)
-        for j in range(height):
-            for i in range(width):
-                ser = list(serializable[j][i])
-                ser.insert(2, Vector2d(i, j))  # insert position
-                tdata = TileData.from_serializable(ser)
-                t = Tile(Vector2d(i, j), tdata.ttype, tdata.resource)
-                t.building = tdata.building
-                t.owner = tdata.owner
-                del tdata
-                world.world[j][i] = t
-        return world

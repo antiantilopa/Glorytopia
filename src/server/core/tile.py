@@ -1,7 +1,10 @@
+from shared.player import PlayerData_
 from shared.tile import TileData
 from shared.asset_types import TileType, BuildingType, ResourceType, TerraForm
 from engine_antiantilopa import Vector2d
+
 from . import world as World
+from . import player as Player
 
 class Tile(TileData):
     
@@ -24,3 +27,6 @@ class Tile(TileData):
         self.ttype = terraform.to_ttype
         self.resource = terraform.to_resource
         
+    def validate(self, player_data: PlayerData_):
+        player = Player.Player.by_id(player_data.id)
+        return player.vision[self.pos.y][self.pos.x]

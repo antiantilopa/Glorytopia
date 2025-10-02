@@ -1,8 +1,8 @@
+from shared.player import PlayerData_
 from .random_names import random_funny_name as random_name
 from engine_antiantilopa import Vector2d
 from shared.asset_types import UnitType, BuildingType
 from shared.city import CityData
-
 
 from .world import World
 from . import unit as Unit
@@ -86,4 +86,7 @@ class City(CityData):
         City.cities.remove(self)
         Player.Player.players[self.owner].cities.remove(self)
         del self
-    
+
+    def validate(self, player_data: PlayerData_):
+        player = Player.Player.by_id(player_data.id)
+        return player.vision[self.pos.y][self.pos.x]

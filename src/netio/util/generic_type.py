@@ -1,10 +1,14 @@
-from typing import TypeVar, Self
-from ..serialization.serializer import Serializable
+from typing import Annotated, TypeVar, Self
+from ..serialization.serializer import Serializable, SerializeField
 
 class GenericType(Serializable):
     types: dict[str, Self] = {}
     name: str
-    id: int
+    id: Annotated[int, SerializeField()]
+
+    def __init_subclass__(cls, **kwargs):
+        cls.types = {} # JA JEBAL KURWA BOBR JA PERDOLE TODO
+        return super().__init_subclass__(**kwargs)
 
     @classmethod
     def values(cls) -> list[Self]:

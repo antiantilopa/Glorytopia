@@ -1,3 +1,7 @@
+# fuck, i will do recording later
+# TODO
+
+
 import os
 from . import player as Player
 from shared.error_codes import ErrorCodes
@@ -5,6 +9,7 @@ from typing import Callable
 from shared.globals.mod_versions import ModVersions
 from server.globals.replay import RecordReplaySettings
 from engine_antiantilopa import Vector2d
+from netio import Serializable
 
 class GameEvent:
     initialized: bool = False
@@ -13,13 +18,14 @@ class GameEvent:
         
     @staticmethod
     def start_recording() -> None:
+        # THAT IS ALL FUCKED FUCKING UP!!!!
         if RecordReplaySettings.record_replay.chosen == 0:
             return
         if not os.path.exists(RecordReplaySettings.replay_path):
             os.mkdir(RecordReplaySettings.replay_path)
-        data = to_serializable(ModVersions.mods)
+        data = Serializable.serialize(ModVersions.mods)
         with open(f"../replays/{RecordReplaySettings.replay_file_name}.replay", "wb") as f:
-            f.write(Serializator.encode(data))
+            f.write(data)
 
     @staticmethod
     def record_event(self: "Player.Player", func_name: str, *args) -> None:

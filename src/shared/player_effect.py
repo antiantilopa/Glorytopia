@@ -1,8 +1,10 @@
+# TODO
+
 from netio import GenericType, Serializable
 from . import unit as Unit
 from . import tile as Tile
 
-class PlayerEffect(GenericType["PlayerEffect"], Serializable):
+class PlayerEffect(GenericType):
     duration: int
     name: str
     

@@ -5,8 +5,8 @@ from .asset_types import TileType, BuildingType, ResourceType
 
 class TileData(Serializable):
     pos: Annotated[Vector2d, SerializeField()]
-    ttype: Annotated[TileType, Serializable(by_id=True)]
-    resource: Annotated[ResourceType, Serializable(by_id=True)]
+    ttype: Annotated[TileType, SerializeField(by_id=True)]
+    resource: Annotated[ResourceType, SerializeField(by_id=True)]
     has_road: Annotated[bool, SerializeField()]
     owner: Annotated[int, SerializeField()]
     building: Annotated[BuildingType | None, SerializeField()]

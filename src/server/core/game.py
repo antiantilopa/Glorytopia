@@ -1,14 +1,15 @@
 import os
 from server.globals.backup import BackupSettings
-from .world import World
-from .player import Player
-from .city import City
-from .unit import Unit
 from shared.asset_types import Nation, TileType, ResourceType, UnitType
 from engine_antiantilopa import Vector2d, Angle
 from math import pi
 from random import random, randint
 from pathlib import Path
+
+from .world import World
+from .player import Player
+from .city import City
+from .unit import Unit
 
 def abs(x):
     return x * ((x > 0) * 2 - 1)
@@ -155,6 +156,8 @@ class Game:
 
         self.players[self.now_playing_player_index].start_turn(ignore_updated_objs = 1)
 
+    # TODO fuck saves and records !!!
+    
     def save(self, folder_name: str = "", name: str = "glorytopia.save"):
         if BackupSettings.backup_number.value == 0:
             return
@@ -164,7 +167,8 @@ class Game:
                 saves.sort(key=lambda x: os.path.getmtime(Path("../saves/") / folder_name / x))
                 os.remove(Path("../saves/") / folder_name / saves[0])
         with open(Path("../saves/") / folder_name / name, "wb") as f:
-            f.write(Serializator.encode(self.to_serializable()))
+            # f.write(Serializator.encode(self.to_serializable()))
+            raise Exception("TODO game saver")
 
     @staticmethod
     def clear_game() -> None:

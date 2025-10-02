@@ -2,21 +2,20 @@ from server.core import *
 from server.core.game_event import GameEvent
 from server.network import game, lobby
 from server.network.game_server import GameServer
-from server.network.server import Server, Connection
 from server.globals.backup import BackupSettings
 import socket, time, random, os
 from engine_antiantilopa import Vector2d
-from shared.connection_data import ConnectionData
 from shared.loader import load_mains
 from shared.asset_types import *
 from pathlib import Path
-from netio import Host, MessageType
-from shared.player import PlayerData
+from netio import Host, MessageType, ConnectionData
+from shared.player import PlayerData_
 
 import logging
 
 load_mains()
-GameEvent.start_recording()
+# GameEvent.start_recording()
+# TODO
 saves_path = BackupSettings.saves_path
 
 if os.path.exists(saves_path):
@@ -83,11 +82,11 @@ BackupSettings.save_folder_name = name
 def at_connect(conn_data: ConnectionData) -> bool:
     if len(host.game_manager.players) == host.max_players:
         return False
-    logging.info(f"Connection with {conn_data.nickname} established")
+    logging.info(f"Connection with someone established")
     return True
 
 @host.router.on_disconnect()
-def at_disconnect(player_data: PlayerData):
+def at_disconnect(player_data: PlayerData_):
     logging.info(f"Connection with {player_data.nickname} has lost.")
     if not host.game_started:
         for player in host.game_manager.players:
@@ -98,6 +97,7 @@ def at_disconnect(player_data: PlayerData):
         logging.info(f"{player_data.nickname} has disconnected from the game.")
         recovery_code = random.randint(100000, 999999)
         player_data.recovery_code = recovery_code
+        # TODO player data save
         logging.warning(f"Recovery code: {recovery_code}")
         logging.info("Awaiting for player to reconnect...")
 
