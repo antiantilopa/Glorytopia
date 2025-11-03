@@ -1,11 +1,20 @@
+from engine_antiantilopa import Vector2d
 from netio import Host
 from netio.datatypes import ConnectionData
 from netio.router import ServerRouter
+from netio.serialization.serializer import Serializable
 from netio.server import GameManager
 
+from server.core.city import City
 from server.core.game import Game
+from server.core.tile import Tile
 from server.core.unit import Unit
+from server.core.world import World
 from shared.player import PlayerData_
+
+
+class GamePlayer(PlayerData_):
+    pass
 
 class GameServer(Host):
     game_started: bool
@@ -19,7 +28,7 @@ class GameServer(Host):
     obj: "GameServer" = None
     
     def __init__(self, host, port, max_players: int):
-        super().__init__(host, port, ServerRouter(), PlayerData_, ConnectionData)
+        super().__init__(host, port, ServerRouter(), GamePlayer, ConnectionData, GameManager_)
         self.game_started = False
         self.game = None
         self.max_players = max_players
@@ -31,9 +40,33 @@ class GameServer(Host):
                 self.delete_object(unit)
         self.game.remove_dead_units()
 
+    def create_new_objects(self):
+        # HACK: better create new list for all new objects. also now only units are created dynamically, but maybe in future...
+        for obj in Unit.units:
+            if not self.game_manager.is_synchronized(obj):
+                self.create_object(obj)
+
+    # USE ONLY ONCE
+    def create_all_objects(self):
+        # HACK: also a bad decision, but whatever for now
+        for city in City.cities:
+            self.create_object(city)
+        for unit in Unit.units:
+            self.create_object(unit)
+        for x in range(self.game.world.size.x):
+            for y in range(self.game.world.size.y):
+                tile = self.game.world.get(Vector2d(x, y))
+                self.create_object(tile)
+
 class GameServerRouter(ServerRouter):
     host: GameServer
 
 class GameManager_(GameManager):
     host: GameServer
-    players: list[PlayerData_]
+    players: list[GamePlayer]
+
+    def is_synchronized(self, obj: Serializable) -> bool:
+        return obj in self._synchronized
+
+    def synchronize(self):
+        return GameManager.synchronize(self)

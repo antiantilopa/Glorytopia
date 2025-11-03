@@ -1,5 +1,6 @@
 import socket
 import threading
+import time
 from typing import Self
 
 from .datatypes import PlayerData, ConnectionData, Address
@@ -27,7 +28,6 @@ class GameManager:
         
         self.serializer = serializer
         self.router = router
-        self.router.host = self
         
         self.pdata_type = player_data_type
         self.cdata_type = connection_data_type
@@ -56,6 +56,7 @@ class GameManager:
         self.send_message(addr, MessageType.CREATE, "", data)
 
     def create_object(self, obj: Serializable):
+        assert not obj._primitive, "cannot create primitive object"
         for addr in self.conns.keys():
             data = obj.serialize()
             if obj.validate(self.get_player_data(addr)):
@@ -66,6 +67,7 @@ class GameManager:
         self._synchronized.append(obj)
 
     def delete_object(self, obj: Serializable):
+        assert not obj._primitive, "cannot create primitive object"
         for addr in self.conns.keys():
             if obj.validate(self.get_player_data(addr)):
                 self.send_del(addr, (obj._id,))
@@ -94,6 +96,7 @@ class GameManager:
                 self.synchronize()
             case MessageType.ERROR:
                 self.send_error(addr, "root", "Ты офигел?")
+                serverLogger.error("client sent error: %s", data)
 
     def get_player_data(self, addr: Address):
         for i in self.players:
@@ -104,7 +107,7 @@ class GameManager:
     def send_error(self, addr: Address, route: str, details: str):
         sock = self.conns[addr]
         serverLogger.error("Client error. Route: %s Details: %s", route, details)
-        self.serializer.encode(sock, (MessageType.ERROR, route, (details,)))
+        self.serializer.encode(sock, (MessageType.ERROR.value, route, (details,)))
     
     def synchronize(self):
         for addr, con in self.conns.items():
@@ -149,13 +152,15 @@ class Host:
             port: int, 
             router: "Router.ServerRouter" = None, 
             player_data_type: type[PlayerData] = PlayerData, 
-            connection_data_type: type[ConnectionData] = ConnectionData):
+            connection_data_type: type[ConnectionData] = ConnectionData,
+            game_manager_type: type[GameManager] = GameManager):
         self.serializer = Writer()
         self.deserializer = Reader()
         if router is None:
             router = Router.ServerRouter()
         self.router = router
-        self.game_manager = GameManager(self.serializer, router, player_data_type, connection_data_type)
+        router.host = self
+        self.game_manager = game_manager_type(self.serializer, router, player_data_type, connection_data_type)
 
         self.sock = socket.socket()
         self.sock.settimeout(1)
@@ -209,6 +214,8 @@ class Host:
         except Exception as e:
             raise e
         finally:
+            if self.router._on_disconnect:
+                self.router._on_disconnect(self.game_manager.get_player_data(addr))
             self.game_manager.disconnect_player(addr)
 
     def start(self):

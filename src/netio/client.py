@@ -39,7 +39,9 @@ class Client:
         clientLogger.info("Connected to the server.")
         return sock
     
-    def send_message(self, tp: MessageType, route: str, data: tuple):
+    def send_message(self, tp: MessageType, route: str, data: tuple|Serializable):
+        if isinstance(data, Serializable):
+            data = data.serialize()
         clientLogger.debug("%s -> Route: %s", tp.name, route)
         self.serializer.encode(self.sock, (tp.value, route, data))
 
@@ -58,10 +60,11 @@ class Client:
                     case MessageType.CONNECT:
                         raise ValueError("WTF?")
                     case MessageType.CREATE:
-                        clientLogger.info("Creating new object with id: %s", data[1])
-                        obj = Serializable.get_class(data[0]).deserialize(data)
+                        cls = Serializable.get_class(data[0])
+                        obj = cls.deserialize(data)
                         self._objects.append(obj)
                         obj.client_on_create()
+                        clientLogger.info("Created new object with id: %s, type %s", data[1], cls)
                     case MessageType.SYNCHRONIZE:
                         obj = [i for i in self._objects if i._id == data[1]]
                         if len(obj) == 0:
@@ -69,6 +72,7 @@ class Client:
                             continue
                         obj = obj[0]
                         obj.deserialize_updates(data)
+                        obj.client_on_update()
                         clientLogger.info("Synchronized. Object ID: %s", data[1])
                     case MessageType.DELETE:
                         obj = [i for i in self._objects if i._id == data[0]]

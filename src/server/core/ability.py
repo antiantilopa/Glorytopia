@@ -3,9 +3,19 @@ from . import tile as Tile
 from . import unit as Unit
 
 class Ability(GenericType):
+    # Never should be serialized.
+    name: str
+
+    ID = 0
 
     def __init_subclass__(cls):
-        Ability.add(cls)
+        ability = cls(cls.name)
+        Ability.add(ability)
+
+    def __init__(self, name):
+        self.name = name
+        self.id = Ability.ID
+        Ability.ID += 1
 
     @staticmethod
     def after_movement(unit: "Unit.Unit"):
@@ -60,7 +70,7 @@ class Ability(GenericType):
         return 0
     
     @staticmethod
-    def get_visibility(unit: "Unit.Unit") -> bool:
+    def get_visibility(unit: "Unit.Unit", player_id: int) -> bool:
         return 1
 
     @staticmethod

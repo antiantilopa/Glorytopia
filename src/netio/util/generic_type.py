@@ -7,7 +7,7 @@ class GenericType(Serializable):
     id: Annotated[int, SerializeField()]
 
     def __init_subclass__(cls, **kwargs):
-        cls.types = {} # JA JEBAL KURWA BOBR JA PERDOLE TODO
+        cls.types = {}
         return super().__init_subclass__(**kwargs)
 
     @classmethod

@@ -3,76 +3,112 @@ from netio import GenericType, Serializable, SerializeField
 from . import unit as Unit
 from . import tile as Tile
 
-class Effect(GenericType):
+class EffectType(GenericType):
     stackable = True
 
-    duration: int
     name: str
-    args: list
+
+    ID = 0
     
-    def __init__(self, duration = -1):
-        self.duration = duration
+    def __init_subclass__(cls):
+        etype = cls(cls.name)
+        EffectType.add(etype)
 
-    def after_movement(self, unit: "Unit.UnitData"):
+    def __init__(self, name = ""):
+        self.name = name
+        self.id = EffectType.ID
+        EffectType.ID += 1
+
+    @staticmethod
+    def after_movement(effect: "Effect", unit: "Unit.UnitData"):
         pass
 
-    def after_attack(self, unit: "Unit.UnitData", other: "Unit.UnitData"):
+    @staticmethod
+    def after_attack(effect: "Effect", unit: "Unit.UnitData", other: "Unit.UnitData"):
         pass
 
-    def after_kill(self, unit: "Unit.UnitData", other: "Unit.UnitData"):
+    @staticmethod
+    def after_kill(effect: "Effect", unit: "Unit.UnitData", other: "Unit.UnitData"):
         pass
 
-    def defense_bonus(self, unit: "Unit.UnitData") -> float:
+    @staticmethod
+    def defense_bonus(effect: "Effect", unit: "Unit.UnitData") -> float:
         return 1
 
-    def additional_move(self, unit: "Unit.UnitData"):
+    @staticmethod
+    def additional_move(effect: "Effect", unit: "Unit.UnitData"):
         pass
 
-    def retaliation_bonus(self, unit: "Unit.UnitData", defense_result: int) -> int:
+    @staticmethod
+    def retaliation_bonus(effect: "Effect", unit: "Unit.UnitData", defense_result: int) -> int:
         return defense_result
 
-    def retaliation_mitigate(self, unit: "Unit.UnitData", defense_result: int) -> int:
+    @staticmethod
+    def retaliation_mitigate(effect: "Effect", unit: "Unit.UnitData", defense_result: int) -> int:
         return defense_result
 
-    def attack_bonus(self, unit: "Unit.UnitData", attack_result: int) -> int:
+    @staticmethod
+    def attack_bonus(effect: "Effect", unit: "Unit.UnitData", attack_result: int) -> int:
         return attack_result
     
-    def on_terrain_movement(self, unit: "Unit.UnitData", tile: "Tile.TileData", movement: int) -> int:
+    @staticmethod
+    def on_terrain_movement(effect: "Effect", unit: "Unit.UnitData", tile: "Tile.TileData", movement: int) -> int:
         return 0
     
-    def save_moved(self, unit: "Unit.UnitData") -> bool:
+    @staticmethod
+    def save_moved(effect: "Effect", unit: "Unit.UnitData") -> bool:
         return False
     
-    def save_attacked(self, unit: "Unit.UnitData") -> bool:
+    @staticmethod
+    def save_attacked(effect: "Effect", unit: "Unit.UnitData") -> bool:
         return False
 
-    def get_vision_range(self, unit: "Unit.UnitData") -> int:
+    @staticmethod
+    def get_vision_range(effect: "Effect", unit: "Unit.UnitData") -> int:
         return 0
     
-    def get_visibility(self, unit: "Unit.UnitData") -> bool:
+    @staticmethod
+    def get_visibility(effect: "Effect", unit: "Unit.UnitData", player_id: int) -> bool:
         return 1
 
-    def additional_attack(self, unit: "Unit.UnitData", other: "Unit.UnitData") -> int:
+    @staticmethod
+    def additional_attack(effect: "Effect", unit: "Unit.UnitData", other: "Unit.UnitData") -> int:
         return 0
 
-    def additional_defense(self, unit: "Unit.UnitData", other: "Unit.UnitData") -> int:
+    @staticmethod
+    def additional_defense(effect: "Effect", unit: "Unit.UnitData", other: "Unit.UnitData") -> int:
         return 0
 
-    # TODO THIS SHIT IS NOT USED NOW
-    def on_end_turn(self, unit: "Unit.UnitData"):
+    @staticmethod
+    def on_end_turn(effect: "Effect", unit: "Unit.UnitData"):
         pass
 
-    def on_start_turn(self, unit: "Unit.UnitData"):
+    @staticmethod
+    def on_start_turn(effect: "Effect", unit: "Unit.UnitData"):
         pass
 
-    def after_heal(self, unit: "Unit.UnitData"):
+    @staticmethod
+    def after_heal(effect: "Effect", unit: "Unit.UnitData"):
         pass
 
-    def additional_heal(self, unit: "Unit.UnitData"):
+    @staticmethod
+    def additional_heal(effect: "Effect", unit: "Unit.UnitData"):
         return 0
     
-    def on_death(self, unit: "Unit.UnitData"):
+    @staticmethod
+    def on_death(effect: "Effect", unit: "Unit.UnitData"):
         pass
 
-    def on_spawn(self, unit: "Unit.UnitData"):
+    @staticmethod
+    def on_spawn(effect: "Effect", unit: "Unit.UnitData"):
         pass
+
+class Effect(Serializable):
+    etype: Annotated[EffectType, SerializeField(by_id=True)]
+    duration: Annotated[int, SerializeField()]
+    args: Annotated[list[int], SerializeField()]
+
+    def __init__(self, etype: EffectType, duration: int, args: list[int] = []):
+        self.etype = etype
+        self.duration = duration
+        self.args = args

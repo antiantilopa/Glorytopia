@@ -1,16 +1,10 @@
 from client.scenes.main_menu import launch
-from client.network import lobby, client, gameevents, gameinfo
 from client.globals.settings import Settings
-from shared.loader import load_mains
+from shared.loader import load_effects_names
 from engine_antiantilopa import Vector2d
 import pygame as pg
 
-load_mains()
-
-c = client.Client()
-c.respond.merge(lobby.respond)
-c.respond.merge(gameevents.respond)
-c.respond.merge(gameinfo.respond)
+load_effects_names()
 
 resolutions = [
     (1680, 1120),
@@ -49,4 +43,3 @@ except Exception as e:
     Settings.save_to_file_()
 
 launch(Vector2d.from_tuple(Settings.resolution.variants[Settings.resolution.chosen]))
-client.Client.object.sock.close()

@@ -1,16 +1,16 @@
 from engine_antiantilopa import *
 from client.widgets.fastgameobjectcreator import *
 from client.globals.settings import Settings
-from client.network.client import Client
+from client.network.client import GameClient
 from client.scenes.lobby_screen import load as lobby_load
 from client.scenes.lobby_screen import init as lobby_init
 from client.scenes.settings_change_menu import load as settings_change_load
 from client.widgets.sounds_load import load_sounds
 from client.widgets.sound import SoundComponent
 from client.widgets.texture_load import load_textures
-from serializator.data_format import Format
-from client.network.client import UpdateCodes
 import pygame as pg
+
+from netio.serialization.routing import MessageType
 from . import game_screen
 import threading
 
@@ -57,11 +57,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
         if ip is None:
             ip = entry_obj.get_component(EntryComponent).text
             try:
-                c = Client.object
-                c.init_client((ip, 9090))
-                c.start()
-                c.send(Format.request("LOBBY/NAMES", []))
-                settings_button.destroy()
+                GameClient(ip, 8080)
             except Exception as e:
                 print(f"Failed to connect to server at {ip}: {e}")
                 entry_obj.get_component(EntryComponent).clear()
@@ -80,15 +76,16 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
             new_label_obj.first_iteration()
         elif name is None:
             name = entry_obj.get_component(EntryComponent).text
-            c = Client.object
-            c.myname = name
-            Client.object.send(Format.event("LOBBY/JOIN", [name]))
-            while Client.object.joined is None:
+            GameClient.object.send_message(MessageType.EVENT, "LOBBY/JOIN", name)
+            # TODO!
+            responce = 0
+            joined = 0
+            need_recovery_code = 0
+            while not responce:
                 pass
-            if Client.object.joined:
+            if joined:
                 launch_lobby()
-            else:
-                Client.object.joined = None
+            elif need_recovery_code:
                 entry_obj.get_component(EntryComponent).clear()
                 GameObject.get_game_object_by_tags("main_menu:main_label").destroy()
                 new_label_obj = create_label(
@@ -99,6 +96,8 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
                     color=ColorComponent.RED
                 )
                 new_label_obj.first_iteration()
+            else:
+                name = None
         elif recovery_code is None:
             try:
                 recovery_code = int(entry_obj.get_component(EntryComponent).text)
@@ -110,21 +109,19 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
                 print("Recovery code must be a 6-digit integer.")
                 return
             entry_obj.get_component(EntryComponent).clear()
-            Client.object.send(Format.event("LOBBY/RECONNECT", [name, recovery_code]))
-            while Client.object.joined is None:
+            GameClient.object.send_message(MessageType.EVENT, "LOBBY/RECONNECT", (name, recovery_code))
+            # TODO!
+            while not responce:
                 pass
-            if not Client.object.joined:
+            if not joined:
                 recovery_code = None
                 print("Failed to reconnect. Please check your recovery code.")
                 return
             else:
-                Client.object.send(Format.request("LOBBY/NAMES", []))
-                Client.object.send(Format.request("ORDER", []))
-                Client.object.send(Format.request("LOBBY/COLORS", []))
-                Client.object.send(Format.request("GAME/NOW_PLAYING_PLAYER_INDEX", []))
+                GameClient.object.send_message(MessageType.REQUEST, "GAME/NOW_PLAYING_PLAYER_INDEX", None)
                 GameObject.get_game_object_by_tags("main_menu").disable()
-                Client.object.game_started = True
-                while not (Client.object.updated & 2 ** UpdateCodes.INIT_COLORS.value):
+                GameClient.object.game_started = True
+                while not responce:
                     pass
                 threading.Thread(target=start_game).start()
 
@@ -173,8 +170,7 @@ def load(screen_size: Vector2d = Vector2d(1200, 800)):
     return scene
 
 def launch(screen_size: Vector2d = Vector2d(1200, 800)):
-    load(screen_size)
-    scene = GameObject.get_group_by_tag("main_menu")[0]
+    scene = load(screen_size)
 
     e = Engine(screen_size)
     scene.enable()

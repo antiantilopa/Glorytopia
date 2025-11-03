@@ -1,0 +1,70 @@
+[
+  {
+    "name": "convert",
+    "file_name": "convert.py"
+  },
+  {
+    "name": "creep",
+    "file_name": "creep.py"
+  },
+  {
+    "name": "dash",
+    "file_name": "dash.py"
+  },
+  {
+    "name": "devotion",
+    "file_name": "devotion.py"
+  },
+  {
+    "name": "escape",
+    "file_name": "escape.py"
+  },
+  {
+    "name": "fortify",
+    "file_name": "fortify.py"
+  },
+  {
+    "name": "heal",
+    "file_name": "heal.py"
+  },
+  {
+    "name": "hide",
+    "file_name": "hide.py"
+  },
+  {
+    "name": "high_ground",
+    "file_name": "high_ground.py"
+  },
+  {
+    "name": "infiltrate",
+    "file_name": "infiltrate.py"
+  },
+  {
+    "name": "persist",
+    "file_name": "persist.py"
+  },
+  {
+    "name": "poisoning",
+    "file_name": "poisoning.py"
+  },
+  {
+    "name": "scout",
+    "file_name": "scout.py"
+  },
+  {
+    "name": "siege",
+    "file_name": "siege.py"
+  },
+  {
+    "name": "stiff",
+    "file_name": "stiff.py"
+  },
+  {
+    "name": "surprise",
+    "file_name": "surprise.py"
+  },
+  {
+    "name": "tunneling",
+    "file_name": "tunneling.py"
+  }
+]

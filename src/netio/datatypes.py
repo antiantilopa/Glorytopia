@@ -3,8 +3,9 @@ from typing import Self
 
 Address = tuple[str, int]
 
-class ConnectionData(Serializable):
-    pass
+class ConnectionData(Serializable, primitive = 1):
+    def __tuple__(self):
+        return tuple()
 
 class PlayerData(Serializable):
 
@@ -14,9 +15,10 @@ class PlayerData(Serializable):
         super().__init_subclass__(**kwargs)
         orig_create = cls.create
 
-        def new_create(self: PlayerData, *a, **kw):
-            orig_create(self, *a, **kw)
+        def new_create(cls: type[PlayerData], *a, **kw):
+            self = orig_create(cls, *a, **kw)
             self._clear_updates()
+            return self
 
         cls.create = new_create
     

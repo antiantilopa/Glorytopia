@@ -1,16 +1,15 @@
-from server.network.game_server import GameServerRouter
+from server.network.game_server import GameServerRouter, GamePlayer
 from netio.serialization.routing import MessageType
 from shared.asset_types import Nation
-from shared.player import PlayerData_
 
 router = GameServerRouter("LOBBY")
 
-@router.event("JOIN")
-def join(pdata: PlayerData_, data: tuple[str]):
+@router.event("JOIN", datatype=str)
+def join(pdata: GamePlayer, data: str):
     if router.host.game_started:
         router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", "This game has already started.")
         return
-    name = data[0]
+    name = data
     if pdata.id != -1:
         router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", "You have already joined the lobby.")
         return
@@ -31,7 +30,7 @@ def join(pdata: PlayerData_, data: tuple[str]):
             router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", f"This name contains prohibited substring: {prohibited_name}.")
             return
 
-    print(f"{name[0]} joined the game!")
+    print(f"{name} joined the game!")
 
     used_colors = list(dict.fromkeys([player.color for player in router.host.game_manager.players]))
     
@@ -51,16 +50,14 @@ def join(pdata: PlayerData_, data: tuple[str]):
     pdata.color = mex(used_colors)
     pdata.nation = Nation.by_id(0)
     pdata.id = max([-1] + [player.id for player in router.host.game_manager.players]) + 1
-    pdata.is_dead = False
     pdata.nickname = name
 
-    for pdata2 in router.host.game_manager.players:
-        router.host.send_message(pdata2.address, MessageType.EVENT, "LOBBY/JOIN", (name, pdata.color, pdata.nation))
+    router.host.synchronize()
 
 # TODO !!! SAVE PLAYER DATA NOT DONE YET !!!
 
 # @router.event("RECONNECT")
-# def reconnect(pdata: PlayerData_, data: tuple):
+# def reconnect(pdata: GamePlayer, data: tuple):
 #     if not self.game_started:
 #         router.host.game_manager.send_error(pdata.address, "LOBBY/RECONNECT", ["this game has not started yet."]))
 #         return
@@ -83,9 +80,9 @@ def join(pdata: PlayerData_, data: tuple[str]):
 #     for j in router.host.game_manager.players:
 #         self.send_to_addr(j, Format.event("LOBBY/RECONNECT", [pdata.nickname]))
 
-@router.event("MESSAGE")
-def message_event(pdata: PlayerData_, data: tuple[str]):
-    message = data[0]
+@router.event("MESSAGE", datatype=str)
+def message_event(pdata: GamePlayer, data: str):
+    message = data
     if pdata.id == -1:
         router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "you did not joined the lobby.")
         return
@@ -106,41 +103,40 @@ def message_event(pdata: PlayerData_, data: tuple[str]):
     for pdata2 in router.host.game_manager.players:
         router.host.send_message(pdata2.address, MessageType.EVENT, "LOBBY/MESSAGE", (pdata.nickname, message))
 
-@router.event("READY")
-def ready(pdata: PlayerData_, data: tuple[bool]):
+@router.event("READY", datatype=int)
+def ready(pdata: GamePlayer, data: bool):
     if pdata.id == -1:
         router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "you did not joined the lobby.")
         return
     if router.host.game_started:
         router.host.game_manager.send_error(pdata.address, "LOBBY/READY", "this game has already started.")
         return
-    if data[0]:
+    is_ready = bool(data)
+    if is_ready:
         print(f"! <{pdata.nickname}> ready")
     else:
         print(f"! <{pdata.nickname}> not ready")
-    pdata.is_ready = bool(data[0])
-    for pdata2 in router.host.game_manager.players:
-        router.host.send_message(pdata2.address, MessageType.EVENT, "LOBBY/READY", (pdata.nickname, pdata.is_ready))
+    pdata.is_ready = is_ready
 
-    if data[0]:
-        start = True
-        for ready in [i.is_ready for i in router.host.game_manager.players]:
-            start = start and ready
-        if start:
+    if is_ready:
+        if all([i.is_ready for i in router.host.game_manager.players]):
             router.host.game_starting = True
             return
     else:
         router.host.game_starting = False
 
-@router.event("COLOR_CHANGE")
-def color_change(pdata: PlayerData_, data: tuple[int]):
+    router.host.synchronize()
+    
+
+@router.event("COLOR_CHANGE", datatype=int)
+def color_change(pdata: GamePlayer, data: int):
     if pdata.id == -1:
         router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "you did not joined the lobby.")
         return
     if router.host.game_started:
         router.host.game_manager.send_error(pdata.address, "LOBBY/READY", "this game has already started.")
         return
-    color = int(data[0])
+    color = int(data)
     if color in [i.color for i in router.host.game_manager.players]:
         router.host.game_manager.send_error(pdata.address, "LOBBY/COLOR_CHANGE", f"this color {color} is already taken.")
         return
@@ -152,38 +148,23 @@ def color_change(pdata: PlayerData_, data: tuple[int]):
     for i in router.host.game_manager.players:
         router.host.send_message(i.address, MessageType.EVENT, "LOBBY/COLOR_CHANGE", (pdata.nickname, color))
 
-@router.event("NATION_CHANGE")
-def nation_change(pdata: PlayerData_, data: tuple[int]):
+@router.event("NATION_CHANGE", datatype=int)
+def nation_change(pdata: GamePlayer, data: int):
     if pdata.id == -1:
         router.host.game_manager.send_error(pdata.address, "LOBBY/MESSAGE", "you did not joined the lobby.")
         return
     if router.host.game_started:
         router.host.game_manager.send_error(pdata.address, "LOBBY/READY", "this game has already started.")
         return
-    if not (0 <= int(data[0]) < len(Nation.values())):
-        router.host.game_manager.send_error(pdata.address, "LOBBY/NATION_CHANGE", [f"this nation {int(data[0])} is out of range. [0; {len(Nation.values())}) are allowed."])
+    nation_id = int(data)
+    if not (0 <= nation_id < len(Nation.values())):
+        router.host.game_manager.send_error(pdata.address, "LOBBY/NATION_CHANGE", [f"this nation {nation_id} is out of range. [0; {len(Nation.values())}) are allowed."])
         return
     
-    nation = Nation.by_id(int(data[0]))
+    nation = Nation.by_id(nation_id)
 
     pdata.nation = nation
 
-@router.event("ADMIN/CHANGE_ORDER")
-def eve_lobby_change_order(pdata: PlayerData_, data: tuple):
+@router.event("ADMIN/CHANGE_ORDER", datatype=tuple[int, int])
+def eve_lobby_change_order(pdata: GamePlayer, data: tuple[int, int]):
     raise NotImplementedError("ADMIN/CHANGE_ORDER")
-
-@router.request("READINESS")
-def req_readiness(pdata: PlayerData_, data: tuple):
-    return [(pdata.nickname, pdata.is_ready) for pdata in router.host.game_manager.players]
-
-@router.request("NAMES")
-def req_readiness(pdata: PlayerData_, data: tuple):
-    return[pdata.nickname for pdata in router.host.game_manager.players]
-
-@router.request("COLORS")
-def req_color(pdata: PlayerData_, data: tuple):
-    return[(pdata.nickname, pdata.color) for pdata in router.host.game_manager.players]
-
-@router.request("NATIONS")
-def req_color(pdata: PlayerData_, data: tuple):
-    return[(pdata.nickname, pdata.color) for pdata in router.host.game_manager.players]

@@ -1,7 +1,7 @@
 import os
 from server.globals.backup import BackupSettings
 from shared.asset_types import Nation, TileType, ResourceType, UnitType
-from engine_antiantilopa import Vector2d, Angle
+from shared.util.position import Pos, Angle
 from math import pi
 from random import random, randint
 from pathlib import Path
@@ -21,7 +21,7 @@ class Game:
     turn_number: int
     obj: "Game" = None
 
-    def __init__(self, size: Vector2d, player_number: int, start_new_game: bool = True) -> None:
+    def __init__(self, size: Pos, player_number: int, start_new_game: bool = True) -> None:
         Game.obj = self
         if start_new_game:
             self.world = World(size.x, size.y)
@@ -59,47 +59,47 @@ class Game:
         for _ in range(500): 
             x = randint(1, World.object.size.x - 2)
             y = randint(1, World.object.size.y - 2)
-            if not World.object.get(Vector2d(x, y)).ttype.is_water:
+            if not World.object.get(Pos(x, y)).ttype.is_water:
                 is_far_enough = True
                 for c in City.cities:
                     if max(abs(c.pos.x - x), abs(c.pos.y - y)) < 3:
                         is_far_enough = False
                         break
                 if is_far_enough:
-                    World.object.get(Vector2d(x, y)).ttype = TileType.get("plain")
-                    City(Vector2d(x, y), -1)
+                    World.object.get(Pos(x, y)).ttype = TileType.get("plain")
+                    City(Pos(x, y), -1)
                     World.object.cities_mask[y][x] = 1
                     return
 
     def place_resources(self):
 
-        def distance_to_nearest(pos: Vector2d) -> int:
+        def distance_to_nearest(pos: Pos) -> int:
             for distance in range(World.object.size.x):
                 for i in range(2 * distance + 1):
                     for j in range(2 * distance + 1):
-                        if World.object.is_in(Vector2d(i - distance, j - distance) + pos):
+                        if World.object.is_in(Pos(i - distance, j - distance) + pos):
                             if World.object.cities_mask[pos.y + j - distance][pos.x + i - distance] == 1:
                                 return distance
             return -1
 
         for i in range(World.object.size.x):
             for j in range(World.object.size.y):
-                dist = distance_to_nearest(Vector2d(i, j))
+                dist = distance_to_nearest(Pos(i, j))
                 if dist == 0:
                     continue 
                 chance_sum = 1 # 1 for no resource
                 for resource in ResourceType.values():
-                    if World.object.get(Vector2d(i, j)).ttype in resource.ttypes:
+                    if World.object.get(Pos(i, j)).ttype in resource.ttypes:
                         chance_sum += resource.spawn_rates.get(dist, 0)
                 rand = random() * chance_sum
                 if rand < 1:
                     continue 
                 rand -= 1
                 for resource in ResourceType.values():
-                    if World.object.get(Vector2d(i, j)).ttype in resource.ttypes:
+                    if World.object.get(Pos(i, j)).ttype in resource.ttypes:
                         rand -= resource.spawn_rates.get(dist, 0)
                         if rand <= 0:
-                            World.object.get(Vector2d(i, j)).resource = resource
+                            World.object.get(Pos(i, j)).resource = resource
                             break
                     
     def place_players(self):
@@ -109,7 +109,7 @@ class Game:
         for player in self.players:
             angle = Angle(2 * pi * player.id / len(self.players) + random_angle)
 
-            place = angle.to_vector2d() * distance_to_center_of_map + World.object.size / 2
+            place = angle.to_Pos() * distance_to_center_of_map + World.object.size / 2
 
             place.x = round(place.x)
             place.y = round(place.y)
@@ -154,7 +154,7 @@ class Game:
         if prev >= self.now_playing_player_index:
             self.turn_number += 1
 
-        self.players[self.now_playing_player_index].start_turn(ignore_updated_objs = 1)
+        self.players[self.now_playing_player_index].start_turn()
 
     # TODO fuck saves and records !!!
     
@@ -176,7 +176,7 @@ class Game:
             Unit.units[0].destroy()
         while len(City.cities) != 0:
             City.cities[0].destroy()
-        World.object.get(Vector2d(0, 0)).destroy()
+        World.object.get(Pos(0, 0)).destroy()
         World.object.world = [[]]
         World.object = None
         while len(Player.players) != 0:

@@ -1,13 +1,11 @@
 from typing import Annotated
-from engine_antiantilopa import Vector2d
-from netio import SerializeField, PlayerData as PD
+from netio import SerializeField, PlayerData
 from shared.asset_types import Nation, TechNode
 from netio import ConnectionData
 
-class PlayerData_(PD):
+class PlayerData_(PlayerData):
     id: Annotated[int, SerializeField()]
     nation: Annotated[Nation, SerializeField(by_id=True)]
-    is_dead: Annotated[bool, SerializeField()]
     nickname: Annotated[str, SerializeField()]
     is_ready: Annotated[bool, SerializeField()]
     color: Annotated[int, SerializeField()]
@@ -22,7 +20,6 @@ class PlayerData_(PD):
         obj.color = 0
         obj.recovery_code = None
         obj.is_ready = False
-        obj.nickname = None
-        obj.nation = None
-        obj.is_dead = True
+        obj.nickname = ""
+        obj.nation = Nation.by_id(0)
         return obj

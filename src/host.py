@@ -1,3 +1,4 @@
+from netio.serialization.serializer import Serializable
 from server.core import *
 from server.core.game_event import GameEvent
 from server.network import game, lobby
@@ -5,7 +6,7 @@ from server.network.game_server import GameServer
 from server.globals.backup import BackupSettings
 import socket, time, random, os
 from engine_antiantilopa import Vector2d
-from shared.loader import load_mains
+from shared.loader import load_mains, load_effects_and_abilities_full
 from shared.asset_types import *
 from pathlib import Path
 from netio import Host, MessageType, ConnectionData
@@ -14,6 +15,8 @@ from shared.player import PlayerData_
 import logging
 
 load_mains()
+load_effects_and_abilities_full()
+
 # GameEvent.start_recording()
 # TODO
 saves_path = BackupSettings.saves_path
@@ -67,12 +70,14 @@ name = None
 
 
 host = GameServer('localhost', 8080, 5)
-
+host.router.merge(lobby.router)
+host.router.merge(game.router)
+print(host.router._event_handlers.keys())
 if preload_data is None:
     print("Starting a new game.")
     if name is None:
         name = input("Enter the game's name: ")
-        os.mkdir(saves_path / name)
+        # os.mkdir(saves_path / name)
 else:
     host.game = Game.from_serializable(preload_data)
 
@@ -88,10 +93,7 @@ def at_connect(conn_data: ConnectionData) -> bool:
 @host.router.on_disconnect()
 def at_disconnect(player_data: PlayerData_):
     logging.info(f"Connection with {player_data.nickname} has lost.")
-    if not host.game_started:
-        for player in host.game_manager.players:
-            host.game_manager.send_message(player.address, MessageType.EVENT, "PLAYER_DISCONNECT", (player_data.nickname,))
-    else:
+    if host.game_started:
         for player in host.game_manager.players:
             host.game_manager.send_message(player.address, MessageType.EVENT, "PLAYER_DISCONNECT", (player_data.nickname,))
         logging.info(f"{player_data.nickname} has disconnected from the game.")
@@ -112,12 +114,14 @@ def start_game():
     else:
         for player in host.game_manager.players:
             host.send_message(player.address, MessageType.EVENT, "GAME_START", (0,))
+    host.create_all_objects()
 
 try:
-    game_starting = False
+    host.game_starting = False
     while True:
         if not host.game_started:
-            if game_starting:
+            if host.game_starting:
+                print(f"Game starting in {timer}...")
                 for pl in host.game_manager.players:
                     host.send_message(pl.address, MessageType.EVENT, "MESSAGE", (timer,))
                 timer -= 1

@@ -1,7 +1,7 @@
 from shared.player import PlayerData_
 from shared.asset_types import Nation, UnitType, BuildingType, BuildingType, TechNode, TerraForm
 from shared.error_codes import ErrorCodes
-from engine_antiantilopa import Vector2d, VectorRange
+from shared.util.position import Pos, PosRange
 
 # from .game_event import GameEvent
 from . import unit as Unit
@@ -25,7 +25,7 @@ class Player:
         if not new_player:
             return
         self.pdata = None
-        self.money=8, 
+        self.money = 8
         self.techs=[TechNode.get("base")]
         self.vision=[[0 for i in range(World.World.object.size.x)] for _ in range(World.World.object.size.y)]
         self.is_dead = False
@@ -53,7 +53,7 @@ class Player:
         self.cities = []
 
     # @GameEvent.record_event
-    def harvest(self, pos: Vector2d):
+    def harvest(self, pos: Pos):
         if World.World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
         if World.World.object.get(pos).resource is None:
@@ -73,7 +73,7 @@ class Player:
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
     
     # @GameEvent.record_event
-    def build(self, pos: Vector2d, btype: BuildingType):
+    def build(self, pos: Pos, btype: BuildingType):
         if World.World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
         if btype.required_resource is not None and World.World.object.get(pos).resource != btype.required_resource:
@@ -86,8 +86,8 @@ class Player:
             return ErrorCodes.ERR_NOT_IN_DOMAIN
         if btype.adjacent_bonus != None:
             found = 0
-            for d in VectorRange(Vector2d(-1, -1), Vector2d(2, 2)):
-                if d == Vector2d(0, 0): continue
+            for d in PosRange(Pos(-1, -1), Pos(2, 2)):
+                if d == Pos(0, 0): continue
                 if not World.World.object.is_in(pos + d): continue
                 if World.World.object.get(pos + d).owner != self.id: continue
                 if not (btype.adjacent_bonus is None):
@@ -111,7 +111,7 @@ class Player:
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
     # @GameEvent.record_event
-    def terraform(self, pos: Vector2d, terraform: TerraForm):
+    def terraform(self, pos: Pos, terraform: TerraForm):
         if World.World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
         if self.money < terraform.cost:
@@ -132,7 +132,7 @@ class Player:
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
     # @GameEvent.record_event
-    def create_unit(self, pos: Vector2d, utype: UnitType):
+    def create_unit(self, pos: Pos, utype: UnitType):
         if World.World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
         if World.World.object.unit_mask[pos.inty()][pos.intx()] != 0:
@@ -153,7 +153,7 @@ class Player:
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
     # @GameEvent.record_event
-    def move_unit(self, unit: "Unit.Unit", pos: Vector2d):
+    def move_unit(self, unit: "Unit.Unit", pos: Pos):
         if unit.owner != self.id:
             return ErrorCodes.ERR_NOT_YOUR_UNIT
         if pos in unit.get_possible_moves():
@@ -174,7 +174,7 @@ class Player:
         return ErrorCodes.SUCCESS
 
     # @GameEvent.record_event
-    def conquer_city(self, pos: Vector2d):
+    def conquer_city(self, pos: Pos):
         for unit in self.units:
             if unit.pos == pos:
                 if unit.attacked or unit.moved:
@@ -201,7 +201,7 @@ class Player:
                 return ErrorCodes.ERR_NOT_A_CITY
         return ErrorCodes.ERR_NOT_YOUR_UNIT
 
-    def update_vision(self) -> list[Vector2d]:
+    def update_vision(self) -> list[Pos]:
         changed = []
         for city in self.cities:
             for pos in city.domain:
@@ -210,14 +210,14 @@ class Player:
                 self.vision[pos.inty()][pos.intx()] = 1
             if city.is_capital:
                 vision_range = 2
-                for dv in [Vector2d(i, j) for i in range(-vision_range, vision_range + 1) for j in range(-vision_range, vision_range + 1)]:
+                for dv in [Pos(i, j) for i in range(-vision_range, vision_range + 1) for j in range(-vision_range, vision_range + 1)]:
                     if World.World.object.is_in(city.pos + dv):
                         if self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] == 0:
                             changed.append(city.pos + dv)
                         self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] = 1
         for unit in self.units:
             vision_range = unit.get_vision_range()
-            for dv in [Vector2d(i, j) for i in range(-vision_range, vision_range + 1) for j in range(-vision_range, vision_range + 1)]:
+            for dv in [Pos(i, j) for i in range(-vision_range, vision_range + 1) for j in range(-vision_range, vision_range + 1)]:
                 if World.World.object.is_in(unit.pos + dv):
                     if self.vision[(unit.pos + dv).inty()][(unit.pos + dv).intx()] == 0:
                         changed.append(unit.pos + dv)

@@ -1,7 +1,7 @@
 import socket
 import enum
 import typing
-
+import time
 from ..logger import clientLogger
 
 _serializable_primitives = (int, str, float, bool, tuple, list, type(None))
@@ -30,6 +30,8 @@ class BaseWriter:
         tp, route, data = message
         self._write_int(conn, tp, 2)
         self._write_string(conn, route)
+        if not (isinstance(data, tuple) or isinstance(data, Serializable)):
+            data = (data, ) 
         self._write_object(conn, data)
 
     def _write_string(self, conn: socket.socket, value: str):
@@ -57,44 +59,43 @@ class BaseWriter:
         mantissa[2 * nbytes + 1] = hex(int((float.fromhex(mantissa[2 * nbytes + 1]) // 2) * 2 + sign)).removeprefix("0x")
 
         self._write_int(conn, exponenta, 1)
-        for i in nbytes:
+        for i in range(nbytes):
             a = int(float.fromhex(mantissa[2 * i: 2 * i + 2]))
             self._write_int(conn, a, 1)
 
-    def _write_object(self, conn: socket.socket, obj: tuple):
+    def _write_object(self, conn: socket.socket, obj: tuple|list):
         for field in obj:
-            if isinstance(field, bool):
-                conn.sendall(bytes([SerializationTypes.BOOLEAN.value]))
-                self._write_boolean(conn, field)
-            elif isinstance(field, str):
-                conn.sendall(bytes([SerializationTypes.STRING.value]))
-                self._write_string(conn, field)
-            elif isinstance(field, float):
-                conn.sendall(bytes([SerializationTypes.FLOAT32.value]))
-                self._write_float(conn, field, 4)
-            elif isinstance(field, int):
-                conn.sendall(bytes([SerializationTypes.INT32.value]))
-                self._write_int(conn, field, 4)
-            elif isinstance(field, tuple):
-                conn.sendall(bytes([SerializationTypes.OBJECT.value]))
-                self._write_object(conn, field)
-            elif isinstance(field, list):
-                conn.sendall(bytes([SerializationTypes.LIST.value]))
-                self._write_object(conn, field)
-            elif isinstance(field, Serializable):
-                # I know that it is not how you wanted it to be
-                # but it is easiest way to do objs in lists
-                # TODO
-                conn.sendall(bytes([SerializationTypes.OBJECT.value]))
-                self._write_object(conn, field.serialize())
-            elif field == None:
-                conn.sendall(bytes([SerializationTypes.NONE.value]))
-            elif field == SpecialTypes.NOTHING:
-                conn.sendall(bytes([SerializationTypes.NOTHING.value]))
-            else:
-                raise ValueError(f"Unsupported serialization type: {field}")
-                
+            self._write_auto(conn, field)
         conn.sendall(bytes([SerializationTypes.END_OF_OBJECT.value]))
+
+    def _write_auto(self, conn: socket.socket, obj: "int|float|str|bool|None|tuple|list|Serializable"):
+        if isinstance(obj, bool):
+            conn.sendall(bytes([SerializationTypes.BOOLEAN.value]))
+            self._write_boolean(conn, obj)
+        elif isinstance(obj, str):
+            conn.sendall(bytes([SerializationTypes.STRING.value]))
+            self._write_string(conn, obj)
+        elif isinstance(obj, float):
+            conn.sendall(bytes([SerializationTypes.FLOAT32.value]))
+            self._write_float(conn, obj, 4)
+        elif isinstance(obj, int):
+            conn.sendall(bytes([SerializationTypes.INT32.value]))
+            self._write_int(conn, obj, 4)
+        elif isinstance(obj, tuple):
+            conn.sendall(bytes([SerializationTypes.OBJECT.value]))
+            self._write_object(conn, obj)
+        elif isinstance(obj, list):
+            conn.sendall(bytes([SerializationTypes.LIST.value]))
+            self._write_object(conn, obj)
+        elif isinstance(obj, Serializable):
+            conn.sendall(bytes([SerializationTypes.OBJECT.value]))
+            self._write_object(conn, obj.serialize())
+        elif obj == None:
+            conn.sendall(bytes([SerializationTypes.NONE.value]))
+        elif obj == SpecialTypes.NOTHING:
+            conn.sendall(bytes([SerializationTypes.NOTHING.value]))
+        else:
+            raise ValueError(f"Unsupported serialization type: {obj}")
 
 class BaseReader:
 
@@ -105,7 +106,7 @@ class BaseReader:
         return tp, route, data
     
     def _read_field(self, conn: socket.socket):
-        tp = conn.recv(1)
+        tp = recv_from(conn, 1)
         
         match(tp[0]):
             case SerializationTypes.STRING.value:
@@ -131,21 +132,21 @@ class BaseReader:
     
     def _read_string(self, conn: socket.socket) -> str:
         data = bytes()
-        while (bt := conn.recv(1)) != Tokens.END_OF_STRING.value:
+        while (bt := recv_from(conn, 1)) != Tokens.END_OF_STRING.value:
             data += bt
         return data.decode()
     
     def _read_boolean(self, conn: socket.socket) -> bool:
-        val = conn.recv(1)
+        val = recv_from(conn, 1)
         return bool(val[0])
     
     def _read_int(self, conn: socket.socket, nbytes: int) -> int:
-        return int.from_bytes(conn.recv(nbytes), signed=True)
+        return int.from_bytes(recv_from(conn, nbytes), signed=True)
     
     def _read_float(self, conn: socket.socket, nbytes: int) -> float:
         assert nbytes % 2 == 0, "Cannot deserialize odd amount of bytes"
-        exp = int.from_bytes(conn.recv(1)) - 127
-        mantissa = int.from_bytes(conn.recv(nbytes - 1))
+        exp = int.from_bytes(recv_from(conn, 1)) - 127
+        mantissa = int.from_bytes(recv_from(conn, nbytes - 1))
 
         sign = mantissa % 2
         if sign == 0:
@@ -208,15 +209,19 @@ class ObservableList(list):
         return super().reverse()
     
 class Serializable:
-
-    __classes: list[type["Serializable"]] = []
-    __ID: int = 0
     __updates: dict
     _class_id: typing.Annotated[int, SerializeField()]
     _id: typing.Annotated[int, SerializeField()]
 
-    def __init_subclass__(cls, **kwargs):
+    __classes: list[type["Serializable"]] = []
+    _primitive: bool = False
+    __ID: int = 0
+
+    def __init_subclass__(cls, primitive: bool = False, **kwargs):
         super().__init_subclass__(**kwargs)
+        if cls.__qualname__ in [c.__qualname__ for c in Serializable.__classes]:
+            raise ValueError(f"two classes with the same name: {cls.__qualname__}")
+        cls._primitive = primitive
         Serializable.__classes.append(cls)
         orig_init = cls.__init__
 
@@ -237,7 +242,8 @@ class Serializable:
 
             self._clear_updates()
 
-        cls.__init__ = new_init
+        if not cls._primitive:
+            cls.__init__ = new_init
 
     @staticmethod
     def get_class(tid: int) -> type["Serializable"]:
@@ -248,6 +254,10 @@ class Serializable:
     
     @staticmethod 
     def parse(data, cls, metadata: SerializeField):
+        # cant I just metadata = cls.__metadata__[0]
+        if cls is None:
+            return data
+        
         generic = None
         if typing.get_origin(cls) is not None:
             generic = cls
@@ -261,12 +271,12 @@ class Serializable:
                 raise ValueError(f"Classes don't match: {type(data)} {cls}")
             return data
         
-        if issubclass(cls, tuple) and isinstance(data, tuple):
+        if issubclass(cls, tuple) and isinstance(data, tuple) and generic is None:
             return data
 
         if metadata.by_id:   
             if not isinstance(data, tuple) or len(data) != 2:
-                raise ValueError("Invalid ID serialization.")
+                raise ValueError(f"Invalid ID serialization. got {data} for {generic if generic is not None else cls}")
 
             if get_class_id(cls) != data[0]:
                 clientLogger.warning(f"Class ids doesn't match {get_class_id(cls)}, {data[0]}")
@@ -275,17 +285,30 @@ class Serializable:
             return cls.by_id(data[1])
         else:
             if issubclass(cls, Serializable):
-                return cls.deserialize(data)
+                if cls._primitive:
+                    return cls(*data)
+                else:
+                    return cls.deserialize(data)
 
             if issubclass(cls, list) and generic is not None:
                 tp = typing.get_args(generic)[0]
 
                 return ObservableList([Serializable.parse(i, tp, metadata) for i in data])
 
+            if issubclass(cls, tuple) and generic is not None:
+                tps = typing.get_args(generic)
+
+                assert len(data) == len(tps), f"Invalid data {data} length for {generic}"
+
+                return tuple(Serializable.parse(data[i], tps[i], metadata) for i in range(len(tps)))
+
             raise ValueError(f"Wrong type was passed: {type(data)}/{cls}")
         
     @classmethod
     def deserialize(cls, data: tuple):
+        if cls._primitive:
+            return cls(*data) 
+
         if get_class_id(cls) != data[0]:
             clientLogger.warning(f"Class ids doesn't match {get_class_id(cls)}, {data[0]}")
             cls = Serializable.get_class(data[0])
@@ -303,6 +326,8 @@ class Serializable:
         return obj
 
     def serialize(self) -> tuple:
+        if self._primitive:
+            return self.__tuple__()
         data = []
         for key, cls in get_all_annotations(self).items():
             if _is_annotated(cls):
@@ -339,11 +364,12 @@ class Serializable:
         self.__updates.clear()
         for key, cls in get_all_annotations(self).items():
             new_value = getattr(self, key, None)
+
             if isinstance(new_value, ObservableList):
                 new_value.mark()
                 continue
 
-            if isinstance(new_value, Serializable):
+            if isinstance(new_value, Serializable) and not new_value._primitive:
                 new_value._clear_updates()
                 continue
             
@@ -368,7 +394,7 @@ class Serializable:
                 continue
 
             # Add changes of field
-            if value == SpecialTypes.NOTHING and isinstance(new_value, Serializable) and not metadata.by_id:
+            if value == SpecialTypes.NOTHING and isinstance(new_value, Serializable) and not new_value._primitive and not metadata.by_id:
                 data.append(_optimize_nothings(new_value.serialize_updates()))
                 continue
 
@@ -414,6 +440,9 @@ class Serializable:
     def client_on_create(self):
         pass
     
+    def client_on_update(self):
+        pass
+
     def client_on_destroy(self):
         pass
 
@@ -435,7 +464,7 @@ def to_prim(obj: tuple | int | bool | float | list | Serializable | type[None] |
 
     raise ValueError("Object is not serializable,", obj)
 
-def get_all_annotations(obj_or_cls):
+def get_all_annotations(obj_or_cls) -> dict[str, type]:
     cls = obj_or_cls if isinstance(obj_or_cls, type) else type(obj_or_cls)
     
     annotations = {}
@@ -448,7 +477,7 @@ def get_all_annotations(obj_or_cls):
     return annotations
 
 def _optimize_nothings(data: tuple):
-    flag = any(i != SpecialTypes.NOTHING for i in data)
+    flag = any(i != SpecialTypes.NOTHING for i in data[2:])  # Skip _id
     return data if flag else SpecialTypes.NOTHING
 
 def _is_annotated(cls) -> bool:
@@ -463,3 +492,10 @@ def _hash(s: str, mod: int) -> int:
     for i, c in enumerate(s):
         hash_sum += pow(ord(c), i, mod)
     return hash_sum % mod
+
+def recv_from(conn: socket.socket, bufsize: int, flags: int = 0):
+    assert bufsize > 0
+    result = conn.recv(bufsize, flags)
+    if len(result) == 0:
+        raise ConnectionResetError(conn)
+    return result

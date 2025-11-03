@@ -1,5 +1,5 @@
 from typing import Annotated
-from engine_antiantilopa import Vector2d
+from shared.util.position import Pos
 from netio import *
 
 
@@ -10,12 +10,12 @@ class CityData(Serializable):
     fullness: Annotated[int, SerializeField()]
     forge: Annotated[bool, SerializeField()]
     walls: Annotated[bool, SerializeField()]
-    domain: Annotated[list[Vector2d], SerializeField()]
+    domain: Annotated[list[Pos], SerializeField()]
     is_capital: Annotated[bool, SerializeField()]
-    pos: Annotated[Vector2d, SerializeField()]
+    pos: Annotated[Pos, SerializeField()]
 
     def __init__(self, 
-                 pos: Vector2d, 
+                 pos: Pos, 
                  owner: int, 
                  name: str, 
                  level: int, 
@@ -24,7 +24,7 @@ class CityData(Serializable):
                  forge: bool, 
                  walls: bool,
                  is_capital: bool,
-                 domain: list[Vector2d],
+                 domain: list[Pos],
                  ):
         self.pos = pos
         self.owner = owner

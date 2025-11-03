@@ -1,14 +1,14 @@
 from shared.player import PlayerData_
 from shared.tile import TileData
 from shared.asset_types import TileType, BuildingType, ResourceType, TerraForm
-from engine_antiantilopa import Vector2d
+from shared.util.position import Pos
 
 from . import world as World
 from . import player as Player
 
 class Tile(TileData):
     
-    def __init__(self, pos: Vector2d, ttype: TileType, resources: ResourceType):
+    def __init__(self, pos: Pos, ttype: TileType, resources: ResourceType):
         TileData.__init__(self, pos, ttype, resources)
 
     def build_building(self, building: BuildingType):

@@ -1,5 +1,5 @@
 from shared.tile import TileData
-from engine_antiantilopa import Vector2d
+from shared.util.position import Pos
 from shared.asset_types import TileType
 from .random_map import pangea
 
@@ -19,19 +19,19 @@ class World:
     world: list[list[Tile]]
     cities_mask: list[list[bool]]
     unit_mask: list[list[bool]]
-    size: Vector2d
+    size: Pos
     object: "World" = None
 
     def __init__(self, width: int, height: int, empty: bool = False) -> None:
         self.cities_mask = [[0] * width for _ in range(height)]
         self.unit_mask = [[0] * width for _ in range(height)]
-        self.size = Vector2d(width, height)
+        self.size = Pos(width, height)
         if empty:
-            self.world = [[Tile(Vector2d(i, j), TileType.get("plain"), None) for i in range(width)] for j in range(height)]
+            self.world = [[Tile(Pos(i, j), TileType.get("plain"), None) for i in range(width)] for j in range(height)]
             return
         else:
             world = pangea(width, height)
-            self.world = [[Tile(Vector2d(i, j), get_by_height(world[j][i]), None) for i in range(width)] for j in range(height)]
+            self.world = [[Tile(Pos(i, j), get_by_height(world[j][i]), None) for i in range(width)] for j in range(height)]
         World.object = self
     
     def __new__(cls, *_):
@@ -42,8 +42,8 @@ class World:
     def __getitem__(self, index: int) -> list[Tile]:
         return self.world[index]
     
-    def get(self, pos: Vector2d) -> Tile:
+    def get(self, pos: Pos) -> Tile:
         return self.world[pos.inty()][pos.intx()]
 
-    def is_in(self, pos: Vector2d) -> bool:
-        return pos.is_in_box(Vector2d(0, 0), self.size - Vector2d(1, 1))
+    def is_in(self, pos: Pos) -> bool:
+        return pos.is_in_box(Pos(0, 0), self.size - Pos(1, 1))
