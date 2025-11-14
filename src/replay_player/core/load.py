@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from server.core.ability import Ability
 from server.core.game import Game
-from server.globals.replay import RecordReplaySettings
+from shared.globals.replay import RecordReplaySettings
 from serializator.net import *
 from shared.globals.mod_versions import ModVersions, ModConfig
 from shared import *

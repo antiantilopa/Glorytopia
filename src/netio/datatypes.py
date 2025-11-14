@@ -13,8 +13,9 @@ class PlayerData(Serializable):
     
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        orig_create = cls.create
+        orig_create = cls.create.__func__
 
+        @classmethod
         def new_create(cls: type[PlayerData], *a, **kw):
             self = orig_create(cls, *a, **kw)
             self._clear_updates()

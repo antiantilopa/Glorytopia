@@ -1,9 +1,8 @@
+from netio.serialization.serializer import Serializable
 from shared.player import PlayerData_
 from shared.asset_types import Nation, UnitType, BuildingType, BuildingType, TechNode, TerraForm
 from shared.error_codes import ErrorCodes
 from shared.util.position import Pos, PosRange
-
-# from .game_event import GameEvent
 from . import unit as Unit
 from . import city as City
 from . import world as World
@@ -11,7 +10,7 @@ from . import world as World
 class Player:
     units: list["Unit.Unit"]
     cities: list["City.City"]
-    vision: list[list[int]]
+    vision: list[list[bool]]
     money: int
     techs: list[TechNode]
     pdata: PlayerData_
@@ -28,6 +27,7 @@ class Player:
         self.money = 8
         self.techs=[TechNode.get("base")]
         self.vision=[[0 for i in range(World.World.object.size.x)] for _ in range(World.World.object.size.y)]
+        self._vision_changes = []
         self.is_dead = False
         self.id = Player.ID
         Player.ID += 1
@@ -39,7 +39,7 @@ class Player:
     def set_pdata(self, pdata: PlayerData_):
         self.pdata = pdata
         pdata.id = self.id
-        pdata.nation = self.nation
+        self.nation = pdata.nation
 
     def set_nation(self, nation: Nation):
         self.nation = nation
@@ -52,7 +52,6 @@ class Player:
         self.units = []
         self.cities = []
 
-    # @GameEvent.record_event
     def harvest(self, pos: Pos):
         if World.World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
@@ -72,7 +71,6 @@ class Player:
                 return ErrorCodes.ERR_NOT_IN_DOMAIN
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
     
-    # @GameEvent.record_event
     def build(self, pos: Pos, btype: BuildingType):
         if World.World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
@@ -110,7 +108,6 @@ class Player:
                 return ErrorCodes.ERR_NOT_IN_DOMAIN
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
-    # @GameEvent.record_event
     def terraform(self, pos: Pos, terraform: TerraForm):
         if World.World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
@@ -131,7 +128,6 @@ class Player:
                 return ErrorCodes.SUCCESS
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
-    # @GameEvent.record_event
     def create_unit(self, pos: Pos, utype: UnitType):
         if World.World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
@@ -152,7 +148,6 @@ class Player:
                 return ErrorCodes.ERR_NOT_YOUR_CITY
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
-    # @GameEvent.record_event
     def move_unit(self, unit: "Unit.Unit", pos: Pos):
         if unit.owner != self.id:
             return ErrorCodes.ERR_NOT_YOUR_UNIT
@@ -161,7 +156,6 @@ class Player:
             return ErrorCodes.SUCCESS
         return ErrorCodes.ERR_DEFAULT
 
-    # @GameEvent.record_event
     def buy_tech(self, tech: TechNode):
         if tech in self.techs:
             return ErrorCodes.ERR_TECH_IS_ALREADY_RESEARCHED
@@ -173,7 +167,6 @@ class Player:
         self.money -= tech.cost + len(self.cities) * tech.tier
         return ErrorCodes.SUCCESS
 
-    # @GameEvent.record_event
     def conquer_city(self, pos: Pos):
         for unit in self.units:
             if unit.pos == pos:
@@ -201,30 +194,21 @@ class Player:
                 return ErrorCodes.ERR_NOT_A_CITY
         return ErrorCodes.ERR_NOT_YOUR_UNIT
 
-    def update_vision(self) -> list[Pos]:
-        changed = []
+    def update_vision(self):
         for city in self.cities:
             for pos in city.domain:
-                if self.vision[pos.inty()][pos.intx()] == 0:
-                    changed.append(pos)
                 self.vision[pos.inty()][pos.intx()] = 1
             if city.is_capital:
                 vision_range = 2
                 for dv in [Pos(i, j) for i in range(-vision_range, vision_range + 1) for j in range(-vision_range, vision_range + 1)]:
                     if World.World.object.is_in(city.pos + dv):
-                        if self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] == 0:
-                            changed.append(city.pos + dv)
                         self.vision[(city.pos + dv).inty()][(city.pos + dv).intx()] = 1
         for unit in self.units:
             vision_range = unit.get_vision_range()
             for dv in [Pos(i, j) for i in range(-vision_range, vision_range + 1) for j in range(-vision_range, vision_range + 1)]:
                 if World.World.object.is_in(unit.pos + dv):
-                    if self.vision[(unit.pos + dv).inty()][(unit.pos + dv).intx()] == 0:
-                        changed.append(unit.pos + dv)
                     self.vision[(unit.pos + dv).inty()][(unit.pos + dv).intx()] = 1
-        return changed
     
-    # @GameEvent.record_event
     def start_turn(self):
         for unit in self.units:
             unit.refresh()
@@ -232,7 +216,6 @@ class Player:
             self.money += city.level + city.forge + city.is_capital
         return ErrorCodes.SUCCESS
     
-    # @GameEvent.record_event
     def end_turn(self):
         for unit in self.units:
             if not unit.moved and not unit.attacked:

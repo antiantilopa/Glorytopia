@@ -94,6 +94,7 @@ class GameManager:
                 self.players.append(player_data)
                 self.create_object(player_data)
                 self.synchronize()
+                self.send_message(addr, MessageType.CONNECT, "", [player_data])
             case MessageType.ERROR:
                 self.send_error(addr, "root", "Ты офигел?")
                 serverLogger.error("client sent error: %s", data)
@@ -214,9 +215,11 @@ class Host:
         except Exception as e:
             raise e
         finally:
-            if self.router._on_disconnect:
-                self.router._on_disconnect(self.game_manager.get_player_data(addr))
-            self.game_manager.disconnect_player(addr)
+            try:
+                if self.router._on_disconnect:
+                    self.router._on_disconnect(self.game_manager.get_player_data(addr))
+            finally:
+                self.game_manager.disconnect_player(addr)
 
     def start(self):
         t = threading.Thread(target=self.await_connection)

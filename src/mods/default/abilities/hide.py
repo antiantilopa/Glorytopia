@@ -8,5 +8,5 @@ class Hide(Ability):
     name = "hide"
 
     @staticmethod
-    def get_visibility(unit):
-        return 0
+    def get_visibility(unit: Unit, pid: int):
+        return pid == unit.owner

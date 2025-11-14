@@ -10,9 +10,22 @@ from datetime import datetime
 
 router = GameServerRouter("GAME")
 
+@router.request("SYNCHRONIZE")
+def req_game_world_size(pdata: GamePlayer, data: tuple):
+    router.host.synchronize()
+    return None
+
 @router.request("WORLD_SIZE")
 def req_game_world_size(pdata: GamePlayer, data: tuple):
-    return router.host.game.world.size.as_tuple()
+    return router.host.game.world.size
+
+@router.request("MONEY")
+def req_game_money(pdata: GamePlayer, data: tuple):
+    return Player.by_id(pdata.id).money
+
+@router.request("TECHS")
+def req_game_techs(pdata: GamePlayer, data: tuple):
+    return Player.by_id(pdata.id).techs
 
 @router.request("NOW_PLAYING_PLAYER_INDEX")
 def get_now_playing_player_index(pdata: GamePlayer, data: tuple):
@@ -21,6 +34,7 @@ def get_now_playing_player_index(pdata: GamePlayer, data: tuple):
 def update_updating_objects():
     for player in Player.players:
         player.update_vision()
+        router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/UPDATE_MONEY", player.money)
     router.host.create_new_objects()
     router.host.remove_dead_units()
     router.host.synchronize()
@@ -107,7 +121,8 @@ def eve_game_buy_tech(pdata: GamePlayer, tech_id: int):
     if result != ErrorCodes.SUCCESS:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/BUY_TECH", (f"Cannot buy tech: {result.name}"))
         return
-  
+    
+    router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/UPDATE_TECH", tech)
     update_updating_objects()
 
 @router.event("HARVEST", datatype=Pos)
@@ -178,5 +193,5 @@ def game_end_turn(pdata: GamePlayer, data: None):
                     router.host.send_message(others.pdata.address, MessageType.EVENT, "GAME/GAME_OVER", player.pdata.nickname)
 
     for player in Player.players:
-        router.host.send_message(pdata.address, MessageType.EVENT, "GAME/NEXT_TURN", router.host.game.now_playing_player_index)
+        router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/END_TURN", router.host.game.now_playing_player_index)
     update_updating_objects()

@@ -7,14 +7,11 @@ from copy import copy
 respond = ClientRouter()
 
 class GamePlayer(PlayerData_):
-    pass
+    money: int
+    techs: list[TechNode]
 
-class GameClientRouter(ClientRouter):
-    pass
-
-class GameClient(Client):
-    object: "GameClient" = None
-
+    joined_players: list["GamePlayer"] = []
+    disconnected: list["GamePlayer"] = []
     colors = [
         ((255, 0, 0), (255, 255, 255)),   # Red - White
         ((0, 255, 0), (0, 0, 0)),   # Green
@@ -25,11 +22,76 @@ class GameClient(Client):
         ((192, 192, 192), (0, 0, 0)),   # Silver - Black
         ((0, 128, 128), (255, 255, 255)),   # Teal - White
     ]
+    def get_main_color(self):
+        return GamePlayer.colors[self.color][0]
+
+    def get_secondary_color(self):
+        return GamePlayer.colors[self.color][1]
+
+    @staticmethod
+    def by_id(id: int):
+        for p in GamePlayer.joined_players:
+            if p.id == id:
+                return p
+
+    def client_on_create(self):
+        if GameClient.object.game_started:
+            return
+        if self.joined and (self not in GamePlayer.joined_players):
+            GamePlayer.joined_players.append(self)
+
+    def client_on_update(self):
+        if GameClient.object.game_started:
+            if not self.joined:
+                GamePlayer.disconnected.append(self)
+                return
+            disconnected_me = [self.nickname == p.nickname for p in GamePlayer.disconnected]
+            if len(disconnected_me) == 1:
+                disconnected_me = disconnected_me[0]
+                GamePlayer.disconnected.remove(disconnected_me)
+                GamePlayer.joined_players.remove(disconnected_me)
+                GamePlayer.joined_players.append(self)
+            return
+        
+        if self.joined and (self not in GamePlayer.joined_players):
+            GamePlayer.joined_players.append(self)
+        elif (not self.joined) and (self in GamePlayer.joined_players):
+            GamePlayer.joined_players.remove(self)
+    
+    def client_on_destroy(self):
+        if GameClient.object.game_started:
+            if self.joined:
+                GamePlayer.disconnected.append(self)
+            return
+        if self.joined and (self in GamePlayer.joined_players):
+            GamePlayer.joined_players.remove(self)
+
+    def __str__(self):
+        return f"PlayerData <{self.nickname}>"
+
+    def __repr__(self):
+        return f"PlayerData <{self.nickname}>"
+    
+
+class GameClientRouter(ClientRouter):
+    routers: list["GameClientRouter"] = []
+
+    def __init__(self, default=""):
+        ClientRouter.__init__(self, default)
+        GameClientRouter.routers.append(self)
+
+class GameClient(Client):
+    object: "GameClient" = None
+
+    now_playing_player_id: int
+    game_started: bool
+    me: GamePlayer
 
     def __init__(self, host: str, port: int):
         Client.__init__(self, host, port, GameClientRouter(), GamePlayer)
-        self.object = self
-
-    def get_main_color(self, name: str) -> tuple[int, int, int]: ...
-
-    def get_secondary_color(self, name: str) -> tuple[int, int, int]: ...
+        self.now_playing_player_id = 0
+        self.game_started = 0
+        for router in GameClientRouter.routers:
+            self.router.merge(router)
+        GameClient.object = self
+        self.start()

@@ -5,9 +5,10 @@ from netio import ConnectionData
 
 class PlayerData_(PlayerData):
     id: Annotated[int, SerializeField()]
-    nation: Annotated[Nation, SerializeField(by_id=True)]
+    nation: Annotated[Nation, SerializeField()]
     nickname: Annotated[str, SerializeField()]
     is_ready: Annotated[bool, SerializeField()]
+    joined: Annotated[bool, SerializeField()]
     color: Annotated[int, SerializeField()]
 
     recovery_code: int
@@ -18,7 +19,8 @@ class PlayerData_(PlayerData):
         obj.id = -1
 
         obj.color = 0
-        obj.recovery_code = None
+        obj.recovery_code = 0
+        obj.joined = False
         obj.is_ready = False
         obj.nickname = ""
         obj.nation = Nation.by_id(0)

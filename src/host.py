@@ -1,8 +1,7 @@
 from netio.serialization.serializer import Serializable
 from server.core import *
-from server.core.game_event import GameEvent
 from server.network import game, lobby
-from server.network.game_server import GameServer
+from server.network.game_server import GamePlayer, GameServer
 from server.globals.backup import BackupSettings
 import socket, time, random, os
 from engine_antiantilopa import Vector2d
@@ -10,8 +9,7 @@ from shared.loader import load_mains, load_effects_and_abilities_full
 from shared.asset_types import *
 from pathlib import Path
 from netio import Host, MessageType, ConnectionData
-from shared.player import PlayerData_
-
+from server.core.game_event import GameEvent
 import logging
 
 load_mains()
@@ -76,7 +74,7 @@ print(host.router._event_handlers.keys())
 if preload_data is None:
     print("Starting a new game.")
     if name is None:
-        name = input("Enter the game's name: ")
+        name = ""
         # os.mkdir(saves_path / name)
 else:
     host.game = Game.from_serializable(preload_data)
@@ -91,30 +89,46 @@ def at_connect(conn_data: ConnectionData) -> bool:
     return True
 
 @host.router.on_disconnect()
-def at_disconnect(player_data: PlayerData_):
+def at_disconnect(player_data: GamePlayer):
+    if not player_data.joined:
+        return
+    
+    GamePlayer.joined_players.remove(player_data)
     logging.info(f"Connection with {player_data.nickname} has lost.")
+    if not host.game_started:
+        for pdata in GamePlayer.joined_players:
+            host.send_message(pdata.address, MessageType.EVENT, "LOBBY/DISCONNECT", player_data.nickname)
     if host.game_started:
-        for player in host.game_manager.players:
-            host.game_manager.send_message(player.address, MessageType.EVENT, "PLAYER_DISCONNECT", (player_data.nickname,))
+        for pdata in GamePlayer.joined_players:
+            host.send_message(pdata.address, MessageType.EVENT, "GAME/DISCONNECT", player_data.nickname)
         logging.info(f"{player_data.nickname} has disconnected from the game.")
         recovery_code = random.randint(100000, 999999)
         player_data.recovery_code = recovery_code
-        # TODO player data save
-        logging.warning(f"Recovery code: {recovery_code}")
-        logging.info("Awaiting for player to reconnect...")
+        save_obj = GamePlayer.new_copy_from(player_data)
+        GamePlayer.need_reconnect.append(save_obj)
+        logging.warning(f"Name: {player_data.nickname}, Recovery code: {recovery_code}")
 
 host.start()
 
 def start_game():
     if preload_data is None:
         host.game = Game(Vector2d(17, 17), len(host.game_manager.players))
-        for player in host.game_manager.players:
-            host.send_message(player.address, MessageType.EVENT, "GAME_START", (0,))
+        i = 0
+        for pdata in GamePlayer.joined_players:
+            pdata.id = i
+            Player.by_id(i).set_pdata(pdata)
+            i += 1
         host.game.start()
+    
+        host.synchronize()
+        for player in GamePlayer.joined_players:
+            host.send_message(player.address, MessageType.EVENT, "LOBBY/GAME_START", (0, host.game.world.size))
     else:
+        # TODO!
         for player in host.game_manager.players:
-            host.send_message(player.address, MessageType.EVENT, "GAME_START", (0,))
+            host.send_message(player.address, MessageType.EVENT, "LOBBY/GAME_START", (0,))
     host.create_all_objects()
+    GameEvent.start_recording()
 
 try:
     host.game_starting = False
@@ -123,7 +137,7 @@ try:
             if host.game_starting:
                 print(f"Game starting in {timer}...")
                 for pl in host.game_manager.players:
-                    host.send_message(pl.address, MessageType.EVENT, "MESSAGE", (timer,))
+                    host.send_message(pl.address, MessageType.EVENT, "LOBBY/MESSAGE", ("SERVER", str(timer)))
                 timer -= 1
                 time.sleep(1)
                 if timer == 0:

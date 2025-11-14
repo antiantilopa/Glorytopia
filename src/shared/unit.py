@@ -6,7 +6,7 @@ from .asset_types import UnitType
 
 
 class UnitData(Serializable):
-    utype: Annotated[UnitType, SerializeField(by_id=True)]
+    utype: Annotated[UnitType, SerializeField()]
     owner: Annotated[int, SerializeField()]
     pos: Annotated[Pos, SerializeField()]
     health: Annotated[int, SerializeField()]

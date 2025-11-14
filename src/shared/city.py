@@ -4,15 +4,16 @@ from netio import *
 
 
 class CityData(Serializable):
+    pos: Annotated[Pos, SerializeField()]
+    owner: Annotated[int, SerializeField()]
     name: Annotated[str, SerializeField()]
     level: Annotated[int, SerializeField()]
     population: Annotated[int, SerializeField()]
     fullness: Annotated[int, SerializeField()]
     forge: Annotated[bool, SerializeField()]
     walls: Annotated[bool, SerializeField()]
-    domain: Annotated[list[Pos], SerializeField()]
     is_capital: Annotated[bool, SerializeField()]
-    pos: Annotated[Pos, SerializeField()]
+    domain: Annotated[list[Pos], SerializeField()]
 
     def __init__(self, 
                  pos: Pos, 

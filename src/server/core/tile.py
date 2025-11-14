@@ -28,5 +28,7 @@ class Tile(TileData):
         self.resource = terraform.to_resource
         
     def validate(self, player_data: PlayerData_):
+        if not player_data.joined:
+            return
         player = Player.Player.by_id(player_data.id)
         return player.vision[self.pos.y][self.pos.x]

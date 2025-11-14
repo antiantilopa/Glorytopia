@@ -3,6 +3,8 @@ import enum
 import typing
 import time
 from ..logger import clientLogger
+import threading
+import types
 
 _serializable_primitives = (int, str, float, bool, tuple, list, type(None))
 
@@ -11,11 +13,14 @@ class SerializationTypes(enum.Enum):
     INT32 = 1
     FLOAT32 = 2
     OBJECT = 3
-    BOOLEAN = 4
+    INT8 = 4
     NONE = 5
     NOTHING = 6
     LIST = 7
     
+    UINT32 = 8
+    UINT8 = 9
+
     END_OF_OBJECT = 255
 
 class Tokens(enum.Enum):
@@ -26,25 +31,32 @@ class SpecialTypes(enum.Enum):
     END = 1
 
 class BaseWriter:
+    writer_lock = threading.Lock()
+
     def encode(self, conn: socket.socket, message: tuple[int, str, tuple]):
         tp, route, data = message
-        self._write_int(conn, tp, 2)
-        self._write_string(conn, route)
-        if not (isinstance(data, tuple) or isinstance(data, Serializable)):
+        if isinstance(data, Serializable):
+            data = data.serialize()
+        elif not (isinstance(data, tuple) or isinstance(data, list)):
             data = (data, ) 
-        self._write_object(conn, data)
+        serialized_message = bytearray()
+        serialized_message.extend(self._int_to_bytes(tp, 2))
+        serialized_message.extend(self._string_to_bytes(route))
+        serialized_message.extend(self._object_to_bytes(data))
+        with BaseWriter.writer_lock:
+            conn.sendall(bytes(serialized_message))
 
-    def _write_string(self, conn: socket.socket, value: str):
+    def _string_to_bytes(self, value: str) -> bytes:
         data = value.encode() + Tokens.END_OF_STRING.value
-        conn.sendall(data)
+        return data
     
-    def _write_boolean(self, conn: socket.socket, value: bool):
-        conn.sendall(bytes([int(value)]))
+    def _boolean_to_bytes(self, value: bool) -> bytes:
+        return bytes([int(value)])
 
-    def _write_int(self, conn: socket.socket, value: int, nbytes: int):
-        conn.sendall(value.to_bytes(length=nbytes, signed=True))
+    def _int_to_bytes(self, value: int, nbytes: int, signed: bool=True) -> bytes:
+        return value.to_bytes(length=nbytes, signed=signed)
 
-    def _write_float(self, conn: socket.socket, value: float, nbytes: int):
+    def _float_to_bytes(self, value: float, nbytes: int) -> bytes:
         assert nbytes > 1, "Cannot serialize float in given amount of bytes"
 
         sign = value < 0
@@ -58,45 +70,63 @@ class BaseWriter:
 
         mantissa[2 * nbytes + 1] = hex(int((float.fromhex(mantissa[2 * nbytes + 1]) // 2) * 2 + sign)).removeprefix("0x")
 
-        self._write_int(conn, exponenta, 1)
+        ser_exp = self._int_to_bytes(exponenta, 1)
+        data = bytearray()
         for i in range(nbytes):
             a = int(float.fromhex(mantissa[2 * i: 2 * i + 2]))
-            self._write_int(conn, a, 1)
+            data.extend(self._int_to_bytes(a, 1))
 
-    def _write_object(self, conn: socket.socket, obj: tuple|list):
+        return ser_exp + bytes(data)
+
+    def _object_to_bytes(self, obj: tuple|list) -> bytes:
+        data = bytearray()
         for field in obj:
-            self._write_auto(conn, field)
-        conn.sendall(bytes([SerializationTypes.END_OF_OBJECT.value]))
+            data.extend(self._any_to_bytes(field))
+        end = bytes([SerializationTypes.END_OF_OBJECT.value])
+        return bytes(data) + end
 
-    def _write_auto(self, conn: socket.socket, obj: "int|float|str|bool|None|tuple|list|Serializable"):
+    def _any_to_bytes(self, obj: "int|float|str|bool|None|tuple|list|Serializable") -> bytes:
+        start = bytes([0])
+        data = bytes()
         if isinstance(obj, bool):
-            conn.sendall(bytes([SerializationTypes.BOOLEAN.value]))
-            self._write_boolean(conn, obj)
+            start = bytes([SerializationTypes.INT8.value])
+            data = self._boolean_to_bytes(obj)
         elif isinstance(obj, str):
-            conn.sendall(bytes([SerializationTypes.STRING.value]))
-            self._write_string(conn, obj)
+            start = (bytes([SerializationTypes.STRING.value]))
+            data = self._string_to_bytes(obj)
         elif isinstance(obj, float):
-            conn.sendall(bytes([SerializationTypes.FLOAT32.value]))
-            self._write_float(conn, obj, 4)
+            start = (bytes([SerializationTypes.FLOAT32.value]))
+            data =self._float_to_bytes(obj, 4)
         elif isinstance(obj, int):
-            conn.sendall(bytes([SerializationTypes.INT32.value]))
-            self._write_int(conn, obj, 4)
+            if -128 <= obj < 128:
+                start = (bytes([SerializationTypes.INT8.value]))
+                data = self._int_to_bytes(obj, 1)
+            elif 0 <= obj < 256:
+                start = (bytes([SerializationTypes.UINT8.value]))
+                data = self._int_to_bytes(obj, 1, signed=0)
+            elif 0 <= obj:
+                start = (bytes([SerializationTypes.UINT32.value]))
+                data = self._int_to_bytes(obj, 4, signed=0)
+            else:
+                start = (bytes([SerializationTypes.INT32.value]))
+                data = self._int_to_bytes(obj, 4)
         elif isinstance(obj, tuple):
-            conn.sendall(bytes([SerializationTypes.OBJECT.value]))
-            self._write_object(conn, obj)
+            start = (bytes([SerializationTypes.OBJECT.value]))
+            data = self._object_to_bytes(obj)
         elif isinstance(obj, list):
-            conn.sendall(bytes([SerializationTypes.LIST.value]))
-            self._write_object(conn, obj)
+            start = (bytes([SerializationTypes.LIST.value]))
+            data = self._object_to_bytes(obj)
         elif isinstance(obj, Serializable):
-            conn.sendall(bytes([SerializationTypes.OBJECT.value]))
-            self._write_object(conn, obj.serialize())
+            start = (bytes([SerializationTypes.OBJECT.value]))
+            data = self._object_to_bytes(obj.serialize())
         elif obj == None:
-            conn.sendall(bytes([SerializationTypes.NONE.value]))
+            start = (bytes([SerializationTypes.NONE.value]))
         elif obj == SpecialTypes.NOTHING:
-            conn.sendall(bytes([SerializationTypes.NOTHING.value]))
+            start = (bytes([SerializationTypes.NOTHING.value]))
         else:
             raise ValueError(f"Unsupported serialization type: {obj}")
-
+        return start + data
+    
 class BaseReader:
 
     def decode(self, conn: socket.socket) -> tuple[int, str, tuple]:
@@ -111,16 +141,20 @@ class BaseReader:
         match(tp[0]):
             case SerializationTypes.STRING.value:
                 return self._read_string(conn)
+            case SerializationTypes.INT8.value:
+                return self._read_int(conn, 1)
+            case SerializationTypes.UINT8.value:
+                return self._read_int(conn, 1, 0)
             case SerializationTypes.INT32.value:
                 return self._read_int(conn, 4)
+            case SerializationTypes.UINT32.value:
+                return self._read_int(conn, 4, 0)
             case SerializationTypes.FLOAT32.value:
                 return self._read_float(conn, 4)
             case SerializationTypes.OBJECT.value:
                 return self._read_object(conn)
             case SerializationTypes.LIST.value:
                 return list(self._read_object(conn))
-            case SerializationTypes.BOOLEAN.value:
-                return self._read_boolean(conn)
             case SerializationTypes.NONE.value:
                 return None
             case SerializationTypes.NOTHING.value:
@@ -138,10 +172,10 @@ class BaseReader:
     
     def _read_boolean(self, conn: socket.socket) -> bool:
         val = recv_from(conn, 1)
-        return bool(val[0])
+        return int(val[0])
     
-    def _read_int(self, conn: socket.socket, nbytes: int) -> int:
-        return int.from_bytes(recv_from(conn, nbytes), signed=True)
+    def _read_int(self, conn: socket.socket, nbytes: int, signed: bool=True) -> int:
+        return int.from_bytes(recv_from(conn, nbytes), signed=signed)
     
     def _read_float(self, conn: socket.socket, nbytes: int) -> float:
         assert nbytes % 2 == 0, "Cannot deserialize odd amount of bytes"
@@ -159,6 +193,55 @@ class BaseReader:
         while (field := self._read_field(conn)) != SpecialTypes.END:
             obj.append(field)
         return tuple(obj)
+
+    def _bytes_to_serialized(self, data: bytes|bytearray, start: int = 0) -> tuple[str|int|float|tuple|bool|None|SpecialTypes|list, int]:
+        typ = data[start]
+        start += 1
+        match typ:
+            case SerializationTypes.STRING.value:
+                result = ""
+                while data[start] != 0:
+                    result += chr(data[start])
+                    start += 1
+                return result, len(result) + 1
+            case SerializationTypes.INT32.value:
+                result = int.from_bytes(data[start : start + 4], signed=1)
+                return result, 4
+            case SerializationTypes.UINT32.value:
+                result = int.from_bytes(data[start : start + 4], signed=0)
+                return result, 4
+            case SerializationTypes.INT8.value:
+                result = int.from_bytes(data[start : start + 1], signed=1)
+                return result, 1
+            case SerializationTypes.UINT8.value:
+                result = int.from_bytes(data[start : start + 1], signed=0)
+                return result, 1
+            case SerializationTypes.FLOAT32.value:
+                result = ...
+                return NotImplemented, 4
+            case SerializationTypes.OBJECT.value:
+                result = []
+                tmp = start
+                while data[start] != SerializationTypes.END_OF_OBJECT.value:
+                    field, length = self._bytes_to_serialized(data, start)
+                    result.append(field)
+                    start += length + 1
+                return tuple(result), start - tmp + 1
+            case SerializationTypes.INT8.value:
+                result = int(data[start])
+                return result, 1
+            case SerializationTypes.NONE.value:
+                return None, 0
+            case SerializationTypes.NOTHING.value:
+                return SpecialTypes.NOTHING, 0
+            case SerializationTypes.LIST.value:
+                result = []
+                tmp = start
+                while data[start] != SerializationTypes.END_OF_OBJECT.value:
+                    field, length = self._bytes_to_serialized(data, start)
+                    result.append(field)
+                    start += length + 1
+                return result, start - tmp + 1
 
 class SerializeField:
     def __init__(self, by_id=False):
@@ -215,13 +298,14 @@ class Serializable:
 
     __classes: list[type["Serializable"]] = []
     _primitive: bool = False
+    _serialize_by_id: bool = False
     __ID: int = 0
 
-    def __init_subclass__(cls, primitive: bool = False, **kwargs):
-        super().__init_subclass__(**kwargs)
+    def __init_subclass__(cls, primitive: bool = None, by_id: bool = None):
         if cls.__qualname__ in [c.__qualname__ for c in Serializable.__classes]:
             raise ValueError(f"two classes with the same name: {cls.__qualname__}")
-        cls._primitive = primitive
+        cls._primitive = cls._primitive if primitive is None else primitive
+        cls._serialize_by_id = cls._serialize_by_id if by_id is None else by_id
         Serializable.__classes.append(cls)
         orig_init = cls.__init__
 
@@ -253,8 +337,7 @@ class Serializable:
         raise ValueError("No class with id: ", tid)
     
     @staticmethod 
-    def parse(data, cls, metadata: SerializeField):
-        # cant I just metadata = cls.__metadata__[0]
+    def parse(data, cls):
         if cls is None:
             return data
         
@@ -267,6 +350,8 @@ class Serializable:
             return None
         
         if isinstance(data, (int, float, bool, str)):
+            if issubclass(cls, Serializable) and cls._primitive:
+                return cls(*data)
             if _check_classes(type(data), cls):
                 raise ValueError(f"Classes don't match: {type(data)} {cls}")
             return data
@@ -274,35 +359,38 @@ class Serializable:
         if issubclass(cls, tuple) and isinstance(data, tuple) and generic is None:
             return data
 
-        if metadata.by_id:   
+        if issubclass(cls, Serializable) and cls._serialize_by_id:
             if not isinstance(data, tuple) or len(data) != 2:
                 raise ValueError(f"Invalid ID serialization. got {data} for {generic if generic is not None else cls}")
 
             if get_class_id(cls) != data[0]:
-                clientLogger.warning(f"Class ids doesn't match {get_class_id(cls)}, {data[0]}")
+                clientLogger.warning(f"Class ids doesn't match: expected {cls}, got {Serializable.get_class(data[0])}")
                 cls = Serializable.get_class(data[0])
 
             return cls.by_id(data[1])
-        else:
-            if issubclass(cls, Serializable):
-                if cls._primitive:
-                    return cls(*data)
-                else:
-                    return cls.deserialize(data)
+        if issubclass(cls, Serializable):
+            if cls._primitive:
+                return cls(*data)
+            else:
+                return cls.deserialize(data)
 
-            if issubclass(cls, list) and generic is not None:
-                tp = typing.get_args(generic)[0]
+        if issubclass(cls, list) and generic is not None:
+            tp = typing.get_args(generic)[0]
 
-                return ObservableList([Serializable.parse(i, tp, metadata) for i in data])
+            return ObservableList([Serializable.parse(i, tp) for i in data])
 
-            if issubclass(cls, tuple) and generic is not None:
-                tps = typing.get_args(generic)
+        if issubclass(cls, list) and generic is None:
 
-                assert len(data) == len(tps), f"Invalid data {data} length for {generic}"
+            return ObservableList(data)
 
-                return tuple(Serializable.parse(data[i], tps[i], metadata) for i in range(len(tps)))
+        if issubclass(cls, tuple) and generic is not None:
+            tps = typing.get_args(generic)
 
-            raise ValueError(f"Wrong type was passed: {type(data)}/{cls}")
+            assert len(data) == len(tps), f"Invalid data {data} length for {generic}"
+
+            return tuple(Serializable.parse(data[i], tps[i]) for i in range(len(tps)))
+
+        raise ValueError(f"Wrong type was passed: got {type(data)} of {data}, expected {cls if generic is None else generic}")
         
     @classmethod
     def deserialize(cls, data: tuple):
@@ -310,7 +398,7 @@ class Serializable:
             return cls(*data) 
 
         if get_class_id(cls) != data[0]:
-            clientLogger.warning(f"Class ids doesn't match {get_class_id(cls)}, {data[0]}")
+            clientLogger.warning(f"Class ids doesn't match: expected {cls}, got {Serializable.get_class(data[0])}")
             cls = Serializable.get_class(data[0])
             
         obj = cls.__new__(cls)
@@ -321,13 +409,18 @@ class Serializable:
 
             field_cls = value.__origin__
 
-            super().__setattr__(obj, key, Serializable.parse(data[i], field_cls, metadata))
+            if type(field_cls) is types.UnionType:
+                field_cls = field_cls.__args__[0]
+
+            super().__setattr__(obj, key, Serializable.parse(data[i], field_cls))
 
         return obj
 
     def serialize(self) -> tuple:
         if self._primitive:
             return self.__tuple__()
+        if self._serialize_by_id:
+            return (get_class_id(type(self)), self.id)
         data = []
         for key, cls in get_all_annotations(self).items():
             if _is_annotated(cls):
@@ -345,10 +438,6 @@ class Serializable:
                     continue
 
                 assert isinstance(value, Serializable), "Field type should be subclass of Serializable to serialize"
-
-                if metadata.by_id:
-                    data.append((get_class_id(type(value)), value.id))
-                    continue
                 
                 data.append(value.serialize())
         return tuple(data)
@@ -390,11 +479,14 @@ class Serializable:
                 continue
 
             if value == SpecialTypes.NOTHING and isinstance(new_value, ObservableList):
-                data.append(to_prim(new_value))
+                if new_value.updated:
+                    data.append(to_prim(new_value))
+                else:
+                    data.append(SpecialTypes.NOTHING)
                 continue
 
             # Add changes of field
-            if value == SpecialTypes.NOTHING and isinstance(new_value, Serializable) and not new_value._primitive and not metadata.by_id:
+            if value == SpecialTypes.NOTHING and isinstance(new_value, Serializable) and not new_value._primitive and not new_value._serialize_by_id:
                 data.append(_optimize_nothings(new_value.serialize_updates()))
                 continue
 
@@ -403,9 +495,9 @@ class Serializable:
                 data.append(value)
                 continue
 
-            assert isinstance(value, Serializable), "Field type should be subclass of Serializable to serialize"
+            assert isinstance(value, Serializable), f"Field type should be subclass of Serializable to serialize, not {type(value)} of {value}"
 
-            if metadata.by_id:
+            if new_value._serialize_by_id:
                 data.append((get_class_id(type(value)), value.id))
                 continue
 
@@ -424,14 +516,17 @@ class Serializable:
             if data[i] == SpecialTypes.NOTHING:
                 continue
 
+            if type(field_cls) is types.UnionType:
+                field_cls = field_cls.__args__[0]
+
             if typing.get_origin(field_cls):
                 field_cls = typing.get_origin(field_cls)
                 
-            if issubclass(field_cls, Serializable) and not metadata.by_id:
+            if issubclass(field_cls, Serializable) and not field_cls._serialize_by_id and not field_cls._primitive:
                 field_cls.deserialize_updates(getattr(obj, key), data[i])
                 continue
             
-            object.__setattr__(obj, key, Serializable.parse(data[i], value.__origin__, metadata))
+            object.__setattr__(obj, key, Serializable.parse(data[i], field_cls))
         return obj
 
     def validate(self, player_data) -> bool:

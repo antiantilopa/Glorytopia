@@ -26,7 +26,7 @@ class Settings:
     resolution: ChosenVar = ChosenVar(resolutions, 2)
     pref_ipv4: InputVar = InputVar("")
     pref_name: InputVar = InputVar("")
-    texture_packs: OrderVar = OrderVar("default")
+    texture_packs: OrderVar = OrderVar(["default"])
     preffered_color: ChosenVar = ChosenVar([0, 1, 2, 3, 4, 5, 6, 7], 2)
 
     @staticmethod

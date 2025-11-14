@@ -96,6 +96,10 @@ class BaseRouter:
         self._response_handlers.update(other._response_handlers)
         self._request_handlers.update(other._request_handlers)
         self._event_handlers.update(other._event_handlers)
+        if other._on_disconnect is not None:
+            self._on_disconnect = other._on_disconnect
+        if other._on_connect is not None:
+            self._on_connect = other._on_connect
 
 class ClientRouter(BaseRouter):
     client: "Client.Client"
@@ -106,6 +110,8 @@ class ClientRouter(BaseRouter):
         raise NotImplementedError("Are you sure this should be called?")
 
     def merge(self, other: "ClientRouter"):
+        if other == self:
+            return
         BaseRouter.merge(self, other)
         if isinstance(other, ClientRouter): 
             self._merged_routers.append(other)
@@ -168,9 +174,9 @@ def parse_data(data: tuple|Serializable, cls: type):
     if cls is None:
         assert (len(data) == 0) or (len(data) == 1 and data[0] is None), f"datatype is {cls}, got {data}"
         return None
-    if issubclass(origin, Serializable) or issubclass(origin, tuple) or issubclass(origin, list):
-        return Serializable.parse(data, cls, SerializeField())
+    if issubclass(origin, tuple) or issubclass(origin, list) or issubclass(origin, Serializable):
+        return Serializable.parse(data, cls)
     else:
-        result = Serializable.parse(data, tuple[cls], SerializeField())
-        assert len(result) == 1, f"datatype is {cls}, got {data}"
-        return result[0]
+        result = Serializable.parse(data[0], cls)
+        # assert len(result) == 1, f"datatype is {cls}, got {data}"
+        return result

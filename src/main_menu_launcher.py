@@ -1,8 +1,12 @@
-from client.scenes.main_menu import launch
+from client.scenes.main_menu.main import launch
 from client.globals.settings import Settings
+from client.globals.window_size import WindowSize
 from shared.loader import load_effects_names
 from engine_antiantilopa import Vector2d
 import pygame as pg
+
+from client.widgets.sounds_load import load_sounds
+from client.widgets.texture_load import load_textures
 
 load_effects_names()
 
@@ -42,4 +46,9 @@ except Exception as e:
     
     Settings.save_to_file_()
 
-launch(Vector2d.from_tuple(Settings.resolution.variants[Settings.resolution.chosen]))
+WindowSize.value = Vector2d.from_tuple(Settings.resolution.variants[Settings.resolution.chosen])
+
+load_textures(Settings.texture_packs.order)
+load_sounds(Settings.texture_packs.order)
+
+launch()

@@ -1,7 +1,7 @@
 from typing import Annotated, TypeVar, Self
 from ..serialization.serializer import Serializable, SerializeField
 
-class GenericType(Serializable):
+class GenericType(Serializable, by_id = True):
     types: dict[str, Self] = {}
     name: str
     id: Annotated[int, SerializeField()]

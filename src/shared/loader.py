@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from netio.util.lazy_reference import LazyRef
 from shared.effect import Effect, EffectType
 from .globals.mod_versions import ModConfig, ModVersions
 from .asset_types import BuildingType, Nation, ResourceType, TechNode, UnitType, TileType, TerraForm
@@ -126,5 +127,12 @@ def load_effects_names():
 def load_assets():
     for mod_path in MODS_PATH.iterdir():
         load_mod(mod_path)
-
+    remove_ref()
     TechNode.assign()
+
+def remove_ref():
+    for cls in (TileType, UnitType, BuildingType, ResourceType, TerraForm, TechNode, Nation):
+        for obj in cls.values():
+            for key, value in obj.__dict__.items():
+                if isinstance(value, LazyRef):
+                    setattr(obj, key, value.cls.get(value.name))

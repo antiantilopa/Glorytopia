@@ -104,7 +104,7 @@ class EffectType(GenericType):
         pass
 
 class Effect(Serializable):
-    etype: Annotated[EffectType, SerializeField(by_id=True)]
+    etype: Annotated[EffectType, SerializeField()]
     duration: Annotated[int, SerializeField()]
     args: Annotated[list[int], SerializeField()]
 

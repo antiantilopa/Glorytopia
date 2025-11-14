@@ -50,10 +50,6 @@ class Ability(GenericType):
         return defense_result
 
     @staticmethod
-    def attack_bonus(unit: "Unit.Unit", attack_result: int) -> int:
-        return attack_result
-    
-    @staticmethod
     def on_terrain_movement(unit: "Unit.Unit", tile: "Tile.Tile", movement: int) -> int:
         return 0
     

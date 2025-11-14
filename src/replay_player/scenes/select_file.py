@@ -1,6 +1,6 @@
 from engine_antiantilopa import *
 from replay_player.widgets.fastgameobjectcreator import *
-from server.globals.replay import RecordReplaySettings
+from shared.globals.replay import RecordReplaySettings
 from replay_player.core.load import load as load_replay
 from .watch_replay import load as load_watch
 from .watch_replay import load as start_watch

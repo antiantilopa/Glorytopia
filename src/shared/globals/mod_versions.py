@@ -3,13 +3,16 @@ from typing import Annotated
 from netio import Serializable, SerializeField
 
 
-class ModConfig(Serializable):
+class ModConfig(Serializable, primitive=1):
     name: Annotated[str, SerializeField()]
     version: Annotated[str, SerializeField()]
 
     def __init__(self, name: str, version: str):
         self.name = name
         self.version = version
+
+    def __tuple__(self):
+        return (self.name, self.version)
     
     def to_serializable(self):
         return [self.name, self.version]

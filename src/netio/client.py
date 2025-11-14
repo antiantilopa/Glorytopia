@@ -1,7 +1,7 @@
 import socket
 import threading
 
-from .serialization.serializer import Serializable
+from .serialization.serializer import Serializable, SerializeField
 from .datatypes import ConnectionData, PlayerData
 from .serialization.routing import Writer, Reader, MessageType
 from . import router as Router 
@@ -11,6 +11,7 @@ from .logger import clientLogger
 class Client:
     
     _objects: list[Serializable]
+    me: PlayerData
 
     def __init__(
             self, 
@@ -58,7 +59,8 @@ class Client:
                     case MessageType.REQUEST:
                         self.router.handle_request(route, data)
                     case MessageType.CONNECT:
-                        raise ValueError("WTF?")
+                        obj = [i for i in self._objects if i._id == data[0][1]][0]
+                        self.me = obj
                     case MessageType.CREATE:
                         cls = Serializable.get_class(data[0])
                         obj = cls.deserialize(data)

@@ -9,12 +9,38 @@ from server.core.city import City
 from server.core.game import Game
 from server.core.tile import Tile
 from server.core.unit import Unit
-from server.core.world import World
+from server.core.game_event import GameEvent
 from shared.player import PlayerData_
 
 
 class GamePlayer(PlayerData_):
-    pass
+    joined_players: list["GamePlayer"] = []
+    need_reconnect: list["GamePlayer"] = []
+
+    @staticmethod
+    def new_copy_from(pdata: "GamePlayer") -> "GamePlayer":
+        new_obj = GamePlayer()
+        new_obj.id = pdata.id
+        new_obj.nickname = pdata.nickname
+        new_obj.nation = pdata.nation
+        new_obj.recovery_code = pdata.recovery_code
+        new_obj.color = pdata.color
+        return new_obj
+
+    def copy_from(self, pdata: "GamePlayer") -> "GamePlayer":
+        self.id = pdata.id
+        self.nickname = pdata.nickname
+        self.nation = pdata.nation
+        self.recovery_code = pdata.recovery_code
+        self.color = pdata.color
+
+    def copy_to(self, pdata: "GamePlayer"):
+        pdata.id = self.id
+        pdata.nickname = self.nickname
+        pdata.nation = self.nation
+        pdata.recovery_code = self.recovery_code
+        pdata.color = self.color
+
 
 class GameServer(Host):
     game_started: bool
@@ -57,6 +83,10 @@ class GameServer(Host):
             for y in range(self.game.world.size.y):
                 tile = self.game.world.get(Vector2d(x, y))
                 self.create_object(tile)
+
+    def synchronize(self):
+        GameEvent.record_changes()
+        return super().synchronize()
 
 class GameServerRouter(ServerRouter):
     host: GameServer

@@ -3,6 +3,8 @@ from typing import Type, TypeVar, Generic
 T = TypeVar("T")
 
 class LazyRef(Generic[T]):
+    name: str
+    cls: type[T]
     not_loaded: bool = True
 
     def __init__(self, cls: Type[T]):

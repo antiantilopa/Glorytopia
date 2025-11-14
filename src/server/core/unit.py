@@ -278,6 +278,8 @@ class Unit(UnitData):
                 i += 1 
 
     def validate(self, player_data: PlayerData_):
+        if not player_data.joined:
+            return
         player = Player.Player.by_id(player_data.id)
         return player.vision[self.pos.y][self.pos.x] and self.get_visibility(player_data.id)
 
