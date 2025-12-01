@@ -1,6 +1,8 @@
 from netio.serialization.routing import MessageType
 from server.core import *
+from server.recorder.replay_recorder import ReplayRecorder
 from server.network.game_server import GameServerRouter, GamePlayer
+from server.backup.saver import Saver
 from shared.asset_types import BuildingType, TechNode, TerraForm, UnitType
 from shared.error_codes import ErrorCodes
 from shared.unit import UnitData
@@ -35,6 +37,7 @@ def update_updating_objects():
     for player in Player.players:
         player.update_vision()
         router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/UPDATE_MONEY", player.money)
+    ReplayRecorder.record_changes()
     router.host.create_new_objects()
     router.host.remove_dead_units()
     router.host.synchronize()
@@ -195,3 +198,6 @@ def game_end_turn(pdata: GamePlayer, data: None):
     for player in Player.players:
         router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/END_TURN", router.host.game.now_playing_player_index)
     update_updating_objects()
+    Saver.save_current_state()
+
+

@@ -33,7 +33,10 @@ def join(pdata: GamePlayer, data: str):
         if prohibited_name in name.lower():
             router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", f"This name contains prohibited substring: {prohibited_name}.")
             return -1
-
+    if len(GamePlayer.joined_players) < len(router.host.required_names):
+        if name not in router.host.required_names:
+            router.host.game_manager.send_error(pdata.address, "LOBBY/JOIN", f"This game requires specific names to join: {", ".join(router.host.required_names)}.")
+            return -1
     print(f"{name} joined the game!")
 
     used_colors = list(dict.fromkeys([player.color for player in GamePlayer.joined_players]))

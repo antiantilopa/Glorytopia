@@ -11,7 +11,7 @@ from . import player as Player
 from .ability import Ability
 
 class Unit(UnitData):
-    attached_city: "City.City"
+    _attached_city: "City.City|None"
 
     units: list["Unit"] = []
 
@@ -247,6 +247,34 @@ class Unit(UnitData):
         for effect in self.effects:
             effect.etype.after_heal(effect, self)
     
+    @property
+    def attached_city(self) -> "City.City|None":
+        if self.attached_city_id == -1:
+            self._attached_city = None  
+        else:
+            for city in City.City.cities:
+                if city._id == self.attached_city_id:
+                    self._attached_city = city
+                    break
+        return self._attached_city
+
+    @attached_city.setter
+    def attached_city(self, city: "City.City|None"):
+        self._attached_city = city
+        self.attached_city_id = city._id if city is not None else -1
+
+    def update_attached_city_id(self):
+        self.attached_city_id = self._attached_city._id if self._attached_city is not None else -1
+
+    def update_attached_city(self):
+        if self.attached_city_id == -1:
+            self._attached_city = None  
+        else:
+            for city in City.City.cities:
+                if city._id == self.attached_city_id:
+                    self._attached_city = city
+                    break
+
     def get_vision_range(self) -> int:
         vision = World.World.object.get(self.pos).ttype.vision_range
         for ability in self.utype.abilities:

@@ -2,7 +2,7 @@ from engine_antiantilopa import *
 from client.widgets.sound import SoundComponent
 
 class SoundManager:
-    volume = 1
+    volume = 0
     
     sounds: dict[str, SoundComponent] = {}
 

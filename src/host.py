@@ -1,4 +1,5 @@
 from netio.serialization.serializer import Serializable
+from server.backup import loader
 from server.core import *
 from server.network import game, lobby
 from server.network.game_server import GamePlayer, GameServer
@@ -9,14 +10,12 @@ from shared.loader import load_mains, load_effects_and_abilities_full
 from shared.asset_types import *
 from pathlib import Path
 from netio import Host, MessageType, ConnectionData
-from server.core.game_event import GameEvent
+from server.recorder.replay_recorder import ReplayRecorder
 import logging
 
 load_mains()
 load_effects_and_abilities_full()
 
-# GameEvent.start_recording()
-# TODO
 saves_path = BackupSettings.saves_path
 
 if os.path.exists(saves_path):
@@ -29,55 +28,52 @@ else:
     os.mkdir(saves_path)
     saves = []
 
-preload_data = None
-name = None
-# if len(saves) == 0:
-#     print("No saves found. Starting a new game.")
-# else:
-#     while True:
-#         preload_folder_index = (input("preload? (leave empty to start a new game/write folder index to continue): "))
-#         if preload_folder_index:
-#             try:
-#                 preload_folder_index = int(preload_folder_index)
-#                 if os.path.exists(saves_path / saves[preload_folder_index]):
-#                     innersaves = os.listdir(saves_path / saves[preload_folder_index])
-#                     if len(innersaves) == 0:
-#                         print("No saves found in this folder.")
-#                         name = saves[preload_folder_index]
-#                         break
-#                     print("Available turns:")
-#                     for i in range(len(innersaves)):
-#                         print(f"{i}) {innersaves[i]}")
-#                     preload_file_index = int(input("write file index to continue: "))
-#                 with open(saves_path / saves[preload_folder_index] / innersaves[preload_file_index], "rb") as f:
-#                     try:
-#                         preload_data = Serializator.decode_full(f.read())
-#                         name = saves[preload_folder_index]
-#                         print("preloaded successfully")
-#                         a = str(preload_data)
-#                         tabs = 0
-#                         break
-#                     except Exception as e:
-#                         print(f"error while preloading: {e}")
-#                         raise e
-#             except Exception as e:
-#                 print(f"wrong file index: {e}")
-#                 raise e
-#         else:
-#             break
 
+new_game = True
+player_datas = []
+
+name = f"save_{int(time.time())}"
+inner_save = "turn0-0.save"
+if len(saves) == 0:
+    print("No saves found. Starting a new game.")
+else:
+    while True:
+        preload_folder_index = (input("preload? (leave empty to start a new game/write folder index to continue): "))
+        if preload_folder_index:
+            try:
+                preload_folder_index = int(preload_folder_index)
+                if os.path.exists(saves_path / saves[preload_folder_index]):
+                    innersaves = os.listdir(saves_path / saves[preload_folder_index])
+                    if len(innersaves) == 0:
+                        print("No saves found in this folder.")
+                        name = saves[preload_folder_index]
+                        break
+                    print("Available turns:")
+                    for i in range(len(innersaves)):
+                        print(f"{i}) {innersaves[i]}")
+                    preload_file_index = int(input("write file index to continue: "))
+                if os.path.exists(saves_path / saves[preload_folder_index] / innersaves[preload_file_index]):
+                    try:
+                        new_game = False
+                        name = saves[preload_folder_index]
+                        inner_save = innersaves[preload_file_index]
+                        print("found successfully")
+                        save_path = Path(saves_path / name / inner_save)
+                        player_datas = loader.load(save_path)
+                        break
+                    except Exception as e:
+                        print(f"error while finding file: {e}")
+                        raise e
+            except Exception as e:
+                print(f"wrong file index: {e}")
+                raise e
+        else:
+            break
 
 host = GameServer('localhost', 8080, 5)
 host.router.merge(lobby.router)
 host.router.merge(game.router)
 print(host.router._event_handlers.keys())
-if preload_data is None:
-    print("Starting a new game.")
-    if name is None:
-        name = ""
-        # os.mkdir(saves_path / name)
-else:
-    host.game = Game.from_serializable(preload_data)
 
 BackupSettings.save_folder_name = name
 
@@ -85,6 +81,9 @@ BackupSettings.save_folder_name = name
 def at_connect(conn_data: ConnectionData) -> bool:
     if len(host.game_manager.players) == host.max_players:
         return False
+    if not new_game:
+        if len(host.game_manager.players) == len(player_datas):
+            return False
     logging.info(f"Connection with someone established")
     return True
 
@@ -111,7 +110,7 @@ def at_disconnect(player_data: GamePlayer):
 host.start()
 
 def start_game():
-    if preload_data is None:
+    if new_game:
         host.game = Game(Vector2d(17, 17), len(host.game_manager.players))
         i = 0
         for pdata in GamePlayer.joined_players:
@@ -124,11 +123,24 @@ def start_game():
         for player in GamePlayer.joined_players:
             host.send_message(player.address, MessageType.EVENT, "LOBBY/GAME_START", (0, host.game.world.size))
     else:
-        # TODO!
-        for player in host.game_manager.players:
-            host.send_message(player.address, MessageType.EVENT, "LOBBY/GAME_START", (0,))
+        host.game = Game.obj
+        for pdata in GamePlayer.joined_players:
+            for loaded_pdata in player_datas:
+                if pdata.nickname == loaded_pdata.nickname:
+                    pdata.id = loaded_pdata.id
+                    pdata.color = loaded_pdata.color
+                    pdata.nation = loaded_pdata.nation
+                    Player.by_id(pdata.id).set_pdata(pdata)
+                    break
+        host.game.start()
+    
+        host.synchronize()
+        for player in GamePlayer.joined_players:
+            host.send_message(player.address, MessageType.EVENT, "LOBBY/GAME_START", (0, host.game.world.size))
+
     host.create_all_objects()
-    GameEvent.start_recording()
+    host.synchronize()
+    ReplayRecorder.start_recording()
 
 try:
     host.game_starting = False

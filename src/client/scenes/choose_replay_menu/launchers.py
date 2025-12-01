@@ -11,4 +11,4 @@ def launch_replay_screen(replay_name: str):
     path = RecordReplaySettings.replay_path / replay_name
     replay.load(path)
     join_menu_scene = replay_main.load()
-    join_menu_scene.enable()
+    replay_main.start()

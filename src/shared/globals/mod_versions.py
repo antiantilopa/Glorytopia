@@ -4,8 +4,8 @@ from netio import Serializable, SerializeField
 
 
 class ModConfig(Serializable, primitive=1):
-    name: Annotated[str, SerializeField()]
-    version: Annotated[str, SerializeField()]
+    name: str
+    version: str
 
     def __init__(self, name: str, version: str):
         self.name = name

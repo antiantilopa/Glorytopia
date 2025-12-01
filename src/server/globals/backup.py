@@ -28,7 +28,7 @@ class IntVar:
         self.value = value
 
 class BackupSettings:
-    backup_number: IntVar = IntVar(-1)
+    backup_number: IntVar = IntVar(5)
     save_folder_name: str = str(datetime.datetime.now()).split(".")[0].replace(":", "-")
     saves_path = Path("../saves/")
 

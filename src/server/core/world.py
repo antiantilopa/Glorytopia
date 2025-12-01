@@ -20,21 +20,21 @@ class World:
     cities_mask: list[list[bool]]
     unit_mask: list[list[bool]]
     size: Pos
-    object: "World" = None
+    object: "World|None" = None
 
     def __init__(self, width: int, height: int, empty: bool = False) -> None:
         self.cities_mask = [[0] * width for _ in range(height)]
         self.unit_mask = [[0] * width for _ in range(height)]
         self.size = Pos(width, height)
         if empty:
-            self.world = [[Tile(Pos(i, j), TileType.get("plain"), None) for i in range(width)] for j in range(height)]
+            self.world = [[None for i in range(width)] for j in range(height)]
             return
         else:
             world = pangea(width, height)
             self.world = [[Tile(Pos(i, j), get_by_height(world[j][i]), None) for i in range(width)] for j in range(height)]
         World.object = self
     
-    def __new__(cls, *_):
+    def __new__(cls, *_, **__) -> "World":
         if cls.object is None:
             cls.object = super(World, cls).__new__(cls)
         return cls.object
@@ -47,3 +47,7 @@ class World:
 
     def is_in(self, pos: Pos) -> bool:
         return pos.is_in_box(Pos(0, 0), self.size - Pos(1, 1))
+    
+    def update(self, tiles: list[Tile]):
+        for tile in tiles:
+            self.world[tile.pos.inty()][tile.pos.intx()] = tile

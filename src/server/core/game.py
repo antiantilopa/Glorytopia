@@ -1,6 +1,7 @@
 import os
 from server.globals.backup import BackupSettings
 from shared.asset_types import Nation, TileType, ResourceType, UnitType
+from shared.city import CityData
 from shared.util.position import Pos, Angle
 from math import pi
 from random import random, randint
@@ -51,7 +52,15 @@ class Game:
                 self.players = Player.players
     
     def start(self):
-        self.players[0].start_turn()
+        self.players[self.now_playing_player_index].start_turn()
+
+    def update_world_masks(self):
+        self.world.cities_mask = [[0] * self.world.size.x for _ in range(self.world.size.y)]
+        self.world.unit_mask = [[0] * self.world.size.x for _ in range(self.world.size.y)]
+        for city in City.cities:
+            self.world.cities_mask[city.pos.y][city.pos.x] = 1
+        for unit in Unit.units:
+            self.world.unit_mask[unit.pos.y][unit.pos.x] = 1
 
     def place_random_city(self):
         # another algorithm would be better. For example, we could:
@@ -72,7 +81,6 @@ class Game:
                     return
 
     def place_resources(self):
-
         def distance_to_nearest(pos: Pos) -> int:
             for distance in range(World.object.size.x):
                 for i in range(2 * distance + 1):
@@ -131,16 +139,13 @@ class Game:
             i += 1
     
     def next_player_turn(self):
-        
-        if BackupSettings.backup_number.value > 0:
-            self.save(f"{BackupSettings.save_folder_name}", f"turn{self.turn_number}-{self.now_playing_player_index}.save")
 
         self.players[self.now_playing_player_index].end_turn()
 
         prev = self.now_playing_player_index
         self.now_playing_player_index += 1
         self.now_playing_player_index %= len(self.players)
-        while len(self.players[self.now_playing_player_index].cities) + len(self.players[self.now_playing_player_index].cities) == 0:
+        while len(self.players[self.now_playing_player_index].cities) + len(self.players[self.now_playing_player_index].units) == 0:
             if self.players[self.now_playing_player_index].is_dead == True:
                 self.now_playing_player_index += 1
                 self.now_playing_player_index %= len(self.players)
@@ -155,34 +160,3 @@ class Game:
             self.turn_number += 1
 
         self.players[self.now_playing_player_index].start_turn()
-
-    # TODO fuck saves and records !!!
-    
-    def save(self, folder_name: str = "", name: str = "glorytopia.save"):
-        if BackupSettings.backup_number.value == 0:
-            return
-        if BackupSettings.backup_number.value != -1:
-            while len(os.listdir(Path("../saves/") / folder_name)) >= BackupSettings.backup_number.value:
-                saves = os.listdir(Path("../saves/") / folder_name)
-                saves.sort(key=lambda x: os.path.getmtime(Path("../saves/") / folder_name / x))
-                os.remove(Path("../saves/") / folder_name / saves[0])
-        with open(Path("../saves/") / folder_name / name, "wb") as f:
-            # f.write(Serializator.encode(self.to_serializable()))
-            raise Exception("TODO game saver")
-
-    @staticmethod
-    def clear_game() -> None:
-        while len(Unit.units) != 0:
-            Unit.units[0].destroy()
-        while len(City.cities) != 0:
-            City.cities[0].destroy()
-        World.object.get(Pos(0, 0)).destroy()
-        World.object.world = [[]]
-        World.object = None
-        while len(Player.players) != 0:
-            Player.players[0].destroy()
-        Player.ID = 0
-        Game.obj.players = []
-        Game.obj.world = None
-        World.object = None
-        Game.obj = None

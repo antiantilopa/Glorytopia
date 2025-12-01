@@ -1,25 +1,19 @@
-from io import BufferedWriter
-from math import ceil
 import os
 
 from netio.serialization.serializer import SpecialTypes, SerializationTypes
 from server.core.city import City
 from server.core.game import Game
-from server.core.tile import Tile
 from server.core.unit import Unit
-from server.core.world import World
 from shared.player import PlayerData_
-from .player import Player
-from shared.error_codes import ErrorCodes
-from typing import Callable
+from server.core.player import Player
 from shared.globals.mod_versions import ModVersions
 from shared.globals.replay import RecordReplaySettings
-from netio import Serializable, BaseWriter
+from netio import BaseWriter
 
 def to_bytes(obj) -> bytes:
-    return GameEvent.writer._any_to_bytes(obj)
+    return ReplayRecorder.writer._any_to_bytes(obj)
 
-class GameEvent:
+class ReplayRecorder:
     initialized: bool = False
     writer = BaseWriter()
     prev_now_plaing_player_id: int = 0
@@ -33,15 +27,15 @@ class GameEvent:
         if not os.path.exists(RecordReplaySettings.replay_path / f"{RecordReplaySettings.replay_file_name}.replay"):
             with open(RecordReplaySettings.replay_path / f"{RecordReplaySettings.replay_file_name}.replay", "wb") as f:
                 f.write(bytes([SerializationTypes.LIST.value]))
-            GameEvent.record_mods()
-            GameEvent.record_game_data()
-            GameEvent.record_player_datas([p.pdata for p in Player.players])
-            GameEvent.record_world()
-            GameEvent.record_objects()
-            GameEvent.record_players(Player.players)
+            ReplayRecorder.record_mods()
+            ReplayRecorder.record_game_data()
+            ReplayRecorder.record_player_datas([p.pdata for p in Player.players])
+            ReplayRecorder.record_world()
+            ReplayRecorder.record_objects()
+            ReplayRecorder.record_players(Player.players)
             with open(RecordReplaySettings.replay_path / f"{RecordReplaySettings.replay_file_name}.replay", "ab") as f:
                 f.write(bytes([SerializationTypes.END_OF_OBJECT.value]))
-        GameEvent.initialized = 1
+        ReplayRecorder.initialized = 1
 
     @staticmethod
     def record_mods():
@@ -69,7 +63,7 @@ class GameEvent:
     def record_game_data():
         game = Game.obj
         game_data = (game.world.size, len(game.players), game.now_playing_player_index)
-        GameEvent.prev_now_plaing_player_id = game.now_playing_player_index
+        ReplayRecorder.prev_now_plaing_player_id = game.now_playing_player_index
         data = to_bytes(game_data)
         with open(RecordReplaySettings.replay_path / f"{RecordReplaySettings.replay_file_name}.replay", "ab") as f:
             f.write(data)
@@ -100,13 +94,13 @@ class GameEvent:
     def record_changes() -> None:
         if RecordReplaySettings.record_replay.chosen == 0:
             return
-        if not GameEvent.initialized:
+        if not ReplayRecorder.initialized:
             return
         data = bytearray()
-        game_changes = []
-        if Game.obj.now_playing_player_index != GameEvent.prev_now_plaing_player_id:
-            game_changes.append(Game.obj.now_playing_player_index)
-            GameEvent.prev_now_plaing_player_id = Game.obj.now_playing_player_index
+        game_changes = SpecialTypes.NOTHING
+        if Game.obj.now_playing_player_index != ReplayRecorder.prev_now_plaing_player_id:
+            game_changes = Game.obj.now_playing_player_index
+            ReplayRecorder.prev_now_plaing_player_id = Game.obj.now_playing_player_index
         tile_changes = []
         for row in Game.obj.world.world:
              for tile in row:
@@ -114,10 +108,14 @@ class GameEvent:
                 if t != SpecialTypes.NOTHING:
                     tile_changes.append(t)
         unit_changes = []
+        # TODO as it was said, now units are the only dynamical objects. now...
         for unit in Unit.units:
-            u = unit.serialize_updates()
-            if u != SpecialTypes.NOTHING:
-                unit_changes.append(u)
+            if unit.is_created:
+                u = unit.serialize_updates()
+                if u != SpecialTypes.NOTHING:
+                    unit_changes.append(u)
+            else:
+                unit_changes.append(unit.serialize())
         city_changes = []
         for city in City.cities:
             c = city.serialize_updates()
@@ -143,14 +141,5 @@ def list_bool_to_list_int32(x: list[bool]) -> list[int]:
                 break
             num += x[32 * i + j] * (2 **(31 - j))
         result.append(num)
-    return result
-
-def list_int32_to_list_bool(x: list[int]) -> list[bool]:
-    result = []
-    for num in reversed(x):
-        for j in range(32):
-            result.append(1 & num)
-            num = num >> 1
-    result.reverse()
     return result
 

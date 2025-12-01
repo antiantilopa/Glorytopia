@@ -8,6 +8,8 @@ import types
 
 _serializable_primitives = (int, str, float, bool, tuple, list, type(None))
 
+T = typing.TypeVar("T")
+
 class SerializationTypes(enum.Enum):
     STRING = 0
     INT32 = 1
@@ -295,6 +297,7 @@ class Serializable:
     __updates: dict
     _class_id: typing.Annotated[int, SerializeField()]
     _id: typing.Annotated[int, SerializeField()]
+    is_created: bool
 
     __classes: list[type["Serializable"]] = []
     _primitive: bool = False
@@ -315,7 +318,7 @@ class Serializable:
             self.__updates = {}
 
             orig_init(self, *a, **kw)
-            
+            self.is_created = False
             self._id = Serializable.__ID
             Serializable.__ID += 1
 
@@ -335,11 +338,14 @@ class Serializable:
             if get_class_id(cls) == tid:
                 return cls
         raise ValueError("No class with id: ", tid)
-    
+
     @staticmethod 
-    def parse(data, cls):
+    def parse(data, cls: type[T], ignore_class_id: bool = False, init_for_serializables: bool = False) -> T:
         if cls is None:
             return data
+        
+        if data == SpecialTypes.NOTHING:
+            return SpecialTypes.NOTHING
         
         generic = None
         if typing.get_origin(cls) is not None:
@@ -362,22 +368,22 @@ class Serializable:
         if issubclass(cls, Serializable) and cls._serialize_by_id:
             if not isinstance(data, tuple) or len(data) != 2:
                 raise ValueError(f"Invalid ID serialization. got {data} for {generic if generic is not None else cls}")
-
-            if get_class_id(cls) != data[0]:
-                clientLogger.warning(f"Class ids doesn't match: expected {cls}, got {Serializable.get_class(data[0])}")
-                cls = Serializable.get_class(data[0])
+            if not ignore_class_id:
+                if get_class_id(cls) != data[0]:
+                    clientLogger.warning(f"Class ids doesn't match: expected {cls}, got {Serializable.get_class(data[0])}")
+                    cls = Serializable.get_class(data[0])
 
             return cls.by_id(data[1])
         if issubclass(cls, Serializable):
             if cls._primitive:
                 return cls(*data)
             else:
-                return cls.deserialize(data)
+                return cls.deserialize(data, ignore_class_id, init_for_serializables)
 
         if issubclass(cls, list) and generic is not None:
             tp = typing.get_args(generic)[0]
 
-            return ObservableList([Serializable.parse(i, tp) for i in data])
+            return ObservableList([Serializable.parse(i, tp, ignore_class_id, init_for_serializables) for i in data])
 
         if issubclass(cls, list) and generic is None:
 
@@ -388,18 +394,19 @@ class Serializable:
 
             assert len(data) == len(tps), f"Invalid data {data} length for {generic}"
 
-            return tuple(Serializable.parse(data[i], tps[i]) for i in range(len(tps)))
+            return tuple(Serializable.parse(data[i], tps[i], ignore_class_id, init_for_serializables) for i in range(len(tps)))
 
         raise ValueError(f"Wrong type was passed: got {type(data)} of {data}, expected {cls if generic is None else generic}")
         
     @classmethod
-    def deserialize(cls, data: tuple):
+    def deserialize(cls, data: tuple, ignore_class_id: bool = False, init_for_serializables: bool = False) -> typing.Self:
         if cls._primitive:
             return cls(*data) 
 
-        if get_class_id(cls) != data[0]:
-            clientLogger.warning(f"Class ids doesn't match: expected {cls}, got {Serializable.get_class(data[0])}")
-            cls = Serializable.get_class(data[0])
+        if not ignore_class_id:
+            if get_class_id(cls) != data[0]:
+                clientLogger.warning(f"Class ids doesn't match: expected {cls}, got {Serializable.get_class(data[0])}")
+                cls = Serializable.get_class(data[0])
             
         obj = cls.__new__(cls)
         ant = get_all_annotations(cls)
@@ -412,9 +419,36 @@ class Serializable:
             if type(field_cls) is types.UnionType:
                 field_cls = field_cls.__args__[0]
 
-            super().__setattr__(obj, key, Serializable.parse(data[i], field_cls))
+            if data[i] != SpecialTypes.NOTHING:
+                super().__setattr__(obj, key, Serializable.parse(data[i], field_cls, ignore_class_id))
+
+        if init_for_serializables:
+            obj.__updates = {}
+
+            obj.is_created = False
+            obj._id = Serializable.__ID
+            Serializable.__ID += 1
+
+            for key, value in get_all_annotations(obj).items():
+                attr = getattr(obj, key, None)
+                if attr != None and isinstance(attr, list):
+                    setattr(obj, key, ObservableList(attr))
 
         return obj
+
+    def init(self):
+        self.__updates = {}
+
+        self.is_created = False
+        self._id = Serializable.__ID
+        Serializable.__ID += 1
+
+        for key, value in get_all_annotations(self).items():
+            attr = getattr(self, key, None)
+            if attr != None and isinstance(attr, list):
+                setattr(self, key, ObservableList(attr))
+
+        self._clear_updates()
 
     def serialize(self) -> tuple:
         if self._primitive:

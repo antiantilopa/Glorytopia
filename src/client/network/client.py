@@ -12,7 +12,7 @@ class GamePlayer(PlayerData_):
 
     joined_players: list["GamePlayer"] = []
     disconnected: list["GamePlayer"] = []
-    colors = [
+    colors = [ # Should be in resource pack or smth TODO
         ((255, 0, 0), (255, 255, 255)),   # Red - White
         ((0, 255, 0), (0, 0, 0)),   # Green
         ((0, 0, 255), (255, 255, 255)),   # Blue - White

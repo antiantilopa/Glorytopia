@@ -9,7 +9,6 @@ from server.core.city import City
 from server.core.game import Game
 from server.core.tile import Tile
 from server.core.unit import Unit
-from server.core.game_event import GameEvent
 from shared.player import PlayerData_
 
 
@@ -50,7 +49,7 @@ class GameServer(Host):
     game_manager: "GameManager_"
     game: Game
     prohibited_names = ["never", "gonna", "give", "you", "up", "never", "gonna", "let", "down", "never", "gonna", "run", "around", "and", "desert", "you", "never", "gonna", "make", "you", "cry", "never", "gonna", "say", "goodbye", "never", "gonna", "tell", "you", "lies", "and", "hurt", "you"]
-
+    required_names = []
     obj: "GameServer" = None
     
     def __init__(self, host, port, max_players: int):
@@ -69,7 +68,7 @@ class GameServer(Host):
     def create_new_objects(self):
         # HACK: better create new list for all new objects. also now only units are created dynamically, but maybe in future...
         for obj in Unit.units:
-            if not self.game_manager.is_synchronized(obj):
+            if not obj.is_created:
                 self.create_object(obj)
 
     # USE ONLY ONCE
@@ -85,7 +84,6 @@ class GameServer(Host):
                 self.create_object(tile)
 
     def synchronize(self):
-        GameEvent.record_changes()
         return super().synchronize()
 
 class GameServerRouter(ServerRouter):

@@ -65,9 +65,10 @@ class GameManager:
                 continue
             self._mapping[addr][obj._id] = False
         self._synchronized.append(obj)
+        obj.is_created = True
 
     def delete_object(self, obj: Serializable):
-        assert not obj._primitive, "cannot create primitive object"
+        assert not obj._primitive, "cannot delete primitive object"
         for addr in self.conns.keys():
             if obj.validate(self.get_player_data(addr)):
                 self.send_del(addr, (obj._id,))

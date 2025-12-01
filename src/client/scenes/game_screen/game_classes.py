@@ -327,26 +327,6 @@ def _create_city_obj(city: City) -> GameObject:
     _update_city_upgrades(city, city_obj)
     return city_obj
 
-# TODO replay mode
-# def update_fog_of_war():
-#     vision = Replay.obj.game.players[Replay.obj.watch_as].vision
-#     for v in VectorRange(Vector2d(0, 0), World.object.size):
-#         if vision[v.inty()][v.intx()] == 1:
-#             for fog_obj in GameObject.get_group_by_tag("FOG"):
-#                 if fog_obj.get_component(PositionComponent).pos == v:
-#                     fog_obj.need_blit_set_true()
-#                     fog_obj.need_draw_set_true()
-#                     fog_obj.destroy()
-#                     break
-#         else:
-#             found = False
-#             for fog_obj in GameObject.get_group_by_tag("FOG"):
-#                 if fog_obj.get_component(PositionComponent).pos == v:
-#                     found = True
-#                     break
-#             if not found:
-#                 create_fog(v)
-
 def __create_fog(pos: Pos):
     # not used untill vision is full
     ui_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:ui_layer")
