@@ -1,58 +1,18 @@
-from serializator.client import Client as SerClient
-from serializator.client import Respond
-from shared import UnitData, CityData, TileData, TechNode
+from netio import *
+from shared import UnitData, CityData, TileData, TechNode, PlayerData_
 from enum import Enum
 from typing import Callable
 from copy import copy
 
-class UpdateCodes(Enum):
-    NOTHING = 0
-    JOIN = 1
-    DISCONNECT = 2
-    READY = 3
-    MESSAGE = 4
-    COLOR_CHANGE = 5
-    GAME_START = 6
-    INIT_NAMES = 7
-    INIT_COLORS = 8
-    INIT_WORLD = 9
-    UPDATE_UNIT = 10
-    UPDATE_CITY = 11
-    UPDATE_TILE = 12
-    UPDATE_TECH = 13
-    UPDATE_MONEY = 14
-    END_TURN = 15
-    RECONNECT = 16
+respond = ClientRouter()
 
-respond = Respond()
+class GamePlayer(PlayerData_):
+    money: int
+    techs: list[TechNode]
 
-@respond.event("DISCONNECT")
-def disconnect(self: "Client", message: tuple[str]):
-    if self.game_started:
-        print(f"{message[0]} disconnected from the game.")
-        return
-    for name in self.readiness:
-        self.readiness[name] = False
-    for i in range(len(self.order)):
-        if self.order[i] == message[0]:
-            for j in range(i + 1, len(self.order)):
-                self.order[j - 1] = self.order[j]
-            self.order.pop(len(self.order) - 1)
-            break
-    self.readiness.pop(message[0])
-    self.names.remove(message[0])
-    self.names_to_colors.pop(message[0])
-    self.updated |= 2 ** UpdateCodes.DISCONNECT.value
-
-@respond.info("ORDER")
-def print_order(self: "Client", message: list[str]):
-    for i in range(len(message)):
-        self.order[i] = message[i]
-
-class Client(SerClient):
-    object: "Client"
-
-    colors = [
+    joined_players: list["GamePlayer"] = []
+    disconnected: list["GamePlayer"] = []
+    colors = [ # Should be in resource pack or smth TODO
         ((255, 0, 0), (255, 255, 255)),   # Red - White
         ((0, 255, 0), (0, 0, 0)),   # Green
         ((0, 0, 255), (255, 255, 255)),   # Blue - White
@@ -62,56 +22,76 @@ class Client(SerClient):
         ((192, 192, 192), (0, 0, 0)),   # Silver - Black
         ((0, 128, 128), (255, 255, 255)),   # Teal - White
     ]
+    def get_main_color(self):
+        return GamePlayer.colors[self.color][0]
 
-    def __init__(self):
-        SerClient.__init__(self)
-        self.respond.merge(respond)
-        self.readiness: dict[str, bool] = {}
-        self.names_to_colors: dict[str, int] = {} 
-        self.game_started = False
-        self.names: list[str] = []
-        self.now_playing: int = 0
-        self.order: dict[int, str] = {}
-        self.messages: list[tuple[str, str]] = []
-        self.myname: str = ""
-        self.joined = None
+    def get_secondary_color(self):
+        return GamePlayer.colors[self.color][1]
 
-        self.world_size = (0, 0)
-        self.world: list[list[TileData]] = [[]]
-        self.units: list[UnitData] = []
-        self.cities: list[CityData] = []
-        self.techs: list[TechNode] = []
-        self.money = 0
+    @staticmethod
+    def by_id(id: int):
+        for p in GamePlayer.joined_players:
+            if p.id == id:
+                return p
 
-        self.updated = 0
-        self.world_updates: list[tuple[int, int]] = []
-        self.units_updates: list[tuple[tuple[int, int], UnitData]] = []
-        self.cities_updates: list[CityData] = []
-        self.techs_updates: list[TechNode] = []
-        self.object = self
+    def client_on_create(self):
+        if GameClient.object.game_started:
+            return
+        if self.joined and (self not in GamePlayer.joined_players):
+            GamePlayer.joined_players.append(self)
 
-        self.update_checkers: dict[int, Callable[[], None]] = {}
+    def client_on_update(self):
+        if GameClient.object.game_started:
+            if not self.joined:
+                GamePlayer.disconnected.append(self)
+                return
+            disconnected_me = [self.nickname == p.nickname for p in GamePlayer.disconnected]
+            if len(disconnected_me) == 1:
+                disconnected_me = disconnected_me[0]
+                GamePlayer.disconnected.remove(disconnected_me)
+                GamePlayer.joined_players.remove(disconnected_me)
+                GamePlayer.joined_players.append(self)
+            return
+        
+        if self.joined and (self not in GamePlayer.joined_players):
+            GamePlayer.joined_players.append(self)
+        elif (not self.joined) and (self in GamePlayer.joined_players):
+            GamePlayer.joined_players.remove(self)
     
-    def check_update(self, update_code: UpdateCodes):
-        def decor(func: Callable[[], None]):
-            def wrapper():
-                if Client.object.updated & (2 ** update_code.value):
-                    Client.object.updated &= ~(2 ** update_code.value)
-                    func()
-            self.update_checkers[update_code.value] = wrapper
-            return wrapper
-        return decor
+    def client_on_destroy(self):
+        if GameClient.object.game_started:
+            if self.joined:
+                GamePlayer.disconnected.append(self)
+            return
+        if self.joined and (self in GamePlayer.joined_players):
+            GamePlayer.joined_players.remove(self)
 
-    def check_updates(self):
-        for code in copy(self.update_checkers):
-            self.update_checkers[code]()
+    def __str__(self):
+        return f"PlayerData <{self.nickname}>"
+
+    def __repr__(self):
+        return f"PlayerData <{self.nickname}>"
     
-    def get_main_color(self, name: str) -> tuple[int, int, int]:
-        if name in self.names_to_colors:
-            return self.colors[self.names_to_colors[name]][0]
-        return (255, 255, 255)
-    
-    def get_secondary_color(self, name: str) -> tuple[int, int, int]:
-        if name in self.names_to_colors:
-            return self.colors[self.names_to_colors[name]][1]
-        return (0, 0, 0)
+
+class GameClientRouter(ClientRouter):
+    routers: list["GameClientRouter"] = []
+
+    def __init__(self, default=""):
+        ClientRouter.__init__(self, default)
+        GameClientRouter.routers.append(self)
+
+class GameClient(Client):
+    object: "GameClient" = None
+
+    now_playing_player_id: int
+    game_started: bool
+    me: GamePlayer
+
+    def __init__(self, host: str, port: int):
+        Client.__init__(self, host, port, GameClientRouter(), GamePlayer)
+        self.now_playing_player_id = 0
+        self.game_started = 0
+        for router in GameClientRouter.routers:
+            self.router.merge(router)
+        GameClient.object = self
+        self.start()

@@ -1,7 +1,11 @@
 from pathlib import Path
+
+from netio.util.lazy_reference import LazyRef
+from shared.effect import Effect, EffectType
 from .globals.mod_versions import ModConfig, ModVersions
 from .asset_types import BuildingType, Nation, ResourceType, TechNode, UnitType, TileType, TerraForm
 from .util.json import from_file
+import json
 from typing import TypeVar
 
 T = TypeVar("T")
@@ -97,16 +101,38 @@ def load_mod(path: Path):
 def load_mains():
     for path in MODS_PATH.iterdir():
         try:
-            for ability_path in (path / "abilities").iterdir():
-                __import__(str(ability_path).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
-            for effect_path in (path / "effects").iterdir():
-                __import__(str(effect_path).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
             __import__(str(path / "main").replace("\\", "."), fromlist=str(path).split("\\")).load_mod()
         except Exception as e:
             print(f"Error loading mod {path.name}: {e}")
+
             
+def load_effects_and_abilities_full():
+    for path in MODS_PATH.iterdir():
+        try:
+            effects = json.load(open(path / "effects" / "config.json"))
+            for effect in effects:
+                __import__(str(path / "effects" / effect["file_name"]).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
+            abilities = json.load(open(path / "abilities" / "config.json"))
+            for ability in abilities:
+                __import__(str(path / "abilities" / ability["file_name"]).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
+        except Exception as e:
+            print(f"Error loading mod {path.name}: {e}")
+
+def load_effects_names():
+    for path in MODS_PATH.iterdir():
+        effects = json.load(open(path / "effects" / "config.json"))
+        for effect in effects:
+            EffectType.add(EffectType(effect["name"]))
+
 def load_assets():
     for mod_path in MODS_PATH.iterdir():
         load_mod(mod_path)
-
+    remove_ref()
     TechNode.assign()
+
+def remove_ref():
+    for cls in (TileType, UnitType, BuildingType, ResourceType, TerraForm, TechNode, Nation):
+        for obj in cls.values():
+            for key, value in obj.__dict__.items():
+                if isinstance(value, LazyRef):
+                    setattr(obj, key, value.cls.get(value.name))

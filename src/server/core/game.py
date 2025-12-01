@@ -1,22 +1,19 @@
 import os
-from shared.city import SerializedCity
-from shared.unit import SerializedUnit
 from server.globals.backup import BackupSettings
-from .world import World, SerializedWorld
-from .player import Player, SerializedPlayer
-from .city import City
-from .unit import Unit
 from shared.asset_types import Nation, TileType, ResourceType, UnitType
-from engine_antiantilopa import Vector2d, Angle
+from shared.city import CityData
+from shared.util.position import Pos, Angle
 from math import pi
 from random import random, randint
-from .updating_object import UpdatingObject
-from serializator.net import Serializator
 from pathlib import Path
+
+from .world import World
+from .player import Player
+from .city import City
+from .unit import Unit
+
 def abs(x):
     return x * ((x > 0) * 2 - 1)
-
-SerializedGame = tuple[list[SerializedPlayer], SerializedWorld, list[SerializedCity], list[SerializedUnit], int, int]
 
 class Game:
     now_playing_player_index: int
@@ -25,7 +22,7 @@ class Game:
     turn_number: int
     obj: "Game" = None
 
-    def __init__(self, size: Vector2d, player_number: int, start_new_game: bool = True) -> None:
+    def __init__(self, size: Pos, player_number: int, start_new_game: bool = True) -> None:
         Game.obj = self
         if start_new_game:
             self.world = World(size.x, size.y)
@@ -43,15 +40,7 @@ class Game:
             for unit in Unit.units:
                 unit.refresh()
             
-            i = 0
-            while i < len(UpdatingObject.objs):
-                if UpdatingObject.objs[i].updated:
-                    UpdatingObject.objs[i].refresh_updated()
-                else:
-                    i += 1
-            
             self.turn_number = 0
-            UpdatingObject.updated_objs.clear()
         else:
             if World.object is None:
                 self.world = World(size.x, size.y, empty=True)
@@ -63,7 +52,15 @@ class Game:
                 self.players = Player.players
     
     def start(self):
-        self.players[0].start_turn()
+        self.players[self.now_playing_player_index].start_turn()
+
+    def update_world_masks(self):
+        self.world.cities_mask = [[0] * self.world.size.x for _ in range(self.world.size.y)]
+        self.world.unit_mask = [[0] * self.world.size.x for _ in range(self.world.size.y)]
+        for city in City.cities:
+            self.world.cities_mask[city.pos.y][city.pos.x] = 1
+        for unit in Unit.units:
+            self.world.unit_mask[unit.pos.y][unit.pos.x] = 1
 
     def place_random_city(self):
         # another algorithm would be better. For example, we could:
@@ -71,47 +68,46 @@ class Game:
         for _ in range(500): 
             x = randint(1, World.object.size.x - 2)
             y = randint(1, World.object.size.y - 2)
-            if not World.object.get(Vector2d(x, y)).ttype.is_water:
+            if not World.object.get(Pos(x, y)).ttype.is_water:
                 is_far_enough = True
                 for c in City.cities:
                     if max(abs(c.pos.x - x), abs(c.pos.y - y)) < 3:
                         is_far_enough = False
                         break
                 if is_far_enough:
-                    World.object.get(Vector2d(x, y)).ttype = TileType.get("plain")
-                    City(Vector2d(x, y), -1)
+                    World.object.get(Pos(x, y)).ttype = TileType.get("plain")
+                    City(Pos(x, y), -1)
                     World.object.cities_mask[y][x] = 1
                     return
 
     def place_resources(self):
-
-        def distance_to_nearest(pos: Vector2d) -> int:
+        def distance_to_nearest(pos: Pos) -> int:
             for distance in range(World.object.size.x):
                 for i in range(2 * distance + 1):
                     for j in range(2 * distance + 1):
-                        if World.object.is_in(Vector2d(i - distance, j - distance) + pos):
+                        if World.object.is_in(Pos(i - distance, j - distance) + pos):
                             if World.object.cities_mask[pos.y + j - distance][pos.x + i - distance] == 1:
                                 return distance
             return -1
 
         for i in range(World.object.size.x):
             for j in range(World.object.size.y):
-                dist = distance_to_nearest(Vector2d(i, j))
+                dist = distance_to_nearest(Pos(i, j))
                 if dist == 0:
                     continue 
                 chance_sum = 1 # 1 for no resource
                 for resource in ResourceType.values():
-                    if World.object.get(Vector2d(i, j)).ttype in resource.ttypes:
+                    if World.object.get(Pos(i, j)).ttype in resource.ttypes:
                         chance_sum += resource.spawn_rates.get(dist, 0)
                 rand = random() * chance_sum
                 if rand < 1:
                     continue 
                 rand -= 1
                 for resource in ResourceType.values():
-                    if World.object.get(Vector2d(i, j)).ttype in resource.ttypes:
+                    if World.object.get(Pos(i, j)).ttype in resource.ttypes:
                         rand -= resource.spawn_rates.get(dist, 0)
                         if rand <= 0:
-                            World.object.get(Vector2d(i, j)).resource = resource
+                            World.object.get(Pos(i, j)).resource = resource
                             break
                     
     def place_players(self):
@@ -121,7 +117,7 @@ class Game:
         for player in self.players:
             angle = Angle(2 * pi * player.id / len(self.players) + random_angle)
 
-            place = angle.to_vector2d() * distance_to_center_of_map + World.object.size / 2
+            place = angle.to_Pos() * distance_to_center_of_map + World.object.size / 2
 
             place.x = round(place.x)
             place.y = round(place.y)
@@ -143,16 +139,13 @@ class Game:
             i += 1
     
     def next_player_turn(self):
-        
-        if BackupSettings.backup_number.value > 0:
-            self.save(f"{BackupSettings.save_folder_name}", f"turn{self.turn_number}-{self.now_playing_player_index}.save")
 
         self.players[self.now_playing_player_index].end_turn()
 
         prev = self.now_playing_player_index
         self.now_playing_player_index += 1
         self.now_playing_player_index %= len(self.players)
-        while len(self.players[self.now_playing_player_index].cities) + len(self.players[self.now_playing_player_index].cities) == 0:
+        while len(self.players[self.now_playing_player_index].cities) + len(self.players[self.now_playing_player_index].units) == 0:
             if self.players[self.now_playing_player_index].is_dead == True:
                 self.now_playing_player_index += 1
                 self.now_playing_player_index %= len(self.players)
@@ -166,65 +159,4 @@ class Game:
         if prev >= self.now_playing_player_index:
             self.turn_number += 1
 
-        self.players[self.now_playing_player_index].start_turn(ignore_updated_objs = 1)
-
-    def save(self, folder_name: str = "", name: str = "glorytopia.save"):
-        if BackupSettings.backup_number.value == 0:
-            return
-        if BackupSettings.backup_number.value != -1:
-            while len(os.listdir(Path("../saves/") / folder_name)) >= BackupSettings.backup_number.value:
-                saves = os.listdir(Path("../saves/") / folder_name)
-                saves.sort(key=lambda x: os.path.getmtime(Path("../saves/") / folder_name / x))
-                os.remove(Path("../saves/") / folder_name / saves[0])
-        with open(Path("../saves/") / folder_name / name, "wb") as f:
-            f.write(Serializator.encode(self.to_serializable()))
-
-    def to_serializable(self) -> SerializedGame:
-        return [
-            [player.to_serializable() for player in self.players],
-            World.object.to_serializable(),
-            [city.to_serializable() for city in City.cities],
-            [unit.to_serializable() for unit in Unit.units],
-            self.now_playing_player_index,
-            self.turn_number
-        ]
-
-    @staticmethod
-    def from_serializable(serializable: SerializedGame) -> "Game":
-        world = World.from_serializable(serializable[1])
-        cities = [City.from_serializable(city) for city in serializable[2]]
-        units = [Unit.from_serializable(unit) for unit in serializable[3]]
-        players = [Player.from_serializable(player) for player in serializable[0]]
-        
-        game = Game(world.size, len(players), start_new_game=False)
-        game.now_playing_player_index = serializable[4]
-        game.turn_number = serializable[5]
-        game.players = players
-        game.players.sort(key=lambda p: p.id)
-        game.world = world
-        City.cities = cities
-        Unit.units = units
-        
-        for player in game.players:
-            player.update_vision()
-        
-        while 0 < len(UpdatingObject.updated_objs):
-            UpdatingObject.updated_objs[0].refresh_updated()
-        return game
-
-    @staticmethod
-    def clear_game() -> None:
-        while len(Unit.units) != 0:
-            Unit.units[0].destroy()
-        while len(City.cities) != 0:
-            City.cities[0].destroy()
-        World.object.get(Vector2d(0, 0)).destroy()
-        World.object.world = [[]]
-        World.object = None
-        while len(Player.players) != 0:
-            Player.players[0].destroy()
-        Player.ID = 0
-        Game.obj.players = []
-        Game.obj.world = None
-        World.object = None
-        Game.obj = None
+        self.players[self.now_playing_player_index].start_turn()

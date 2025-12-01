@@ -1,30 +1,30 @@
-from engine_antiantilopa import Vector2d
-from serializator.net import flags_to_int
+from typing import Annotated
+from netio import SerializeField, PlayerData
 from shared.asset_types import Nation, TechNode
-from shared.io.serializable import Serializable
+from netio import ConnectionData
 
-SerializedPlayer = tuple[int, int, list[int], list[int], bool]
+class PlayerData_(PlayerData):
+    id: Annotated[int, SerializeField()]
+    nation: Annotated[Nation, SerializeField()]
+    nickname: Annotated[str, SerializeField()]
+    is_ready: Annotated[bool, SerializeField()]
+    joined: Annotated[bool, SerializeField()]
+    color: Annotated[int, SerializeField()]
 
-class PlayerData(Serializable):
-    id: int
-    money: int
-    vision: list[list[int]]
-    techs: list[TechNode]
-    serialized_fields = ["id", "money", "vision", "techs", "nation"]
-    nation: Nation
-    is_dead: bool
+    recovery_code: int
 
-    def __init__(self, id: int, money: int, vision: list[list[int]], techs: list[TechNode], nation: Nation = None):
-        self.id = id
-        self.money = money
-        self.vision = vision
-        self.techs = techs
-        self.nation = nation
-        self.is_dead = False
+    @classmethod
+    def create(cls, addr, conn_data: ConnectionData):
+        obj = super().create(addr, conn_data)
+        obj.id = -1
+
+        obj.color = 0
+        obj.recovery_code = 0
+        obj.joined = False
+        obj.is_ready = False
+        obj.nickname = ""
+        obj.nation = Nation.by_id(0)
+        return obj
     
-    def set_nation(self, nation: Nation):
-        self.nation = nation
-        if nation is None:
-            return
-        self.techs.append(TechNode.get(nation.base_tech.name))
-        # Wow... here Ref probles came out. we need to redo them TODO
+    def __repr__(self):
+        return f"PlayerData_ <{self.id}, {self.color}, {self.nickname}>"

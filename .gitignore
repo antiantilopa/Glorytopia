@@ -2,7 +2,9 @@
 .idea
 *__pycache__*
 .gitignore
-*logs*
+*log*
+.*
 *settings.json*
 *saves*
 *replays*
+*test*

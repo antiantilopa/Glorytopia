@@ -1,11 +1,21 @@
-from shared.generic_types import GenericType
-from .tile import Tile
+from netio import GenericType
+from . import tile as Tile
 from . import unit as Unit
 
-class Ability(GenericType["Ability"]):
+class Ability(GenericType):
+    # Never should be serialized.
+    name: str
+
+    ID = 0
 
     def __init_subclass__(cls):
-        Ability.add(cls)
+        ability = cls(cls.name)
+        Ability.add(ability)
+
+    def __init__(self, name):
+        self.name = name
+        self.id = Ability.ID
+        Ability.ID += 1
 
     @staticmethod
     def after_movement(unit: "Unit.Unit"):
@@ -40,11 +50,7 @@ class Ability(GenericType["Ability"]):
         return defense_result
 
     @staticmethod
-    def attack_bonus(unit: "Unit.Unit", attack_result: int) -> int:
-        return attack_result
-    
-    @staticmethod
-    def on_terrain_movement(unit: "Unit.Unit", tile: Tile, movement: int) -> int:
+    def on_terrain_movement(unit: "Unit.Unit", tile: "Tile.Tile", movement: int) -> int:
         return 0
     
     @staticmethod
@@ -60,7 +66,7 @@ class Ability(GenericType["Ability"]):
         return 0
     
     @staticmethod
-    def get_visibility(unit: "Unit.Unit") -> bool:
+    def get_visibility(unit: "Unit.Unit", player_id: int) -> bool:
         return 1
 
     @staticmethod

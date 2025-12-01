@@ -1,0 +1,41 @@
+from typing import Type, TypeVar, Generic
+        
+T = TypeVar("T")
+
+class LazyRef(Generic[T]):
+    name: str
+    cls: type[T]
+    not_loaded: bool = True
+
+    def __init__(self, cls: Type[T]):
+        object.__setattr__(self, "cls", cls)
+
+    def create(self, name: str) -> T:
+        if name is None:
+            return None
+        object.__setattr__(self, "name", name)
+        return self
+    
+    def __setattr__(self, name, val):
+        if self.not_loaded:
+            object.__setattr__(self, "not_loaded", False)
+            obj = self.cls.get(self.name)
+            self.__dict__.update(obj.__dict__)
+        self.cls.__setattr__(self, name, val)
+            
+    def __getattr__(self, name):
+        if self.not_loaded:
+            object.__setattr__(self, "not_loaded", False)
+            obj = self.cls.get(self.name)
+            self.__dict__.update(obj.__dict__)
+        return self.__dict__[name]
+    
+    def __eq__(self, value):
+        if value is None:
+            return False
+        return self.name == value.name
+    
+    def __ne__(self, value):
+        if value is None:
+            return True
+        return self.name != value.name

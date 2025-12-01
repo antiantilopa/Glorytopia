@@ -22,6 +22,7 @@ class SoundComponent(Component):
         "hit": Synths.get_hit_party,
     }
 
+
     def __init__(self, path: str = "", nickname: str = "", volume: float = 1, tone_offset: int = 0):
         prenickname = ":"
         self.channels = []
@@ -37,8 +38,14 @@ class SoundComponent(Component):
                 SoundComponent.downloaded[path] = SoundComponent.load(path)
                 self.sound = SoundComponent.downloaded[path]
         self.volume = volume
+        self.set_volume(volume)
         self.tone_offset = tone_offset
-        
+    
+    def set_volume(self, volume: int = 1):
+        self.volume = volume
+        for channel in self.channels:
+            channel.set_volume(volume)
+
     @staticmethod
     def load(path):
         assert os.path.exists(path + "/config.json")
@@ -77,12 +84,14 @@ class SoundComponent(Component):
         
     def play_once(self) -> pg.mixer.Channel:
         channel = self.sound.play()
+        channel.set_volume(self.volume)
         self.channels.append(channel)
         channel.set_endevent(SoundComponent.stop_event_type)
         return channel
 
     def play_in_loop(self) -> pg.mixer.Channel:
         channel = self.sound.play(loops=-1)
+        channel.set_volume(self.volume)
         self.channels.append(channel)
         channel.set_endevent(SoundComponent.stop_event_type)
         return channel

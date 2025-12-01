@@ -6,4 +6,3 @@ from .player import Player
 from .world import World
 from .unit import Unit
 from .game import Game
-from .updating_object import UpdatingObject

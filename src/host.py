@@ -1,19 +1,21 @@
-from serializator.host import Address
-from serializator.data_format import Format
-from serializator.net import Serializator
+from netio.serialization.serializer import Serializable
+from server.backup import loader
 from server.core import *
-from server.core.game_event import GameEvent
 from server.network import game, lobby
-from server.network.server import Server, Connection
+from server.network.game_server import GamePlayer, GameServer
 from server.globals.backup import BackupSettings
 import socket, time, random, os
 from engine_antiantilopa import Vector2d
-from shared.loader import load_mains
+from shared.loader import load_mains, load_effects_and_abilities_full
 from shared.asset_types import *
 from pathlib import Path
+from netio import Host, MessageType, ConnectionData
+from server.recorder.replay_recorder import ReplayRecorder
+import logging
 
 load_mains()
-GameEvent.start_recording()
+load_effects_and_abilities_full()
+
 saves_path = BackupSettings.saves_path
 
 if os.path.exists(saves_path):
@@ -26,8 +28,12 @@ else:
     os.mkdir(saves_path)
     saves = []
 
-preload_data = None
-name = None
+
+new_game = True
+player_datas = []
+
+name = f"save_{int(time.time())}"
+inner_save = "turn0-0.save"
 if len(saves) == 0:
     print("No saves found. Starting a new game.")
 else:
@@ -46,16 +52,17 @@ else:
                     for i in range(len(innersaves)):
                         print(f"{i}) {innersaves[i]}")
                     preload_file_index = int(input("write file index to continue: "))
-                with open(saves_path / saves[preload_folder_index] / innersaves[preload_file_index], "rb") as f:
+                if os.path.exists(saves_path / saves[preload_folder_index] / innersaves[preload_file_index]):
                     try:
-                        preload_data = Serializator.decode_full(f.read())
+                        new_game = False
                         name = saves[preload_folder_index]
-                        print("preloaded successfully")
-                        a = str(preload_data)
-                        tabs = 0
+                        inner_save = innersaves[preload_file_index]
+                        print("found successfully")
+                        save_path = Path(saves_path / name / inner_save)
+                        player_datas = loader.load(save_path)
                         break
                     except Exception as e:
-                        print(f"error while preloading: {e}")
+                        print(f"error while finding file: {e}")
                         raise e
             except Exception as e:
                 print(f"wrong file index: {e}")
@@ -63,81 +70,86 @@ else:
         else:
             break
 
-
-host = Server()
-host.password = "Ha-Ha-Ha Rana"
-host.respond.merge(lobby.respond)
-host.respond.merge(game.respond)
-
-if preload_data is None:
-    print("Starting a new game.")
-    if name is None:
-        name = input("Enter the game's name: ")
-        os.mkdir(saves_path / name)
-else:
-    host.the_game = Game.from_serializable(preload_data)
+host = GameServer('localhost', 8080, 5)
+host.router.merge(lobby.router)
+host.router.merge(game.router)
+print(host.router._event_handlers.keys())
 
 BackupSettings.save_folder_name = name
 
-@host.respond.connection()
-def at_connect(self: Server, conn: socket.socket, addr: Address) -> bool:
-    if len(Connection.conns) == self.player_number:
-        self.send_to_conn(conn, Format.error("CONNECTION", ["this server is already full."]))
-        conn.close()
+@host.router.on_connect()
+def at_connect(conn_data: ConnectionData) -> bool:
+    if len(host.game_manager.players) == host.max_players:
         return False
-    print(f"Connection with {addr} established")
+    if not new_game:
+        if len(host.game_manager.players) == len(player_datas):
+            return False
+    logging.info(f"Connection with someone established")
     return True
 
-@host.respond.disconnection()
-def at_disconnect(self: Server, addr: Address):
-    print(f"Connection with {addr} has lost.")
-    if addr in [conn.addr for conn in Connection.conns]:
-        if not self.game_started:
-            for i in self.conns:
-                self.send_to_addr(i, Format.event("DISCONNECT", [Connection.get_by_addr(addr).name]))
-            removed_idx = Connection.get_by_addr(addr).idx
-            Connection.conns.remove(Connection.get_by_addr(addr))
-            Connection.IDX -= 1
-            for conn in Connection.conns:
-                if conn.idx > removed_idx:
-                    conn.idx -= 1
-                conn.ready = False
-        else:
-            for i in self.conns:
-                self.send_to_addr(i, Format.event("GAME/DISCONNECT", [Connection.get_by_addr(addr).name]))
-            print(f"{Connection.get_by_addr(addr).name} has disconnected from the game.")
-            recovery_code = random.randint(100000, 999999)
-            Connection.get_by_addr(addr).recovery_code = recovery_code
-            print(f"recovery code: {recovery_code}")
-            print("awaiting for player to reconnect...")
+@host.router.on_disconnect()
+def at_disconnect(player_data: GamePlayer):
+    if not player_data.joined:
+        return
     
-@host.respond.request("ORDER")
-def req_order(self: Server, addr: Address, _: tuple):
-    self.send_to_addr(addr, Format.info("ORDER", [conn.name for conn in Connection.conns]))
+    GamePlayer.joined_players.remove(player_data)
+    logging.info(f"Connection with {player_data.nickname} has lost.")
+    if not host.game_started:
+        for pdata in GamePlayer.joined_players:
+            host.send_message(pdata.address, MessageType.EVENT, "LOBBY/DISCONNECT", player_data.nickname)
+    if host.game_started:
+        for pdata in GamePlayer.joined_players:
+            host.send_message(pdata.address, MessageType.EVENT, "GAME/DISCONNECT", player_data.nickname)
+        logging.info(f"{player_data.nickname} has disconnected from the game.")
+        recovery_code = random.randint(100000, 999999)
+        player_data.recovery_code = recovery_code
+        save_obj = GamePlayer.new_copy_from(player_data)
+        GamePlayer.need_reconnect.append(save_obj)
+        logging.warning(f"Name: {player_data.nickname}, Recovery code: {recovery_code}")
 
-host.init_server(6)
 host.start()
 
 def start_game():
-    if preload_data is None:
-        host.the_game = Game(Vector2d(17, 17), len(Connection.conns))
-        for conn in Connection.conns:
-            conn.player = host.the_game.players[conn.idx]
-            conn.player.set_nation(Nation.by_id(conn.nation))
-            host.send_to_addr(conn.addr, Format.event("GAME/GAME_START", [0, conn.idx]))
-        host.the_game.start()
+    if new_game:
+        host.game = Game(Vector2d(17, 17), len(host.game_manager.players))
+        i = 0
+        for pdata in GamePlayer.joined_players:
+            pdata.id = i
+            Player.by_id(i).set_pdata(pdata)
+            i += 1
+        host.game.start()
+    
+        host.synchronize()
+        for player in GamePlayer.joined_players:
+            host.send_message(player.address, MessageType.EVENT, "LOBBY/GAME_START", (0, host.game.world.size))
     else:
-        for conn in Connection.conns:
-            conn.player = host.the_game.players[conn.idx]
-            host.send_to_addr(conn.addr, Format.event("GAME/GAME_START", [0, conn.idx]))
+        host.game = Game.obj
+        for pdata in GamePlayer.joined_players:
+            for loaded_pdata in player_datas:
+                if pdata.nickname == loaded_pdata.nickname:
+                    pdata.id = loaded_pdata.id
+                    pdata.color = loaded_pdata.color
+                    pdata.nation = loaded_pdata.nation
+                    Player.by_id(pdata.id).set_pdata(pdata)
+                    break
+        host.game.start()
+    
+        host.synchronize()
+        for player in GamePlayer.joined_players:
+            host.send_message(player.address, MessageType.EVENT, "LOBBY/GAME_START", (0, host.game.world.size))
+
+    host.create_all_objects()
+    host.synchronize()
+    ReplayRecorder.start_recording()
 
 try:
+    host.game_starting = False
     while True:
         if not host.game_started:
             if host.game_starting:
-                for conn in Connection.conns:
-                    host.send_to_addr(conn.addr, Format.event("LOBBY/GAME_START", [timer]))
-                    host.send_to_addr(conn.addr, Format.event("LOBBY/MESSAGE", ("GAME STARTS IN", f"{timer}...")))
+                print(f"Game starting in {timer}...")
+                for pl in host.game_manager.players:
+                    host.send_message(pl.address, MessageType.EVENT, "LOBBY/MESSAGE", ("SERVER", str(timer)))
                 timer -= 1
                 time.sleep(1)
                 if timer == 0:
