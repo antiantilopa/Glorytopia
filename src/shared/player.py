@@ -25,6 +25,6 @@ class PlayerData_(PlayerData):
         obj.nickname = ""
         obj.nation = Nation.by_id(0)
         return obj
-    
+
     def __repr__(self):
         return f"PlayerData_ <{self.id}, {self.color}, {self.nickname}>"

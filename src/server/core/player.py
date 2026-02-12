@@ -25,8 +25,8 @@ class Player:
             return
         self.pdata = None
         self.money = 8
-        self.techs=[TechNode.get("base")]
-        self.vision=[[0 for i in range(World.World.object.size.x)] for _ in range(World.World.object.size.y)]
+        self.techs = [TechNode.get("base")]
+        self.vision = [[0 for i in range(World.World.object.size.x)] for _ in range(World.World.object.size.y)]
         self._vision_changes = []
         self.is_dead = False
         self.id = Player.ID
@@ -39,7 +39,7 @@ class Player:
     def set_pdata(self, pdata: PlayerData_):
         self.pdata = pdata
         pdata.id = self.id
-        self.nation = pdata.nation
+        self.set_nation(pdata.nation)
 
     def set_nation(self, nation: Nation):
         self.nation = nation
@@ -78,7 +78,7 @@ class Player:
             return ErrorCodes.ERR_NOT_SUITABLE_RESOURCE
         if self.money < btype.cost:
             return ErrorCodes.ERR_NOT_ENOUGH_MONEY
-        if not (World.World.object.get(pos).ttype in btype.ttypes):
+        if not (World.World.object.get(pos).type in btype.ttypes):
             return ErrorCodes.ERR_NOT_SUITABLE_TILE_TYPE
         if World.World.object.get(pos).owner != self.id:
             return ErrorCodes.ERR_NOT_IN_DOMAIN
@@ -113,7 +113,7 @@ class Player:
             return ErrorCodes.ERR_NOT_IN_WORLD
         if self.money < terraform.cost:
             return ErrorCodes.ERR_NOT_ENOUGH_MONEY
-        if World.World.object.get(pos).ttype != terraform.from_ttype:
+        if World.World.object.get(pos).type != terraform.from_ttype:
             return ErrorCodes.ERR_NOT_SUITABLE_TILE_TYPE
         if World.World.object.get(pos).owner != self.id:
             return ErrorCodes.ERR_NOT_IN_DOMAIN
@@ -152,7 +152,7 @@ class Player:
         if unit.owner != self.id:
             return ErrorCodes.ERR_NOT_YOUR_UNIT
         if pos in unit.get_possible_moves():
-            unit.move(pos)
+            unit.action(pos)
             return ErrorCodes.SUCCESS
         return ErrorCodes.ERR_DEFAULT
 
@@ -195,6 +195,7 @@ class Player:
         return ErrorCodes.ERR_NOT_YOUR_UNIT
 
     def update_vision(self):
+        self.vision = [[0 for _ in range(World.World.object.size.x)] for _ in range(World.World.object.size.y)]
         for city in self.cities:
             for pos in city.domain:
                 self.vision[pos.inty()][pos.intx()] = 1

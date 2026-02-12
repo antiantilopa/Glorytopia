@@ -1,5 +1,6 @@
 from typing import Annotated
 from netio import GenericType, Serializable, SerializeField
+from shared.generic_object import GenericObject
 from . import unit as Unit
 from . import tile as Tile
 
@@ -103,12 +104,12 @@ class EffectType(GenericType):
     def on_spawn(effect: "Effect", unit: "Unit.UnitData"):
         pass
 
-class Effect(Serializable):
-    etype: Annotated[EffectType, SerializeField()]
+class Effect(GenericObject):
+    type: Annotated[EffectType, SerializeField()]
     duration: Annotated[int, SerializeField()]
     args: Annotated[list[int], SerializeField()]
 
-    def __init__(self, etype: EffectType, duration: int, args: list[int] = []):
-        self.etype = etype
+    def __init__(self, effect_type: EffectType, duration: int, args: list[int] = []):
+        self.type = effect_type
         self.duration = duration
         self.args = args

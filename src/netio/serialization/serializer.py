@@ -422,8 +422,9 @@ class Serializable:
             if data[i] != SpecialTypes.NOTHING:
                 super().__setattr__(obj, key, Serializable.parse(data[i], field_cls, ignore_class_id))
 
+        # ok, that is 100% bad thing. i dont care now tho
+        obj.__updates = {}
         if init_for_serializables:
-            obj.__updates = {}
 
             obj.is_created = False
             obj._id = Serializable.__ID
@@ -464,7 +465,7 @@ class Serializable:
                 value = getattr(self, key)
 
                 if isinstance(value, ObservableList):
-                    data.append(to_prim(value))
+                    data.append(to_serialized(value))
                     continue
 
                 if isinstance(value, _serializable_primitives):
@@ -477,6 +478,9 @@ class Serializable:
         return tuple(data)
     
     def __setattr__(self, name, value):
+        if self._primitive:
+            super().__setattr__(name, value)
+            return
         cls = get_all_annotations(self).get(name)
         if cls != None:
             self.__updates[name] = value
@@ -514,7 +518,7 @@ class Serializable:
 
             if value == SpecialTypes.NOTHING and isinstance(new_value, ObservableList):
                 if new_value.updated:
-                    data.append(to_prim(new_value))
+                    data.append(to_serialized(new_value))
                 else:
                     data.append(SpecialTypes.NOTHING)
                 continue
@@ -540,8 +544,7 @@ class Serializable:
         return _optimize_nothings(tuple(data))
     
     def deserialize_updates(self, data: tuple) -> typing.Self:
-        obj = self
-        for i, (key, value) in enumerate(get_all_annotations(obj).items()):
+        for i, (key, value) in enumerate(get_all_annotations(self).items()):
             metadata = value.__metadata__[0]
             assert isinstance(metadata, SerializeField)
 
@@ -557,15 +560,16 @@ class Serializable:
                 field_cls = typing.get_origin(field_cls)
                 
             if issubclass(field_cls, Serializable) and not field_cls._serialize_by_id and not field_cls._primitive:
-                field_cls.deserialize_updates(getattr(obj, key), data[i])
+                field_cls.deserialize_updates(getattr(self, key), data[i])
                 continue
-            
-            object.__setattr__(obj, key, Serializable.parse(data[i], field_cls))
-        return obj
+            # Should have names it another way. here updates store PREVIOUS states. which is just bad. i. dont. care. now.
+            self.__updates[key] = getattr(self, key)
+            object.__setattr__(self, key, Serializable.parse(data[i], field_cls))
+        return self
 
     def validate(self, player_data) -> bool:
-        return bool(self.serialize())
-    
+        return 1
+
     def client_on_create(self):
         pass
     
@@ -578,14 +582,14 @@ class Serializable:
 def _check_classes(cls1, cls2):
     return not (issubclass(cls1, cls2) or issubclass(cls2, cls1) or issubclass(cls1, type(None)) or issubclass(cls2, type(None)))
 
-def to_prim(obj: tuple | int | bool | float | list | Serializable | type[None] | str):
+def to_serialized(obj: tuple | int | bool | float | list | Serializable | type[None] | str):
     if isinstance(obj, (int, bool, float, str, type(None))):
         return obj
     
     if isinstance(obj, (tuple, list)):
         nw = []
         for i in obj:
-            nw.append(to_prim(i))
+            nw.append(to_serialized(i))
         return nw
 
     if isinstance(obj, Serializable):

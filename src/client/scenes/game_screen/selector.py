@@ -1,6 +1,7 @@
 from typing import Callable
 from engine_antiantilopa import *
 from client.network.client import GameClient, GamePlayer
+from client.texture_assign.texture_assign import TextureAssignSystem
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.select import SelectComponent
 from client.globals.window_size import WindowSize
@@ -94,51 +95,25 @@ def _selected_tile():
     selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
     tile_data = SelectComponent.selected.get_component(components.TileComponent).tile_data
 
-    img = create_game_object(selector_image_section, tags="game_screen:info_section:selector_section:selector_image_section:tile_image", at=InGrid((1, 1), (0, 0)), layer=0)
-    img.add_component(SpriteComponent(nickname=tile_data.ttype.name, size=WindowSize.get_block_size()))
-    
     is_there_city = False
     city_data = None
 
     buttons = []
     text = ""
 
-    if tile_data.resource is not None:
-        r_img = create_game_object(
-            parent=selector_image_section, 
-            tags="game_screen:info_section:selector_section:selector_image_section:resource_image", 
-            at=InGrid((1, 1), (0, 0)), 
-            layer=1
-        )
-        r_img.add_component(SpriteComponent(nickname=tile_data.resource.name, size=WindowSize.get_block_size()))
-    if tile_data.building is not None:
-        r_img = create_game_object(
-            parent=selector_image_section, 
-            tags="game_screen:info_section:selector_section:selector_image_section:building_image", 
-            at=InGrid((1, 1), (0, 0)), 
-            layer=1
-        )
-        if tile_data.building.adjacent_bonus == None:
-            r_img.add_component(SpriteComponent(nickname=tile_data.building.name, size=WindowSize.get_block_size()))
-        else:
-            r_img.add_component(SpriteComponent(nickname=tile_data.building.name, size=WindowSize.get_block_size(), frame=0, frames_number=8, frame_direction=Vector2d(0, 1)))
+    TextureAssignSystem.assign_texture(tile_data, selector_image_section, flags=["selector"])
+
     if (tile_data.resource is None) and (tile_data.building is None):
         for city in game_classes.City.cities:
             if city.pos == tile_data.pos:
-                r_img = create_game_object(
-                    parent=selector_image_section, 
-                    tags="game_screen:info_section:selector_section:selector_image_section:city_image", 
-                    at=InGrid((1, 1), (0, 0)), 
-                    layer=1
-                )
-                r_img.add_component(SpriteComponent(nickname="city", size=WindowSize.get_block_size()))
+                TextureAssignSystem.assign_texture(city, selector_image_section, flags=["selector"])
                 is_there_city = True
                 city_data = city
                 break
     
     if not is_there_city:
         text = "\n".join((
-            f"type: {tile_data.ttype.name}", 
+            f"type: {tile_data.type.name}", 
             f"owner: {GamePlayer.by_id(tile_data.owner).nickname if tile_data.owner != -1 else None}", 
             f"resorce: {tile_data.resource.name if tile_data.resource is not None else None}", 
             f"building: {tile_data.building.name if tile_data.building is not None else None}",
@@ -152,11 +127,11 @@ def _selected_tile():
             if tile_data.building is None:
                 for tech in GameClient.object.me.techs:
                     for btype in tech.buildings:
-                        if (tile_data.ttype in btype.ttypes) and ((btype.required_resource is None) or (btype.required_resource == tile_data.resource)):
+                        if (tile_data.type in btype.ttypes) and ((btype.required_resource is None) or (btype.required_resource == tile_data.resource)):
                             buttons.append((f"{btype.name}:{btype.cost}", lambda g, k, p, *args: ui.click_build(tile_data.pos, args[0]), btype.id))
                 for tech in GameClient.object.me.techs:
                     for terraform in tech.terraforms:
-                        if (tile_data.ttype == terraform.from_ttype) and ((terraform.from_resource is None) or (terraform.from_resource == tile_data.resource)):
+                        if (tile_data.type == terraform.from_ttype) and ((terraform.from_resource is None) or (terraform.from_resource == tile_data.resource)):
                             buttons.append((f"{terraform.name}:{terraform.cost}", lambda g, k, p, *args: ui.click_terraform(tile_data.pos, args[0]), terraform.id))
     else:
         text = "\n".join((
@@ -186,12 +161,7 @@ def _selected_unit():
     unit_data = SelectComponent.selected.get_component(components.UnitComponent).unit_data
     buttons = []
 
-    img = create_game_object(
-        parent=selector_image_section, 
-        tags="game_screen:info_section:selector_section:selector_image_section:image", 
-        at=InGrid((1, 1), (0, 0))
-    )
-    img.add_component(SpriteComponent(nickname=unit_data.utype.name, size=WindowSize.get_block_size()))
+    TextureAssignSystem.assign_texture(unit_data, selector_image_section, flags=["selector"])
 
     if unit_data.attached_city_id == -1:
         attached_city_name = "???"
@@ -204,7 +174,7 @@ def _selected_unit():
                 break
 
     text = "\n".join((
-        f"type: {unit_data.utype.name}",
+        f"type: {unit_data.type.name}",
         f"owner: {GamePlayer.by_id(unit_data.owner).nickname if unit_data.owner != -1 else None}", 
         f"health: {unit_data.health}",
         f"can_move?: {"no" if unit_data.moved else "yes"}",
@@ -234,8 +204,7 @@ def _selected_tech():
     tech = SelectComponent.selected.get_component(components.TechComponent).tech
 
     img = create_game_object(selector_image_section, "game_screen:info_section:selector_section:selector_image_section:image", at=InGrid((1, 1), (0, 0)))
-    img.add_component(SpriteComponent(nickname=tech.name, size=WindowSize.get_block_size()))
-
+    TextureAssignSystem.assign_texture(tech, img, flags=["selector"])
     my_cities_count = 0
     for city in game_classes.City.cities:
         if city.owner != -1 and city.owner == GameClient.object.me.id:

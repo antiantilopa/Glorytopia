@@ -92,7 +92,7 @@ def _selected_tile():
     tile_data = SelectComponent.selected.get_component(components.TileComponent).tile_data
 
     img = create_game_object(selector_image_section, tags="replay_screen:info_section:selector_section:selector_image_section:tile_image", at=InGrid((1, 1), (0, 0)), layer=0)
-    img.add_component(SpriteComponent(nickname=tile_data.ttype.name, size=WindowSize.get_block_size()))
+    img.add_component(SpriteComponent(nickname=tile_data.type.name, size=WindowSize.get_block_size()))
     
     is_there_city = False
     city_data = None
@@ -135,7 +135,7 @@ def _selected_tile():
     
     if not is_there_city:
         text = "\n".join((
-            f"type: {tile_data.ttype.name}", 
+            f"type: {tile_data.type.name}", 
             f"owner: {replay.Replay.get_player_data_by_id(tile_data.owner).nickname if tile_data.owner != -1 else None}", 
             f"resorce: {tile_data.resource.name if tile_data.resource is not None else None}", 
             f"building: {tile_data.building.name if tile_data.building is not None else None}",
@@ -165,7 +165,7 @@ def _selected_unit():
         tags="replay_screen:info_section:selector_section:selector_image_section:image", 
         at=InGrid((1, 1), (0, 0))
     )
-    img.add_component(SpriteComponent(nickname=unit_data.utype.name, size=WindowSize.get_block_size()))
+    img.add_component(SpriteComponent(nickname=unit_data.type.name, size=WindowSize.get_block_size()))
 
 
     if unit_data.attached_city_id == -1:
@@ -178,7 +178,7 @@ def _selected_unit():
                 break
 
     text = "\n".join((
-        f"type: {unit_data.utype.name}",
+        f"type: {unit_data.type.name}",
         f"owner: {replay.Replay.get_player_data_by_id(unit_data.owner).nickname if unit_data.owner != -1 else None}", 
         f"health: {unit_data.health}",
         f"can_move?: {"no" if unit_data.moved else "yes"}",

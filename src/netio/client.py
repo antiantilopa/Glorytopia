@@ -52,7 +52,7 @@ class Client:
                 tp, route, data = self.deserializer.get_message(self.sock)
                 match(tp):
                     case MessageType.EVENT:
-                        clientLogger.event("Route: %s", route)
+                        clientLogger.info("Route: %s", route)
                         self.router.fire_event(route, data)
                     case MessageType.RESPONSE:
                         self.router.handle_response(route, data)
@@ -72,15 +72,18 @@ class Client:
                         if len(obj) == 0:
                             clientLogger.error("Object not found. ID: %s", data[1])
                             continue
+                        assert len(obj) == 1, f"Too many object found. ID: {data[1]}"
                         obj = obj[0]
                         obj.deserialize_updates(data)
                         obj.client_on_update()
+                        obj._clear_updates()
                         clientLogger.info("Synchronized. Object ID: %s", data[1])
                     case MessageType.DELETE:
                         obj = [i for i in self._objects if i._id == data[0]]
                         if len(obj) == 0:
                             clientLogger.error("Object not found. ID: %s", data[0])
                             continue
+                        assert len(obj) == 1, f"Too many object found. ID: {data[1]}"
                         obj = obj[0]
                         self._objects.remove(obj)
                         obj.client_on_destroy()

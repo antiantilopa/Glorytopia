@@ -12,6 +12,8 @@ from . import tech_tree
 from . import network
 from . import game_classes
 from . import ui
+from . import fog_of_war
+from . import background_music
 
 network.main()
 
@@ -25,6 +27,8 @@ def load() -> GameObject:
         return GameObject.get_game_object_by_tags("game_screen")
     
     scene = create_game_object(tags="game_screen", size=WindowSize.value)
+
+    background_music.BackgroundMusic.start()
 
     def deleteme(*_):
         try:
@@ -145,9 +149,11 @@ def load() -> GameObject:
     world = create_game_object(world_section, "game_screen:world_section:world", size=world_size * WindowSize.get_block_size(), color=(80, 80, 80), shape=Shape.RECT)
     unit_layer = create_game_object(world, "game_screen:world_section:world:unit_layer", size=world_size * WindowSize.get_block_size(), shape=Shape.RECT, layer=3)
     city_layer = create_game_object(world, "game_screen:world_section:world:city_layer", size=world_size * WindowSize.get_block_size(), shape=Shape.RECT, layer=2)
-    ui_lauer = create_game_object(world, "game_screen:world_section:world:ui_layer", size=world_size * WindowSize.get_block_size(), shape=Shape.RECT, layer=4)
-    ui_lauer.add_component(OnClickComponent([1, 0, 1], 0, 1, ui.click_on_world))
-    ui_lauer.add_component(KeyBindComponent([pg.K_r], 0, 1, ui.reset_ui))
+    fog_of_war_layer = create_game_object(world, "game_screen:world_section:world:fog_of_war_layer", size=world_size * WindowSize.get_block_size(), shape=Shape.RECT, layer=4)
+    fog_of_war_layer.add_component(fog_of_war.FogOfWarComponent(game_classes.GameRules.world_size))
+    ui_layer = create_game_object(world, "game_screen:world_section:world:ui_layer", size=world_size * WindowSize.get_block_size(), shape=Shape.RECT, layer=5)
+    ui_layer.add_component(OnClickComponent([1, 0, 1], 0, 1, ui.click_on_world))
+    ui_layer.add_component(KeyBindComponent([pg.K_r], 0, 1, ui.reset_ui))
     def move_camera(g_obj: GameObject, keys: list[int], *_):
         world_obj = GameObject.get_game_object_by_tags("game_screen:world_section")
         current_pos = g_obj.get_component(Transform).pos

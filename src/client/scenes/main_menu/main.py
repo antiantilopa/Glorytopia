@@ -44,7 +44,7 @@ def load():
         parent=replay_button,
         tags="main_menu:replay_button:label",
         color=ColorComponent.WHITE,
-        text="watch replay (TODO)",
+        text="watch replay",
     )
     replay_button.add_component(OnClickComponent([1, 0, 0], 0, 1, lambda*_: launchers.launch_choose_replay_menu()))
 

@@ -93,7 +93,7 @@ def load():
             size=WindowSize.get_block_size() * (2 / 3)
         )
         print(nation.name)
-        nation_change_button_icon.add_component(SpriteComponent(nickname=nation.name, size=WindowSize.get_block_size() * (2 / 3)))
+        nation_change_button_icon.add_component(SpriteComponent(nickname=f"nations:{nation.name}", size=WindowSize.get_block_size() * (2 / 3)))
 
     ready_section.update_all_section()
     scene.disable()

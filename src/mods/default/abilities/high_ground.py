@@ -10,20 +10,20 @@ class HighGround(Ability):
     
     @staticmethod
     def additional_defense(unit: Unit, other: Unit) -> int:
-        if World.object.get(unit.pos).ttype == TileType.get("mountain"):
+        if World.object.get(unit.pos).type == TileType.get("mountain"):
             return 1
         return 0
 
     @staticmethod
     def additional_attack(unit: Unit, other: Unit) -> int:
-        if World.object.get(other.pos).ttype == TileType.get("mountain"):
+        if World.object.get(other.pos).type == TileType.get("mountain"):
             return 1
-        elif World.object.get(unit.pos).ttype == TileType.get("mountain"):
+        elif World.object.get(unit.pos).type == TileType.get("mountain"):
             return 1
         return 0
 
     @staticmethod
     def on_terrain_movement(unit, tile, movement):
-        if tile.ttype == TileType.get("mountain"):
+        if tile.type == TileType.get("mountain"):
             return movement - 1
         return 0

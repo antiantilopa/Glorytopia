@@ -37,6 +37,8 @@ def update_updating_objects():
     for player in Player.players:
         player.update_vision()
         router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/UPDATE_MONEY", player.money)
+        flat_vision = [item for sublist in player.vision for item in sublist]
+        router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/UPDATE_VISION", list_bool_to_list_int32(flat_vision))
     ReplayRecorder.record_changes()
     router.host.create_new_objects()
     router.host.remove_dead_units()
@@ -180,6 +182,8 @@ def game_end_turn(pdata: GamePlayer, data: None):
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/END_TURN", (f"Not your move right now."))
         return
 
+    Saver.save_current_state()
+
     dead = []
     for player in Player.players:
         if player.is_dead:
@@ -198,6 +202,16 @@ def game_end_turn(pdata: GamePlayer, data: None):
     for player in Player.players:
         router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/END_TURN", router.host.game.now_playing_player_index)
     update_updating_objects()
-    Saver.save_current_state()
+    
 
 
+def list_bool_to_list_int32(x: list[bool]) -> list[int]:
+    result = []
+    for i in range(len(x) // 32 + (1 if len(x) % 32 else 0)):
+        num = 0
+        for j in range(32):
+            if 32 * i + j >= len(x):
+                break
+            num += x[32 * i + j] * (2 **(31 - j))
+        result.append(num)
+    return result

@@ -1,4 +1,5 @@
 from engine_antiantilopa import *
+from client.texture_assign.texture_assign import TextureAssignSystem
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.select import SelectComponent
 from client.globals.window_size import WindowSize
@@ -53,7 +54,7 @@ def create_tech_tree_node(tech_win: GameObject, tech: TechNode, number: int, dep
     tech_node = create_game_object(tech_win, f"game_screen:techs_window:tech_node", at=InGrid((8, 8), (number * 2 + width - 1, depth * 2)), shape=Shape.RECT)
     tech_node.add_component(components.TechComponent(tech))
     tech_node.add_component(SelectComponent())
-    tech_node.add_component(SpriteComponent(nickname=tech.name, size=WindowSize.get_block_size()))
+    TextureAssignSystem.assign_texture(tech, tech_node)
 
     return width
 

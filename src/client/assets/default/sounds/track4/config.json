@@ -1,0 +1,27 @@
+{
+    "parties":
+    [
+        {
+            "name": "raw0",
+            "wave": "str",
+            "volume": 0.4
+        },
+        {
+            "name": "raw1",
+            "wave": "saw",
+            "volume": 0.4
+        },
+        {
+            "name": "raw2",
+            "wave": "saw",
+            "volume": 0.4
+        },
+        {
+            "name": "raw3",
+            "wave": "org",
+            "volume": 0.4
+        }
+    ],
+    "spn": 0.1,
+    "name": "knighty_knight"
+}

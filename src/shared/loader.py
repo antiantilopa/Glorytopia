@@ -2,6 +2,7 @@ from pathlib import Path
 
 from netio.util.lazy_reference import LazyRef
 from shared.effect import Effect, EffectType
+from .modificator import TileModificatorType
 from .globals.mod_versions import ModConfig, ModVersions
 from .asset_types import BuildingType, Nation, ResourceType, TechNode, UnitType, TileType, TerraForm
 from .util.json import from_file
@@ -105,8 +106,17 @@ def load_mains():
         except Exception as e:
             print(f"Error loading mod {path.name}: {e}")
 
-            
-def load_effects_and_abilities_full():
+def load_texture_assignments():
+    for path in MODS_PATH.iterdir():
+        for file in (path / "texture_assign").iterdir():
+            if file.suffix != ".py":
+                continue
+            try:
+                __import__(str(path / "texture_assign" / file.name).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
+            except Exception as e:
+                print(f"Error loading mod {path.name}: {e}")
+
+def load_complex_types_full():
     for path in MODS_PATH.iterdir():
         try:
             effects = json.load(open(path / "effects" / "config.json"))
@@ -115,14 +125,21 @@ def load_effects_and_abilities_full():
             abilities = json.load(open(path / "abilities" / "config.json"))
             for ability in abilities:
                 __import__(str(path / "abilities" / ability["file_name"]).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
+            modificators = json.load(open(path / "tile_modificators" / "config.json"))
+            for modificator_json in modificators:
+                __import__(str(path / "tile_modificators" / modificator_json["file_name"]).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
         except Exception as e:
             print(f"Error loading mod {path.name}: {e}")
+            raise e
 
-def load_effects_names():
+def load_complex_type_names():
     for path in MODS_PATH.iterdir():
         effects = json.load(open(path / "effects" / "config.json"))
-        for effect in effects:
-            EffectType.add(EffectType(effect["name"]))
+        for effect_json in effects:
+            EffectType.add(EffectType(effect_json["name"]))
+        modificators = json.load(open(path / "tile_modificators" / "config.json"))
+        for modificator_json in modificators:
+            TileModificatorType.add(TileModificatorType(modificator_json["name"]))
 
 def load_assets():
     for mod_path in MODS_PATH.iterdir():
@@ -136,3 +153,5 @@ def remove_ref():
             for key, value in obj.__dict__.items():
                 if isinstance(value, LazyRef):
                     setattr(obj, key, value.cls.get(value.name))
+
+
