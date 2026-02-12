@@ -87,7 +87,7 @@ def _create_tile_obj(tile: TileData, init: bool = 0) -> GameObject:
         at=InGrid((1, 1), (0, 0)), 
         layer=0
     )
-    new_tile_sprite.add_component(SpriteComponent(nickname=tile.ttype.name, size=WindowSize.get_block_size()))
+    new_tile_sprite.add_component(SpriteComponent(nickname=tile.type.name, size=WindowSize.get_block_size()))
     if tile.building is not None:
         _create_building_obj(tile, new_tile)
     if tile.resource is not None:
@@ -183,7 +183,7 @@ def _create_unit_obj(unit: UnitData) -> GameObject:
         at=InGrid((1, 1), (0, 0)), 
         layer=2, 
     )
-    sprite.add_component(SpriteComponent(nickname=unit.utype.name, size=WindowSize.get_block_size()))
+    sprite.add_component(SpriteComponent(nickname=unit.type.name, size=WindowSize.get_block_size()))
     health = create_game_object(
         parent=unit_obj, 
         tags="replay_screen:world_section:world:unit_layer:unit:health",

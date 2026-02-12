@@ -1,5 +1,7 @@
 from engine_antiantilopa import *
-from client.network.client import GamePlayer
+from client.globals.music import SoundManager
+from client.network.client import GameClient, GamePlayer
+from client.texture_assign.texture_assign import TextureAssignSystem
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.select import SelectComponent
 from client.globals.window_size import WindowSize
@@ -42,37 +44,68 @@ class Tile(TileData):
     obj: GameObject
 
     tiles: list["Tile"] = []
+    tile_map: list[list["Tile|None"]] = None
 
     def client_on_create(self):
+        if Tile.tile_map is None:
+            Tile.tile_map = [[None for _ in range(GameRules.world_size.x)] for _ in range(GameRules.world_size.y)]
+        if Tile.tile_map[self.pos.inty()][self.pos.intx()] is not None:
+            old_tile = Tile.tile_map[self.pos.inty()][self.pos.intx()]
+            old_tile.obj.destroy()
+            Tile.tiles.remove(old_tile)
+        Tile.tile_map[self.pos.inty()][self.pos.intx()] = self
         GameRules.set_tile(self)
         Tile.tiles.append(self)
         self.obj = _create_tile_obj(self)
 
     def client_on_update(self):
+        updates = self._get_updates()
+        if "resource" in updates:
+            if self.resource == None:
+                SoundManager.new_music("harvest", 0)
+        if "building" in updates:
+            if updates["building"] == None:
+                SoundManager.new_music("build", 0)
+
         # HACK: WTF R U DUIN? maybe not destroying it...
         self.obj.destroy()
         self.obj = _create_tile_obj(self)
         selector.selector_info_update()
 
     def client_on_destroy(self):
-        raise Exception("umm... sorry, wtf?")
+        pass
 
 class City(CityData):
     obj: GameObject
 
     cities: list["City"] = []
+    city_map: list[list["City|None"]] = None
 
     def client_on_create(self):
+        if City.city_map is None:
+            City.city_map = [[None for _ in range(GameRules.world_size.x)] for _ in range(GameRules.world_size.y)]
+        if City.city_map[self.pos.inty()][self.pos.intx()] is not None:
+            old_city = City.city_map[self.pos.inty()][self.pos.intx()]
+            old_city.obj.destroy()
+            City.cities.remove(old_city)
         City.cities.append(self)
         self.obj = _create_city_obj(self)
 
     def client_on_update(self):
-        _update_city_name_label(self, self.obj)
-        _update_city_upgrades(self, self.obj)
+        updates = self._get_updates()
+        if "owner" in updates:
+            if self.owner == GameClient.object.me.id:
+                if self.is_capital:
+                    SoundManager.new_music("capital_conquer", 0)
+                else:
+                    SoundManager.new_music("city_conquer", 0)
+            if updates["owner"] == GameClient.object.me.id:
+                SoundManager.new_music("city_lose", 0)
+        TextureAssignSystem.update_texture(self, self.obj)
         selector.selector_info_update()
 
     def client_on_destroy(self):
-        raise Exception("umm... sorry, wtf?")
+        pass
 
 class Unit(UnitData):
     obj: GameObject
@@ -84,10 +117,15 @@ class Unit(UnitData):
         self.obj = _create_unit_obj(self)
 
     def client_on_update(self):
+        updates = self._get_updates()
+        if "pos" in updates:
+            SoundManager.new_music("unit_walk", 0)
         _update_unit_obj(self)
         selector.selector_info_update()
 
     def client_on_destroy(self):
+        if self.owner == GameClient.object.me.id:
+            SoundManager.new_music("unit_kill", 0)
         _remove_unit_obj(self)
         Unit.units.remove(self)
 
@@ -104,90 +142,12 @@ def _create_tile_obj(tile: Tile) -> GameObject:
 
     new_tile.add_component(components.TileComponent(tile, vector_pos))
     new_tile.add_component(SelectComponent())
-    new_tile_sprite = create_game_object(
-        parent=new_tile, 
-        tags="game_screen:world_section:world:tile:sprite", 
-        at=InGrid((1, 1), (0, 0)), 
-        layer=0
-    )
-    new_tile_sprite.add_component(SpriteComponent(nickname=tile.ttype.name, size=WindowSize.get_block_size()))
-    if tile.building is not None:
-        _create_building_obj(tile, new_tile)
-    if tile.resource is not None:
-        _create_resource_obj(tile, new_tile)
-    if tile.owner != -1:
-        _update_tile_border(tile.pos, new_tile)
+
+    TextureAssignSystem.assign_texture(tile, new_tile)
+
     new_tile.need_draw = True
     new_tile.need_blit_set_true()
     return new_tile
-
-def _create_building_obj(tile: Tile, tile_obj: GameObject):
-    building = create_game_object(
-        parent=tile_obj, 
-        tags="game_screen:world_section:world:tile:building", 
-        at=InGrid((1, 1), (0, 0)), 
-        layer = 1
-    )
-    if tile.building.adjacent_bonus == None:
-        building.add_component(SpriteComponent(nickname=tile.building.name, size=WindowSize.get_block_size()))
-    else:
-        level = 0
-        for d in PosRange(Pos(-1, -1), Pos(2, 2)):
-            if (tile.pos + d).is_in_box(Pos(0, 0), GameRules.world_size - Pos(1, 1)):
-                if GameRules.get_tile(tile.pos + d) is None:
-                    continue
-                if GameRules.get_tile(tile.pos + d).owner == tile.owner:
-                    if GameRules.get_tile(tile.pos + d).building == tile.building.adjacent_bonus:
-                        level += 1
-        if level == 0:
-            level = 1
-        building.add_component(SpriteComponent(nickname=tile.building.name, size=WindowSize.get_block_size(), frame=level-1, frames_number=8, frame_direction=Vector2d(0, 1)))
-
-def _create_resource_obj(tile: Tile, tile_obj: GameObject):
-    resource = create_game_object(
-        parent=tile_obj, 
-        tags="game_screen:world_section:world:tile:resource", 
-        at=InGrid((1, 1), (0, 0)), 
-        layer = 1
-    )
-    resource.add_component(SpriteComponent(nickname=tile.resource.name, size=WindowSize.get_block_size()))
-
-def _update_tile_border(pos: Pos, tile_obj: GameObject, update_near = True):
-    tile = GameRules.get_tile(pos)
-    if tile is None:
-        return
-
-    i = 0
-    while i < len(tile_obj.childs):
-        if "game_screen:world_section:world:tile:border" in tile_obj.childs[i].tags:
-            tile_obj.childs[i].destroy()
-        else:
-            i += 1
-
-    for d in (Vector2d(-1, 0), Vector2d(1, 0), Vector2d(0, 1), Vector2d(0, -1)):
-        if not (0 <= pos[0] + d.x < GameRules.world_size.x and 0 <= pos.y + d.y < GameRules.world_size.y):
-            continue
-        if (GameRules.get_tile(pos + d) is None) or (GameRules.get_tile(pos + d).owner != tile.owner):
-            create_line_game_object(
-                parent=tile_obj, 
-                tags="game_screen:world_section:world:tile:border", 
-                at=d.complex_multiply(Vector2d(1, 1)) * WindowSize.get_block_size() // 2, 
-                to=d.complex_multiply(Vector2d(1, -1)) * WindowSize.get_block_size() // 2, 
-                color=GamePlayer.by_id(tile.owner).get_main_color(), 
-                width=2 * (WindowSize.get_block_size().intx() // 15)
-            )
-
-    tile_obj.need_draw = True
-    tile_obj.need_blit_set_true()
-    if update_near:
-        for d in (Pos(-1, 0), Pos(1, 0), Pos(0, 1), Pos(0, -1)):
-            if not (0 <= pos.x + d.x < GameRules.world_size.x and 0 <= pos.y + d.y < GameRules.world_size.y):
-                continue
-            if GameRules.get_tile(pos + d) == None:
-                continue
-            if GameRules.get_tile(pos + d).owner != -1:
-                _update_tile_border(pos + d, GameRules.get_tile(pos + d).obj, False)
-
 
 def _create_unit_obj(unit: Unit) -> GameObject:
     unit_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:unit_layer")
@@ -200,31 +160,9 @@ def _create_unit_obj(unit: Unit) -> GameObject:
     )
     unit_obj.add_component(components.UnitComponent(unit, unit.pos))
     unit_obj.add_component(SelectComponent())
-    sprite = create_game_object(
-        parent=unit_obj,
-        tags="game_screen:world_section:world:unit_layer:unit:sprite",
-        at=InGrid((1, 1), (0, 0)), 
-        layer=2, 
-    )
-    sprite.add_component(SpriteComponent(nickname=unit.utype.name, size=WindowSize.get_block_size()))
-    health = create_game_object(
-        parent=unit_obj, 
-        tags="game_screen:world_section:world:unit_layer:unit:health",
-        at=Position.LEFT_UP, 
-        size=WindowSize.get_block_size() // 3, 
-        shape=Shape.CIRCLE, 
-        layer=3, 
-        color=GamePlayer.by_id(unit.owner).get_main_color(), 
-        radius=WindowSize.get_block_size().intx() // 6, 
-    )
-    
-    create_label(
-        parent=health, 
-        tags="game_screen:world_section:world:unit_layer:unit:health:number",
-        text=f"{unit.health}", 
-        font=pg.font.SysFont("consolas", WindowSize.get_block_size().intx() // 4), 
-        color=GamePlayer.by_id(unit.owner).get_secondary_color(), 
-    )
+
+    TextureAssignSystem.assign_texture(unit, unit_obj)
+
     return unit_obj
 
 def _remove_unit_obj(unit: Unit):
@@ -237,74 +175,9 @@ def _update_unit_obj(unit: Unit):
     unit_obj = unit.obj
     unit_obj.get_component(components.UnitComponent).pos = unit.pos
     unit_obj.get_component(Transform).set_pos(InGrid(GameRules.world_size.as_tuple(), unit.pos.as_tuple()).get_pos(unit_layer))
-    for child in unit_obj.childs:
-        if "game_screen:world_section:world:unit_layer:unit:health" in child.tags:
-            child.childs[0].destroy()
-            create_label(
-                parent=child, 
-                text=f"{unit.health}", 
-                font=pg.font.SysFont("consolas", WindowSize.get_block_size().intx() // 4), 
-                color=GamePlayer.by_id(unit.owner).get_secondary_color(),
-                tags="game_screen:world_section:world:unit_layer:unit:health:number"
-            )
+    TextureAssignSystem.update_texture(unit, unit_obj)
 
-def _update_city_name_label(city: City, city_obj: GameObject):
-    city_owner = city.owner
-    if city_owner == -1:
-        return
 
-    i = 0
-    while i < len(city_obj.childs):
-        if "game_screen:world_section:world:city_layer:city:name_label" in city_obj.childs[i].tags:
-            city_obj.childs[i].destroy()
-        elif "game_screen:world_section:world:city_layer:city:name_label_background" in city_obj.childs[i].tags:
-            city_obj.childs[i].destroy()
-        else:
-            i += 1
-            
-    city_name_label = create_label(
-        parent=city_obj, 
-        tags="game_screen:world_section:world:city_layer:city:name_label", 
-        text=f"{city.level} {city.name}{("!" if city.is_capital else "")}", 
-        font=pg.font.SysFont("consolas", WindowSize.get_block_size().intx() // 6), 
-        at=Position.DOWN, 
-        color=GamePlayer.by_id(city.owner).get_secondary_color(), 
-        layer=6, 
-        crop=0
-    )
-    create_game_object(
-        parent=city_obj, 
-        tags="game_screen:world_section:world:city_layer:city:name_label_background", 
-        at=Position.DOWN, 
-        size=city_name_label.get_component(SurfaceComponent).size, 
-        shape=Shape.RECT, 
-        color=GamePlayer.by_id(city.owner).get_main_color(), 
-        layer=5, 
-        crop=0
-    )
-
-def _update_city_upgrades(city: City, city_obj: GameObject):
-    found_forge = any("game_screen:world_section:world:city_layer:city:forge_sprite" in child.tags for child in city_obj.childs)
-    found_walls = any("game_screen:world_section:world:city_layer:city:walls_sprite" in child.tags for child in city_obj.childs)
-    
-    if not found_forge and city.forge:
-        forge_sprite = create_game_object(
-            parent=city_obj, 
-            tags="game_screen:world_section:world:city_layer:city:forge_sprite", 
-            at=InGrid((1, 1), (0, 0)), 
-            layer=1
-        )
-        forge_sprite.add_component(SpriteComponent(nickname="city_forge", size=WindowSize.get_block_size()))
-        
-    if not found_walls and city.walls:
-        walls_sprite = create_game_object(
-            parent=city_obj, 
-            tags="game_screen:world_section:world:city_layer:city:walls_sprite", 
-            at=InGrid((1, 1), (0, 0)), 
-            layer=2
-        )
-        walls_sprite.add_component(SpriteComponent(nickname="city_walls", size=WindowSize.get_block_size()))
-        
 def _create_city_obj(city: City) -> GameObject:
     city_layer = GameObject.get_game_object_by_tags("game_screen:world_section:world:city_layer")
     city_obj = create_game_object(
@@ -316,15 +189,7 @@ def _create_city_obj(city: City) -> GameObject:
     )
     city_obj.add_component(SelectComponent())
     city_obj.add_component(components.CityComponent(city, city.pos))
-    city_sprite = create_game_object(
-        parent=city_obj, 
-        tags="game_screen:world_section:world:city_layer:city:sprite", 
-        size=WindowSize.get_block_size(), 
-        layer=0
-    )
-    city_sprite.add_component(SpriteComponent(nickname="city", size=WindowSize.get_block_size()))
-    _update_city_name_label(city, city_obj)
-    _update_city_upgrades(city, city_obj)
+    TextureAssignSystem.assign_texture(city, city_obj)
     return city_obj
 
 def __create_fog(pos: Pos):

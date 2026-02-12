@@ -1,4 +1,4 @@
-from pygame_tools_tafh import Vector2d
+from shared.util.position import Pos
 from server.core.ability import Ability
 from server.core.player import Player
 from server.core.world import World
@@ -11,14 +11,14 @@ class Infiltrate(Ability):
     name = "infiltrate"
 
     def infiltrate(unit: Unit, city: City):
-        queue: list[Vector2d] = []
+        queue: list[Pos] = []
         if World.object.unit_mask[city.pos.y][city.pos.x] == 0:
             queue.append(city.pos)
         
         for pos in city.domain:
             if pos == city.pos:
                 continue
-            if World.object.get(pos).ttype.is_water:
+            if World.object.get(pos).type.is_water:
                 continue
             if World.object.unit_mask[pos.y][pos.x] == 0:
                 queue.append(pos)

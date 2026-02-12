@@ -1,9 +1,10 @@
 from typing import Annotated
+from shared.generic_object import GenericObject
 from shared.util.position import Pos
 from netio import *
 
 
-class CityData(Serializable):
+class CityData(GenericObject):
     pos: Annotated[Pos, SerializeField()]
     owner: Annotated[int, SerializeField()]
     name: Annotated[str, SerializeField()]

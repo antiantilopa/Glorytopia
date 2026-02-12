@@ -1,19 +1,20 @@
+from typing import Callable
 from engine_antiantilopa import *
 from client.widgets.sound import SoundComponent
 
 class SoundManager:
-    volume = 0
+    volume = 0.4
     
     sounds: dict[str, SoundComponent] = {}
 
     @staticmethod
-    def new_music(nickname="", loop = True):
+    def new_music(nickname="", loop = True, on_end: Callable = lambda: None):
         if nickname in SoundManager.sounds:
             if loop:
                 return SoundManager.sounds[nickname].play_in_loop()
             else:
                 return SoundManager.sounds[nickname].play_once()
-        new_s = SoundComponent(nickname=nickname, volume=SoundManager.volume)
+        new_s = SoundComponent(nickname=nickname, volume=SoundManager.volume, on_end=on_end)
         SoundManager.sounds[nickname] = new_s
         if loop:
             return new_s.play_in_loop()

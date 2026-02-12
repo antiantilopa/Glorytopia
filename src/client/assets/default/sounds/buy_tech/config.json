@@ -2,14 +2,14 @@
     "parties":
     [
         {
-            "name": "raw1",
-            "wave": "tri",
-            "volume": 0.4
+            "name": "raw0",
+            "wave": "sin",
+            "volume": 0.5
         },
         {
-            "name": "raw2",
+            "name": "raw1",
             "wave": "pin",
-            "volume": 0.4
+            "volume": 0.5
         }
     ],
     "spn": 0.1

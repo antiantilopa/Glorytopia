@@ -68,14 +68,14 @@ class Game:
         for _ in range(500): 
             x = randint(1, World.object.size.x - 2)
             y = randint(1, World.object.size.y - 2)
-            if not World.object.get(Pos(x, y)).ttype.is_water:
+            if not World.object.get(Pos(x, y)).type.is_water:
                 is_far_enough = True
                 for c in City.cities:
                     if max(abs(c.pos.x - x), abs(c.pos.y - y)) < 3:
                         is_far_enough = False
                         break
                 if is_far_enough:
-                    World.object.get(Pos(x, y)).ttype = TileType.get("plain")
+                    World.object.get(Pos(x, y)).type = TileType.get("plain")
                     City(Pos(x, y), -1)
                     World.object.cities_mask[y][x] = 1
                     return
@@ -97,14 +97,14 @@ class Game:
                     continue 
                 chance_sum = 1 # 1 for no resource
                 for resource in ResourceType.values():
-                    if World.object.get(Pos(i, j)).ttype in resource.ttypes:
+                    if World.object.get(Pos(i, j)).type in resource.ttypes:
                         chance_sum += resource.spawn_rates.get(dist, 0)
                 rand = random() * chance_sum
                 if rand < 1:
                     continue 
                 rand -= 1
                 for resource in ResourceType.values():
-                    if World.object.get(Pos(i, j)).ttype in resource.ttypes:
+                    if World.object.get(Pos(i, j)).type in resource.ttypes:
                         rand -= resource.spawn_rates.get(dist, 0)
                         if rand <= 0:
                             World.object.get(Pos(i, j)).resource = resource
@@ -121,7 +121,7 @@ class Game:
 
             place.x = round(place.x)
             place.y = round(place.y)
-            World.object.get(place).ttype = TileType.get("plain")
+            World.object.get(place).type = TileType.get("plain")
             city = City(place, player.id)
             World.object.cities_mask[place.y][place.x] = 1
             player.cities.append(city)

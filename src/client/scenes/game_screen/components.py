@@ -1,10 +1,8 @@
 from engine_antiantilopa import *
 from shared import *
 
-from shared.util.position import Pos
-
 class PositionComponent(Component):
-    def __init__(self, pos: Pos):
+    def __init__(self, pos: Vector2d):
         super().__init__()
         self.pos = pos
 
@@ -31,3 +29,4 @@ class TechComponent(Component):
     def __init__(self, tech: TechNode):
         super().__init__()
         self.tech = tech
+

@@ -22,7 +22,7 @@ class City(CityData):
                 if World.object.is_in(self.pos + Pos(dx, dy)):
                     if World.object.get(self.pos + Pos(dx, dy)).owner == -1:
                         self.domain.append(self.pos + Pos(dx, dy))
-                        World.object.get(self.pos + Pos(dx, dy)).owner = self.owner
+                        World.object.get(self.pos + Pos(dx, dy)).change_owner(self.owner)
 
     def grow_population(self, count):
         self.population += count
@@ -53,12 +53,12 @@ class City(CityData):
         return None
 
     def harvest(self, pos: Pos):
-        World.object.get(pos).resource = None
+        World.object.get(pos).harvest()
         self.grow_population(1)
         return True
 
     def build(self, pos: Pos, btype: BuildingType):
-        World.object.get(pos).building = btype
+        World.object.get(pos).build_building(btype)
         World.object.get(pos).resource = None
         if btype.adjacent_bonus is None:
             self.grow_population(btype.population)

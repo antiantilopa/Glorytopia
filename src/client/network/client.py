@@ -4,11 +4,14 @@ from enum import Enum
 from typing import Callable
 from copy import copy
 
+from shared.util.position import Pos
+
 respond = ClientRouter()
 
 class GamePlayer(PlayerData_):
     money: int
     techs: list[TechNode]
+    vision: list[list[bool]]
 
     joined_players: list["GamePlayer"] = []
     disconnected: list["GamePlayer"] = []
@@ -33,6 +36,11 @@ class GamePlayer(PlayerData_):
         for p in GamePlayer.joined_players:
             if p.id == id:
                 return p
+
+    def set_vision(self, line_vision: list[bool], world_size: Pos):
+        # line_vision will have some unnesecarry zeros at the end
+        assert len(line_vision) >= world_size.x * world_size.y
+        self.vision = [[line_vision[i + j * world_size.x] for i in range(world_size.x)] for j in range(world_size.y)]
 
     def client_on_create(self):
         if GameClient.object.game_started:

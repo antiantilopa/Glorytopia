@@ -8,8 +8,6 @@ def state_1_start():
     label_obj = GameObject.get_game_object_by_tags("join_menu:main_label")
     entry_obj = GameObject.get_game_object_by_tags("join_menu:entry_box:entry")
 
-    print("WOWOWOWOWOW")
-
     entry_obj.get_component(EntryComponent).clear()
     entry_obj.get_component(EntryComponent).text = Settings.pref_name.var
     label_obj.destroy()

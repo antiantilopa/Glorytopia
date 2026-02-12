@@ -6,7 +6,7 @@ from server.network.game_server import GamePlayer, GameServer
 from server.globals.backup import BackupSettings
 import socket, time, random, os
 from engine_antiantilopa import Vector2d
-from shared.loader import load_mains, load_effects_and_abilities_full
+from shared.loader import load_mains, load_complex_types_full
 from shared.asset_types import *
 from pathlib import Path
 from netio import Host, MessageType, ConnectionData
@@ -14,7 +14,7 @@ from server.recorder.replay_recorder import ReplayRecorder
 import logging
 
 load_mains()
-load_effects_and_abilities_full()
+load_complex_types_full()
 
 saves_path = BackupSettings.saves_path
 
@@ -70,10 +70,9 @@ else:
         else:
             break
 
-host = GameServer('localhost', 8080, 5)
+host = GameServer('26.220.113.32', 8080, 5)
 host.router.merge(lobby.router)
 host.router.merge(game.router)
-print(host.router._event_handlers.keys())
 
 BackupSettings.save_folder_name = name
 

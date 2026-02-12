@@ -15,26 +15,35 @@ class Unit(UnitData):
 
     units: list["Unit"] = []
 
-    def __init__(self, utype: UnitType, owner: int, pos: Pos, attached_city: "City.City"):
-        UnitData.__init__(self, utype, owner, pos)
+    def __init__(self, unit_type: UnitType, owner: int, pos: Pos, attached_city: "City.City"):
+        UnitData.__init__(self, unit_type, owner, pos)
         self.attached_city = attached_city
         Unit.units.append(self)
         World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 1
-        for ability in self.utype.abilities:
+        for ability in self.type.abilities:
             Ability.get(ability).on_spawn(self)
         for effect in self.effects:
-            effect.etype.on_spawn(effect, self)
+            effect.type.on_spawn(effect, self)
+
+    def set_pos(self, pos: Pos):
+        World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 0
+        for m in World.World.object.get(self.pos).modificators:
+            m.tmtype.on_unit_exit(m, World.World.object.get(self.pos), self)
+        self.pos = pos
+        World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 1
+        for m in World.World.object.get(self.pos).modificators:
+            m.tmtype.on_unit_enter(m, World.World.object.get(self.pos), self)
 
     def refresh(self):
-        for ability in self.utype.abilities:
+        for ability in self.type.abilities:
             Ability.get(ability).on_start_turn(self)
         for effect in self.effects:
-            effect.etype.on_start_turn(effect, self)
+            effect.type.on_start_turn(effect, self)
         self.moved = False
         self.attacked = False
 
     def get_movements(self) -> list[Pos, int]:
-        s_poses: list[tuple[Pos, float]] = [(self.pos, self.utype.movement)]
+        s_poses: list[tuple[Pos, float]] = [(self.pos, self.type.movement)]
         e_poses = []
 
         def is_in(pos: Pos, array: list[tuple[Pos, any]]) -> int:
@@ -44,11 +53,17 @@ class Unit(UnitData):
             return -1
 
         def get_mv(movement: float, tile: "Tile.Tile") -> float:
-            res = 0 if tile.ttype.stops_movement else movement - 1 * (1 - 0.5 * tile.has_road)
-            for ability in self.utype.abilities:
+            res = 0 if tile.type.stops_movement else movement - 1 * (1 - 0.5 * tile.has_road)
+            for ability in self.type.abilities:
                 res = max(res, Ability.get(ability).on_terrain_movement(self, tile, movement))
             for effect in self.effects:
-                res = max(res, effect.etype.on_terrain_movement(effect, self, tile, movement))
+                res = max(res, effect.type.on_terrain_movement(effect, self, tile, movement))
+            for m in tile.modificators:
+                res = max(res, m.tmtype.movement(m, movement, tile))
+            for m in tile.modificators:
+                res += m.tmtype.bonus_movement(m, movement, tile)
+            for m in tile.modificators:
+                res += m.tmtype.additional_movement(m, movement, tile)
             return res
         while len(s_poses) != 0:
             s_pos = s_poses.pop(0)
@@ -69,11 +84,11 @@ class Unit(UnitData):
                             break
                 if tmp is True:
                     continue
-                if World.World.object.get(n_pos).ttype.is_water != self.utype.water:
+                if World.World.object.get(n_pos).type.is_water != self.type.water:
                     continue
                 available = False
                 for tech in Player.Player.players[self.owner].techs:
-                    if World.World.object.get(n_pos).ttype in tech.accessable:
+                    if World.World.object.get(n_pos).type in tech.accessable:
                         available = True
                         break
                 if not available:
@@ -100,7 +115,7 @@ class Unit(UnitData):
         result = []
         for unit in Unit.units:
             if unit.owner != self.owner:
-                if max(abs((unit.pos - self.pos).x), abs((unit.pos - self.pos).y)) <= self.utype.attack_range:
+                if max(abs((unit.pos - self.pos).x), abs((unit.pos - self.pos).y)) <= self.type.attack_range:
                     result.append(unit)
         return result
 
@@ -120,34 +135,34 @@ class Unit(UnitData):
     def calc_attack(self, other: "Unit") -> tuple[int, int]:
         defense_bonus = 1
         for tech in Player.Player.players[other.owner].techs:
-            if World.World.object.get(other.pos).ttype in tech.defence:
+            if World.World.object.get(other.pos).type in tech.defence:
                 defense_bonus = 1.5
                 break
-        for ability in other.utype.abilities:
+        for ability in other.type.abilities:
             defense_bonus *= Ability.get(ability).defense_bonus(other)
         for effect in other.effects:
-            defense_bonus *= effect.etype.defense_bonus(effect, other)
+            defense_bonus *= effect.type.defense_bonus(effect, other)
 
         attack_bonus = 1
-        for ability in self.utype.abilities:
+        for ability in self.type.abilities:
             attack_bonus *= Ability.get(ability).attack_bonus(self)
         for effect in self.effects:
-            attack_bonus *= effect.etype.attack_bonus(effect, self)
+            attack_bonus *= effect.type.attack_bonus(effect, self)
 
-        defense_value = other.utype.defense
-        for ability in other.utype.abilities:
+        defense_value = other.type.defense
+        for ability in other.type.abilities:
             defense_value += Ability.get(ability).additional_defense(other, self) 
         for effect in other.effects:
-            defense_value += effect.etype.additional_defense(effect, other, self) 
+            defense_value += effect.type.additional_defense(effect, other, self) 
 
-        attack_value = self.utype.attack
-        for ability in self.utype.abilities:
+        attack_value = self.type.attack
+        for ability in self.type.abilities:
             attack_value += Ability.get(ability).additional_attack(self, other) 
         for effect in self.effects:
-            attack_value += effect.etype.additional_attack(effect, self, other) 
+            attack_value += effect.type.additional_attack(effect, self, other) 
 
-        attack_force = attack_value * (self.health / self.utype.health) * attack_bonus
-        defense_force = defense_value * (other.health / other.utype.health) * defense_bonus
+        attack_force = attack_value * (self.health / self.type.health) * attack_bonus
+        defense_force = defense_value * (other.health / other.type.health) * defense_bonus
         total_damage = attack_force + defense_force
         attack_result = ((attack_force / total_damage) * attack_value * 4.5)
         defense_result = ((defense_force / total_damage) * defense_value * 4.5)
@@ -166,14 +181,14 @@ class Unit(UnitData):
         if other.health > attack_result:
             if (self in other.get_attacks()):
                 # the order is very important, which is no good. TODO
-                for ability in other.utype.abilities:
+                for ability in other.type.abilities:
                     defense_result = Ability.get(ability).retaliation_bonus(other, defense_result)
                 for effect in other.effects:
-                    defense_result = effect.etype.retaliation_bonus(effect, other, defense_result)
-                for ability in self.utype.abilities:
+                    defense_result = effect.type.retaliation_bonus(effect, other, defense_result)
+                for ability in self.type.abilities:
                     defense_result = Ability.get(ability).retaliation_mitigate(self, defense_result)
                 for effect in self.effects:
-                    defense_result = effect.etype.retaliation_mitigate(effect, self, defense_result)
+                    defense_result = effect.type.retaliation_mitigate(effect, self, defense_result)
                 result[1] = defense_result
         return result
     
@@ -182,70 +197,81 @@ class Unit(UnitData):
         if self.health < 0:
             self.health = 0
     
-    def move(self, pos: Pos):
+    def action(self, pos: Pos):
         if not (pos in self.get_possible_moves()):
             return 
         if World.World.object.unit_mask[pos.y][pos.x]:
-            self.attacked = True
-            save = False
-            for ability in self.utype.abilities:
-                save |= Ability.get(ability).save_moved(self)
-            for effect in self.effects:
-                save |= effect.etype.save_moved(effect, self)
-
-            if not save:
-                self.moved = True
-            for unit in Unit.units:
-                if unit.pos == pos:
-                    attack, defense = self.calc_attack(unit)
-                    unit.recv_damage(attack)
-                    self.recv_damage(defense)
-                    if unit.health <= 0 and self.utype.attack_range == 1:
-                        World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 0
-                        self.pos = unit.pos
-                    if unit.health <= 0:
-                        for ability in self.utype.abilities:
-                            Ability.get(ability).after_kill(self, unit)
-                        for effect in self.effects:
-                            effect.etype.after_kill(effect, self, unit)
-
-                    for ability in self.utype.abilities:
-                        Ability.get(ability).after_attack(self, unit)
-                    for effect in self.effects:
-                        effect.etype.after_attack(effect, self, unit)
-                    break
+            self.move(pos)
         else:
-            self.moved = True
-            save = False
-            for ability in self.utype.abilities:
-                save |= Ability.get(ability).save_attacked(self)
-            for effect in self.effects:
-                save |= effect.etype.save_attacked(effect, self)
-            if not save:
-                self.attacked = True
-            World.World.object.unit_mask[self.pos.y][self.pos.x] = 0
-            self.pos = pos
-            World.World.object.unit_mask[self.pos.y][self.pos.x] = 1
-            for ability in self.utype.abilities:
-                Ability.get(ability).after_movement(self)
-            for effect in self.effects:
-                effect.etype.after_movement(effect, self)
+            self.attack(pos)
     
+    def move(self, pos: Pos):
+        if not (pos in self.get_possible_moves()):
+            raise Exception("Invalid move was given.")
+        if not World.World.object.unit_mask[pos.y][pos.x]:
+            raise Exception("Invalid move was given.")
+        self.attacked = True
+        save = False
+        for ability in self.type.abilities:
+            save |= Ability.get(ability).save_moved(self)
+        for effect in self.effects:
+            save |= effect.type.save_moved(effect, self)
+
+        if not save:
+            self.moved = True
+        for unit in Unit.units:
+            if unit.pos == pos:
+                attack, defense = self.calc_attack(unit)
+                unit.recv_damage(attack)
+                self.recv_damage(defense)
+                if unit.health <= 0 and self.type.attack_range == 1:
+                    self.set_pos(unit.pos)
+                if unit.health <= 0:
+                    for ability in self.type.abilities:
+                        Ability.get(ability).after_kill(self, unit)
+                    for effect in self.effects:
+                        effect.type.after_kill(effect, self, unit)
+
+                for ability in self.type.abilities:
+                    Ability.get(ability).after_attack(self, unit)
+                for effect in self.effects:
+                    effect.type.after_attack(effect, self, unit)
+                break
+
+    def attack(self, pos: Pos):
+        if not (pos in self.get_possible_moves()):
+            raise Exception("Invalid attack was given.")
+        if World.World.object.unit_mask[pos.y][pos.x]:
+            raise Exception("Invalid attack was given.")
+        self.moved = True
+        save = False
+        for ability in self.type.abilities:
+            save |= Ability.get(ability).save_attacked(self)
+        for effect in self.effects:
+            save |= effect.type.save_attacked(effect, self)
+        if not save:
+            self.attacked = True
+        self.set_pos(pos)
+        for ability in self.type.abilities:
+            Ability.get(ability).after_movement(self)
+        for effect in self.effects:
+            effect.type.after_movement(effect, self)
+
     def heal(self):
         heal_value = 0
         if World.World.object.get(self.pos).owner == self.owner:
             heal_value = 4
         else:
             heal_value = 2
-        for ability in self.utype.abilities:
+        for ability in self.type.abilities:
             heal_value += Ability.get(ability).additional_heal(self)
         for effect in self.effects:
-            heal_value += effect.etype.additional_heal(effect, self)
-        self.health = min(self.health + heal_value, self.utype.health)
-        for ability in self.utype.abilities:
+            heal_value += effect.type.additional_heal(effect, self)
+        self.health = min(self.health + heal_value, self.type.health)
+        for ability in self.type.abilities:
             Ability.get(ability).after_heal(self)
         for effect in self.effects:
-            effect.etype.after_heal(effect, self)
+            effect.type.after_heal(effect, self)
     
     @property
     def attached_city(self) -> "City.City|None":
@@ -276,26 +302,26 @@ class Unit(UnitData):
                     break
 
     def get_vision_range(self) -> int:
-        vision = World.World.object.get(self.pos).ttype.vision_range
-        for ability in self.utype.abilities:
+        vision = World.World.object.get(self.pos).type.vision_range
+        for ability in self.type.abilities:
             vision = max(vision, Ability.get(ability).get_vision_range(self))
         for effect in self.effects:
-            max(vision, effect.etype.get_vision_range(effect, self))
+            max(vision, effect.type.get_vision_range(effect, self))
         return vision
 
     def get_visibility(self, player_id: int) -> bool:
         visibility = 1
-        for ability in self.utype.abilities:
+        for ability in self.type.abilities:
             visibility = visibility and Ability.get(ability).get_visibility(self, player_id)
         for effect in self.effects:
-            visibility = visibility and effect.etype.get_visibility(effect, self, player_id)
+            visibility = visibility and effect.type.get_visibility(effect, self, player_id)
         return visibility
     
     def end_turn(self):
-        for ability in self.utype.abilities:
+        for ability in self.type.abilities:
             Ability.get(ability).on_end_turn(self)
         for effect in self.effects:
-            effect.etype.on_end_turn(effect, self)
+            effect.type.on_end_turn(effect, self)
             effect.duration -= 1
         
         i = 0
@@ -312,10 +338,10 @@ class Unit(UnitData):
         return player.vision[self.pos.y][self.pos.x] and self.get_visibility(player_data.id)
 
     def destroy(self):
-        for ability in self.utype.abilities:
+        for ability in self.type.abilities:
             Ability.get(ability).on_death(self)
         for effect in self.effects:
-            effect.etype.on_death(effect, self)
+            effect.type.on_death(effect, self)
         if self.attached_city is not None:
             self.attached_city.fullness -= 1
         World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = 0

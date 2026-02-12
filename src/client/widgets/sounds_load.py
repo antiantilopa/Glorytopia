@@ -1,5 +1,4 @@
 from engine_antiantilopa import *
-from shared import *
 from .sound import SoundComponent
 import os
 

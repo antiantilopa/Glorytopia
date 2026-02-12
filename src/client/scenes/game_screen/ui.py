@@ -43,9 +43,11 @@ def update_end_turn_button(is_my_turn: bool):
     end_turn_button.need_blit_set_true()
 
 def click_end_turn_button():
+    SoundManager.new_music("ui_click", loop=0)
     GameClient.object.send_message(MessageType.EVENT, "GAME/END_TURN", None)
 
 def click_tech_open_button():
+    SoundManager.new_music("ui_click", loop=0)
     if state.State.value == 0:
         open_techs_window()
         state.State.change_state(1)
@@ -86,6 +88,7 @@ def click_buy_tech(tech_id: int):
     GameClient.object.send_message(MessageType.EVENT, "GAME/BUY_TECH", tech_id)
 
 def click_on_world(g_obj: GameObject, keys: tuple[bool, bool, bool], pos: Vector2d, *_):
+    SoundManager.new_music("ui_click", loop=0)
     
     world_sec = GameObject.get_game_object_by_tags("game_screen:world_section")
     world = GameObject.get_game_object_by_tags("game_screen:world_section:world")
