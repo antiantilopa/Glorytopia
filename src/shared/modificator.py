@@ -5,7 +5,19 @@ from . import tile as Tile
 from . import unit as Unit
 
 class TileModificatorType(GenericType):
+    name: str
+
+    ID = 0
     
+    def __init_subclass__(cls):
+        etype = cls(cls.name)
+        TileModificatorType.add(etype)
+
+    def __init__(self, name = ""):
+        self.name = name
+        self.id = TileModificatorType.ID
+        TileModificatorType.ID += 1
+
     @staticmethod
     def on_yaderka_boom(modificator: "TileModificator", player_id: int, tile: "Tile.TileData"):
         pass

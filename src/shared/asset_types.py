@@ -78,7 +78,8 @@ class BuildingType(GenericType):
                  required_resource: "str | None" = None,
                  cost: int = 0,
                  population: int = 0,
-                 adjacent_bonus: "str|None" = None) -> None:
+                 adjacent_bonus: "str|None" = None,
+                 on_build: tuple[str, list] = None) -> None:
         self.id = BuildingType.ID
         BuildingType.ID += 1
         self.name = name

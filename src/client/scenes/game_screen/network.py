@@ -1,3 +1,4 @@
+from client.globals.music import SoundManager
 from client.network.client import GameClient, GamePlayer, GameClientRouter
 from shared import *
 
@@ -25,7 +26,7 @@ def main():
         line_vision = list_int32_to_list_bool(data)
         GameClient.object.me.set_vision(line_vision, game_classes.GameRules.world_size)
         selector.selector_info_update()
-        game_classes.update_fog(GameClient.object.me)
+        fog_of_war.update_fog(GameClient.object.me)
 
     @router.event("UPDATE_MONEY", datatype=int)
     def update_money(data: int):
@@ -35,6 +36,7 @@ def main():
     @router.event("UPDATE_TECH", datatype=TechNode)
     def update_tech(data: TechNode):
         GameClient.object.me.techs.append(data)
+        SoundManager.new_music("buy_tech", 0)
         selector.selector_info_update()
 
     @router.event("UPDATE_VISION", datatype=list[int])
