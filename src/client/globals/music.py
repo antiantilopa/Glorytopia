@@ -3,18 +3,23 @@ from engine_antiantilopa import *
 from client.widgets.sound import SoundComponent
 
 class SoundManager:
-    volume = 0.4
-    
+    music_volume = 0.2
+    sound_volume = 0.1
+
     sounds: dict[str, SoundComponent] = {}
 
     @staticmethod
-    def new_music(nickname="", loop = True, on_end: Callable = lambda: None):
+    def new_music(nickname="", loop = True, on_end: Callable = lambda: None, is_music: bool = False):
         if nickname in SoundManager.sounds:
             if loop:
                 return SoundManager.sounds[nickname].play_in_loop()
             else:
                 return SoundManager.sounds[nickname].play_once()
-        new_s = SoundComponent(nickname=nickname, volume=SoundManager.volume, on_end=on_end)
+        if is_music:
+            volume = SoundManager.music_volume
+        else:
+            volume = SoundManager.sound_volume
+        new_s = SoundComponent(nickname=nickname, volume=volume, on_end=on_end, is_music=is_music)
         SoundManager.sounds[nickname] = new_s
         if loop:
             return new_s.play_in_loop()
@@ -28,12 +33,20 @@ class SoundManager:
                 SoundManager.sounds[snd_name].stop_all_channels()
         else:
             if nickname not in SoundManager.sounds:
-                raise KeyError(f"cannot find {nickname} sond or music")
+                raise KeyError(f"cannot find {nickname} sound or music")
             snd = SoundManager.sounds[nickname]
             snd.stop_all_channels()
 
     @staticmethod
-    def set_volume(volume: float = 1):
-        SoundManager.volume = volume
+    def set_music_volume(volume: float = 1):
+        SoundManager.music_volume = volume
         for snd in SoundManager.sounds.values():
-            snd.set_volume(volume)
+            if snd.is_music:
+                snd.set_volume(volume)
+
+    @staticmethod
+    def set_sound_volume(volume: float = 1):
+        SoundManager.sound_volume = volume
+        for snd in SoundManager.sounds.values():
+            if not snd.is_music:
+                snd.set_volume(volume)

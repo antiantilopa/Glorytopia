@@ -25,7 +25,8 @@
             "hut": "hut.png",
             "sawmill": "sawmill.png",
             "forge": "forge.png",
-            "windmill": "windmill.png"
+            "windmill": "windmill.png",
+            "port": "port.png"
         },
         "techs": {
             "base": "base.png",
@@ -69,6 +70,11 @@
             "mindbender": "mindbender.png",
             "cloack": "cloack.png",
             "dagger": "dagger.png",
+            "raft": "raft.png",
+            "boat": "boat.png",
+            "rammer": "rammer.png",
+            "bombarda": "bombarda.png",
+            "ballista": "ballista.png",
             "giant": "giant.png"
         },
         "city": {

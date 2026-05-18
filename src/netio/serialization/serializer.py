@@ -2,9 +2,11 @@ import socket
 import enum
 import typing
 import time
+import sys
 from ..logger import clientLogger
 import threading
 import types
+import inspect
 
 _serializable_primitives = (int, str, float, bool, tuple, list, type(None))
 
@@ -362,8 +364,11 @@ class Serializable:
                 raise ValueError(f"Classes don't match: {type(data)} {cls}")
             return data
         
-        if issubclass(cls, tuple) and isinstance(data, tuple) and generic is None:
-            return data
+        try:
+            if issubclass(cls, tuple) and isinstance(data, tuple) and generic is None:
+                return data
+        except Exception as e:
+            print(f"cls: {type(cls)}:{cls}, data: {data}, generic: {generic}")
 
         if issubclass(cls, Serializable) and cls._serialize_by_id:
             if not isinstance(data, tuple) or len(data) != 2:
@@ -410,15 +415,17 @@ class Serializable:
             
         obj = cls.__new__(cls)
         ant = get_all_annotations(cls)
+        print(f"all annotations of {cls}: {ant}")
+        print(f"data: {data}")
         for i, (key, value) in enumerate(ant.items()):
             metadata = value.__metadata__[0]
             assert isinstance(metadata, SerializeField)
 
-            field_cls = value.__origin__
-
+            field_cls = typing.get_args(value)[0] if typing.get_origin(value) is typing.Annotated else value.__origin__
             if type(field_cls) is types.UnionType:
                 field_cls = field_cls.__args__[0]
 
+            field_cls = _resolve(field_cls, cls)
             if data[i] != SpecialTypes.NOTHING:
                 super().__setattr__(obj, key, Serializable.parse(data[i], field_cls, ignore_class_id))
 
@@ -451,10 +458,12 @@ class Serializable:
 
         self._clear_updates()
 
-    def serialize(self) -> tuple:
+    def serialize(self, as_cls: type["Serializable"] = None) -> tuple:
         if self._primitive:
             return self.__tuple__()
         if self._serialize_by_id:
+            if as_cls is not None:
+                return (get_class_id(as_cls), self.id)
             return (get_class_id(type(self)), self.id)
         data = []
         for key, cls in get_all_annotations(self).items():
@@ -474,7 +483,14 @@ class Serializable:
 
                 assert isinstance(value, Serializable), "Field type should be subclass of Serializable to serialize"
                 
-                data.append(value.serialize())
+                if typing.get_origin(cls) is typing.Annotated:
+                    cls = cls.__origin__
+                if isinstance(cls, types.UnionType):
+                    for option in cls.__args__:
+                        if isinstance(value, option):
+                            cls = option
+                            break
+                data.append(value.serialize(cls))
         return tuple(data)
     
     def __setattr__(self, name, value):
@@ -520,7 +536,13 @@ class Serializable:
                 if new_value.updated:
                     data.append(to_serialized(new_value))
                 else:
-                    data.append(SpecialTypes.NOTHING)
+                    for value in new_value:
+                        if isinstance(value, Serializable) and not value._primitive:
+                            if value.serialize_updates() != SpecialTypes.NOTHING:
+                                data.append(to_serialized(new_value))
+                                break
+                    else:
+                        data.append(SpecialTypes.NOTHING)
                 continue
 
             # Add changes of field
@@ -547,20 +569,20 @@ class Serializable:
         for i, (key, value) in enumerate(get_all_annotations(self).items()):
             metadata = value.__metadata__[0]
             assert isinstance(metadata, SerializeField)
-
-            field_cls = value.__origin__
-
             if data[i] == SpecialTypes.NOTHING:
                 continue
 
+            field_cls = typing.get_args(value)[0] if typing.get_origin(value) is typing.Annotated else value.__origin__
+            field_cls = _resolve(field_cls, type(self))
             if type(field_cls) is types.UnionType:
                 field_cls = field_cls.__args__[0]
 
+            origin_cls = field_cls
             if typing.get_origin(field_cls):
-                field_cls = typing.get_origin(field_cls)
+                origin_cls = typing.get_origin(field_cls)
                 
-            if issubclass(field_cls, Serializable) and not field_cls._serialize_by_id and not field_cls._primitive:
-                field_cls.deserialize_updates(getattr(self, key), data[i])
+            if issubclass(origin_cls, Serializable) and not origin_cls._serialize_by_id and not origin_cls._primitive:
+                origin_cls.deserialize_updates(getattr(self, key), data[i])
                 continue
             # Should have names it another way. here updates store PREVIOUS states. which is just bad. i. dont. care. now.
             self.__updates[key] = getattr(self, key)
@@ -604,10 +626,30 @@ def get_all_annotations(obj_or_cls) -> dict[str, type]:
     for base in reversed(cls.__mro__):
         if base is object:
             continue
-        for key, value in base.__annotations__.items():
+        for key, value in inspect.get_annotations(base).items():
             if _is_annotated(value):
                 annotations[key] = value
     return annotations
+
+def _resolve(value, base: type):
+    if isinstance(value, typing.ForwardRef):
+        value = value._evaluate(sys.modules[base.__module__].__dict__, {}, recursive_guard=set())
+    if isinstance(value, str):
+        value = eval(value, sys.modules[base.__module__].__dict__, {})
+    if len(typing.get_args(value)) > 0:
+        args = typing.get_args(value)
+        origin = typing.get_origin(value)
+        if origin is not None:
+            resolved_args = tuple(_resolve(arg, base) for arg in args)
+            if origin is types.UnionType:
+                # FUCK PYTHON LEGACY !!!
+                # (at least I have not found any way to make it work other way)
+                result = resolved_args[0]
+                for arg in resolved_args[1:]:
+                    result = result | arg
+                return result
+            return origin[resolved_args]
+    return value
 
 def _optimize_nothings(data: tuple):
     flag = any(i != SpecialTypes.NOTHING for i in data[2:])  # Skip _id

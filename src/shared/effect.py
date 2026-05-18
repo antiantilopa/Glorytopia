@@ -57,6 +57,18 @@ class EffectType(GenericType):
         return 0
     
     @staticmethod
+    def ignore_water(effect: "Effect", unit: "Unit.UnitData", tile: "Tile.TileData") -> int:
+        return 0
+    
+    @staticmethod
+    def ignore_stop_movement(effect: "Effect", unit: "Unit.UnitData", tile: "Tile.TileData") -> int:
+        return 0
+    
+    @staticmethod
+    def stop_movement(effect: "Effect", unit: "Unit.UnitData", tile: "Tile.TileData") -> bool:
+        return 0
+    
+    @staticmethod
     def save_moved(effect: "Effect", unit: "Unit.UnitData") -> bool:
         return False
     
@@ -113,3 +125,6 @@ class Effect(GenericObject):
         self.type = effect_type
         self.duration = duration
         self.args = args
+    
+    def validate(self, player_data):
+        return 1

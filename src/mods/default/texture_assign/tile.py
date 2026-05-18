@@ -32,7 +32,7 @@ def _create_building_obj(tile: Tile, tile_obj: GameObject):
         parent=tile_obj, 
         tags="texture:tile:building", 
         at=InGrid((1, 1), (0, 0)), 
-        layer = 1
+        layer = 3
     )
     if tile.building.adjacent_bonus == None:
         building.add_component(SpriteComponent(nickname=f"buildings:{tile.building.name}", size=WindowSize.get_block_size()))
@@ -54,7 +54,7 @@ def _create_resource_obj(tile: Tile, tile_obj: GameObject):
         parent=tile_obj, 
         tags="texture:tile:resource", 
         at=InGrid((1, 1), (0, 0)), 
-        layer = 1
+        layer = 2
     )
     resource.add_component(SpriteComponent(nickname=f"resources:{tile.resource.name}", size=WindowSize.get_block_size()))
 

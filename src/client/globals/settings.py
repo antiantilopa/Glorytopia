@@ -28,7 +28,8 @@ class Settings:
     pref_name: InputVar = InputVar("")
     texture_packs: OrderVar = OrderVar(["default"])
     preffered_color: ChosenVar = ChosenVar([0, 1, 2, 3, 4, 5, 6, 7], 2)
-
+    music_volume: InputVar = InputVar("100")
+    sound_volume: InputVar = InputVar("100")
     @staticmethod
     def save_to_file_():
         new_settings = {
@@ -36,7 +37,9 @@ class Settings:
             "preffered_ipv4": Settings.pref_ipv4.var,
             "preffered_name": Settings.pref_name.var,
             "texture_packs": Settings.texture_packs.order,
-            "preffered_color": Settings.preffered_color.chosen
+            "preffered_color": Settings.preffered_color.chosen,
+            "music_volume": int(Settings.music_volume.var),
+            "sound_volume": int(Settings.sound_volume.var)
         }
         
         p = os.path.dirname(__file__)
@@ -55,7 +58,8 @@ class Settings:
         Settings.pref_name.var = settings_json["preffered_name"]
         Settings.texture_packs.order = settings_json["texture_packs"]
         Settings.preffered_color.chosen = settings_json["preffered_color"]
-
+        Settings.music_volume.var = str(settings_json["music_volume"])
+        Settings.sound_volume.var = str(settings_json["sound_volume"])
         for texture_pack in os.listdir("\\".join(p.split("\\")[:-1] + ["assets"])):
             if texture_pack not in Settings.texture_packs.order:
                 Settings.texture_packs.order.append(texture_pack)

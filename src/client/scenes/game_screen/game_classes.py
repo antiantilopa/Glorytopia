@@ -88,6 +88,7 @@ class City(CityData):
             old_city = City.city_map[self.pos.inty()][self.pos.intx()]
             old_city.obj.destroy()
             City.cities.remove(old_city)
+        City.city_map[self.pos.inty()][self.pos.intx()] = self
         City.cities.append(self)
         self.obj = _create_city_obj(self)
 
@@ -120,7 +121,11 @@ class Unit(UnitData):
         updates = self._get_updates()
         if "pos" in updates:
             SoundManager.new_music("unit_walk", 0)
-        _update_unit_obj(self)
+        if "type" in updates:
+            _remove_unit_obj(self)
+            self.obj = _create_unit_obj(self)
+        else:
+            _update_unit_obj(self)
         selector.selector_info_update()
 
     def client_on_destroy(self):
@@ -137,7 +142,7 @@ def _create_tile_obj(tile: Tile) -> GameObject:
         tags="game_screen:world_section:world:tile", 
         at=InGrid(GameRules.world_size_as_Vector2d(), vector_pos), 
         shape=Shape.RECT, 
-        layer = 0
+        layer=0
     )
 
     new_tile.add_component(components.TileComponent(tile, vector_pos))

@@ -101,6 +101,12 @@ def load() -> GameObject:
         at=InGrid((4, 5), (0, 1), (4, 4)), 
         surface_margin=Vector2d(7, 2), 
     )
+    selector_mods_section = create_game_object(
+        parent=selector_section, 
+        tags="game_screen:info_section:selector_section:selector_mods_section",
+        at=InGrid((4, 5), (1, 0), (3, 5)), 
+        surface_margin=Vector2d(7, 2), 
+    )
     
     end_turn_button = create_game_object(
         parent=info_section, 

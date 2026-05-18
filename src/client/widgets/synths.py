@@ -282,6 +282,19 @@ class Synths:
         return arr
 
     @staticmethod
+    def get_bom_arr(freq, duration = 1.5, t0 = 0):
+        if ("get_bom_arr", freq, duration) in Synths.cache:
+            return Synths.cache[("get_bom_arr", freq, duration)]
+        rate = Synths.rate
+        if freq < 64: freq = 64
+        t = np.linspace(0, 16, round(rate * duration), endpoint=False)
+        a = 1 / (t * t + 1)
+        arr = np.resize(np.repeat(np.random.uniform(-1, 1, int(rate * duration // freq * 64 + 1)), freq // 64), round(rate * duration))
+        arr *= a
+        Synths.cache[("get_bom_arr", freq, duration)] = arr
+        return arr
+
+    @staticmethod
     def get_non_arr(freq, duration = 1.5, t0 = 0):
         rate = Synths.rate
         arr = np.zeros(round(duration * rate))
@@ -355,5 +368,6 @@ wave_names: dict[str, Callable[[int, int, int], np.ndarray]] = {
         "qin": Synths.get_qin_arr,
         "nos": Synths.get_nos_arr,
         "hit": Synths.get_hit_arr,
+        "bom": Synths.get_bom_arr,
         "non": Synths.get_non_arr
     }

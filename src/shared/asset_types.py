@@ -69,6 +69,7 @@ class BuildingType(GenericType):
     cost: int
     population: int
     adjacent_bonus: "BuildingType|None"
+    modificators: list[tuple[str, list]]
 
     ID = 0
 
@@ -79,7 +80,7 @@ class BuildingType(GenericType):
                  cost: int = 0,
                  population: int = 0,
                  adjacent_bonus: "str|None" = None,
-                 on_build: tuple[str, list] = None) -> None:
+                 modificators: list[tuple[str, list]] = []) -> None:
         self.id = BuildingType.ID
         BuildingType.ID += 1
         self.name = name
@@ -88,7 +89,7 @@ class BuildingType(GenericType):
         self.cost = cost
         self.population = population
         self.adjacent_bonus = LazyRef(BuildingType).create(adjacent_bonus)
-    
+        self.modificators = modificators
     def __repr__(self) -> str:
         return self.name
 

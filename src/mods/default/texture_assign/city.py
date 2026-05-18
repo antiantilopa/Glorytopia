@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 from client.globals.window_size import WindowSize
 from client.scenes.game_screen.game_classes import City
 from shared.city import CityData

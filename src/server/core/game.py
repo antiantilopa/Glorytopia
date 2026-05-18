@@ -52,6 +52,10 @@ class Game:
                 self.players = Player.players
     
     def start(self):
+        for tiles in self.world:
+            for tile in tiles:
+                for tile_mod in tile.modificators:
+                    tile_mod.tmtype.on_start_turn(tile_mod.tmtype, tile, self.now_playing_player_index)
         self.players[self.now_playing_player_index].start_turn()
 
     def update_world_masks(self):
@@ -139,7 +143,10 @@ class Game:
             i += 1
     
     def next_player_turn(self):
-
+        for tiles in self.world:
+            for tile in tiles:
+                for tile_mod in tile.modificators:
+                    tile_mod.tmtype.on_end_turn(tile_mod.tmtype, tile, self.now_playing_player_index)
         self.players[self.now_playing_player_index].end_turn()
 
         prev = self.now_playing_player_index
@@ -159,4 +166,8 @@ class Game:
         if prev >= self.now_playing_player_index:
             self.turn_number += 1
 
+        for tiles in self.world:
+            for tile in tiles:
+                for tile_mod in tile.modificators:
+                    tile_mod.tmtype.on_start_turn(tile_mod.tmtype, tile, self.now_playing_player_index)
         self.players[self.now_playing_player_index].start_turn()

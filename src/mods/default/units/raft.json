@@ -1,0 +1,11 @@
+{
+  "name": "raft",
+  "health": 10,
+  "attack": 0,
+  "defense": 1,
+  "movement": 2,
+  "attack_range": 1,
+  "cost": 3,
+  "water": true,
+  "abilities": []
+}

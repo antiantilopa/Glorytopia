@@ -1,4 +1,5 @@
 from shared.asset_types import UnitType, TileType
+from shared.effect import Effect, EffectType
 from shared.player import PlayerData_
 from shared.unit import UnitData
 from shared.util.position import Pos
@@ -53,7 +54,19 @@ class Unit(UnitData):
             return -1
 
         def get_mv(movement: float, tile: "Tile.Tile") -> float:
-            res = 0 if tile.type.stops_movement else movement - 1 * (1 - 0.5 * tile.has_road)
+            if not get_stop_movement_ignore(tile):
+                if tile.type.stops_movement:
+                    return 0
+                for ability in self.type.abilities:
+                    if Ability.get(ability).stop_movement(self, tile):
+                        return 0
+                for effect in self.effects:
+                    if effect.type.stop_movement(effect, self, tile):
+                        return 0
+                for m in tile.modificators:
+                    if m.tmtype.stop_movement(m, self, tile):
+                        return 0
+            res = movement - 1 * (1 - 0.5 * tile.has_road) # legacy here btw
             for ability in self.type.abilities:
                 res = max(res, Ability.get(ability).on_terrain_movement(self, tile, movement))
             for effect in self.effects:
@@ -61,10 +74,28 @@ class Unit(UnitData):
             for m in tile.modificators:
                 res = max(res, m.tmtype.movement(m, movement, tile))
             for m in tile.modificators:
-                res += m.tmtype.bonus_movement(m, movement, tile)
+                res *= m.tmtype.bonus_movement(m, movement, tile)
             for m in tile.modificators:
                 res += m.tmtype.additional_movement(m, movement, tile)
             return res
+        def get_water_ignore(tile: "Tile.Tile") -> bool:
+            result = 0
+            for ability in self.type.abilities:
+                result += Ability.get(ability).ignore_water(self, tile)
+            for effect in self.effects:
+                result += effect.type.ignore_water(effect, self, tile)
+            for m in tile.modificators:
+                result += m.tmtype.ignore_water(m, self, tile)
+            return result > 0
+        def get_stop_movement_ignore(tile: "Tile.Tile") -> bool:
+            result = 0
+            for ability in self.type.abilities:
+                result += Ability.get(ability).ignore_stop_movement(self, tile)
+            for effect in self.effects:
+                result += effect.type.ignore_stop_movement(effect, self, tile)
+            for m in tile.modificators:
+                result += m.tmtype.ignore_stop_movement(m, self, tile)
+            return result > 0
         while len(s_poses) != 0:
             s_pos = s_poses.pop(0)
             if s_pos[1] <= 0:
@@ -84,8 +115,9 @@ class Unit(UnitData):
                             break
                 if tmp is True:
                     continue
-                if World.World.object.get(n_pos).type.is_water != self.type.water:
-                    continue
+                if not get_water_ignore(World.World.object.get(n_pos)):
+                    if World.World.object.get(n_pos).type.is_water != self.type.water:
+                        continue
                 available = False
                 for tech in Player.Player.players[self.owner].techs:
                     if World.World.object.get(n_pos).type in tech.accessable:
@@ -226,16 +258,15 @@ class Unit(UnitData):
                 self.recv_damage(defense)
                 if unit.health <= 0 and self.type.attack_range == 1:
                     self.set_pos(unit.pos)
+                for ability in self.type.abilities:
+                    Ability.get(ability).after_attack(self, unit)
+                for effect in self.effects:
+                    effect.type.after_attack(effect, self, unit)
                 if unit.health <= 0:
                     for ability in self.type.abilities:
                         Ability.get(ability).after_kill(self, unit)
                     for effect in self.effects:
                         effect.type.after_kill(effect, self, unit)
-
-                for ability in self.type.abilities:
-                    Ability.get(ability).after_attack(self, unit)
-                for effect in self.effects:
-                    effect.type.after_attack(effect, self, unit)
                 break
 
     def attack(self, pos: Pos):
@@ -306,7 +337,7 @@ class Unit(UnitData):
         for ability in self.type.abilities:
             vision = max(vision, Ability.get(ability).get_vision_range(self))
         for effect in self.effects:
-            max(vision, effect.type.get_vision_range(effect, self))
+            vision = max(vision, effect.type.get_vision_range(effect, self))
         return vision
 
     def get_visibility(self, player_id: int) -> bool:
@@ -317,19 +348,22 @@ class Unit(UnitData):
             visibility = visibility and effect.type.get_visibility(effect, self, player_id)
         return visibility
     
+    def update_effects(self):
+        i = 0
+        while i < len(self.effects):
+            if self.effects[i].duration == 0:
+                self.effects.pop(i)
+            else:
+                i += 1 
+
     def end_turn(self):
         for ability in self.type.abilities:
             Ability.get(ability).on_end_turn(self)
         for effect in self.effects:
             effect.type.on_end_turn(effect, self)
-            effect.duration -= 1
-        
-        i = 0
-        while i < len(self.effects):
-            if effect.duration <= 0:
-                self.effects.remove(effect)
-            else:
-                i += 1 
+            if effect.duration > 0:
+                effect.duration -= 1
+        self.update_effects()
 
     def validate(self, player_data: PlayerData_):
         if not player_data.joined:

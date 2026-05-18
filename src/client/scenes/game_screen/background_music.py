@@ -16,4 +16,4 @@ def _next_track():
         BackgroundMusic.current_music_ind = 0
         random.shuffle(BackgroundMusic.track_list)
         print(f"shuffled track list: {BackgroundMusic.track_list}")
-    SoundManager.new_music(BackgroundMusic.track_list[BackgroundMusic.current_music_ind], loop=False, on_end=_next_track)
+    SoundManager.new_music(BackgroundMusic.track_list[BackgroundMusic.current_music_ind], loop=False, on_end=_next_track, is_music=True)

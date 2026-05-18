@@ -54,6 +54,18 @@ class Ability(GenericType):
         return 0
     
     @staticmethod
+    def ignore_water(unit: "Unit.Unit", tile: "Tile.Tile") -> int:
+        return 0
+    
+    @staticmethod
+    def ignore_stop_movement(unit: "Unit.Unit", tile: "Tile.Tile") -> int:
+        return 0
+    
+    @staticmethod
+    def stop_movement(unit: "Unit.Unit", tile: "Tile.Tile") -> bool:
+        return 0
+
+    @staticmethod
     def save_moved(unit: "Unit.Unit") -> bool:
         return False
     

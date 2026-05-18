@@ -1,3 +1,4 @@
+from shared.modificator import TileModificator, TileModificatorType
 from shared.player import PlayerData_
 from shared.tile import TileData
 from shared.asset_types import TileType, BuildingType, ResourceType, TerraForm
@@ -13,8 +14,11 @@ class Tile(TileData):
 
     def build_building(self, building: BuildingType):
         self.building = building
+        for mod_name, args in building.modificators:
+            self.modificators.append(TileModificator(TileModificatorType.get(mod_name), args, self))
         for m in self.modificators:
             m.tmtype.on_building(m, building, self.owner, self)
+        
         # WTF is that thing?! i can make it manualy!!!
         """
         ehal building cherez building

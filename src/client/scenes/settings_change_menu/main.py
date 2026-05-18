@@ -15,7 +15,7 @@ def load() -> GameObject:
         return GameObject.get_game_object_by_tags("settings_screen")
 
     scene = create_game_object(tags="settings_screen", size=WindowSize.value)
-    scene.add_component(KeyBindComponent([pg.K_ESCAPE], 0, 1, lambda*_: launchers.launch_join_menu()))
+    scene.add_component(KeyBindComponent([pg.K_ESCAPE], 0, 1, lambda*_: launchers.launch_main_menu()))
 
     overview = create_game_object(scene, "settings_screen:overview", at=InGrid((12, 8), (0, 0), (8, 8)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2)
 
@@ -33,7 +33,7 @@ def load() -> GameObject:
         at=InGrid((1, 1), (0, 0), (1, 1)), 
         color=ColorComponent.WHITE
     )
-    save_button.add_component(OnClickComponent([1, 0, 0], 0, 1, lambda *_: save_click() or launchers.launch_join_menu()))
+    save_button.add_component(OnClickComponent([1, 0, 0], 0, 1, lambda *_: save_click() or launchers.launch_main_menu()))
 
 
     entry_box = create_game_object(edit_section, "settings_screen:edit_sec:entry_box", at=InGrid((1, 8), (0, 6), (1, 1)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4))

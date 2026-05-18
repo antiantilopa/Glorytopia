@@ -21,26 +21,8 @@ def load():
         return GameObject.get_game_object_by_tags("join_menu")
 
     scene = create_game_object(tags="join_menu", size=WindowSize.value)
-    SoundManager.new_music("melody1")
+    SoundManager.new_music("melody1", loop=True, is_music=True)
     
-    settings_button = create_game_object(
-        parent=scene, 
-        tags="join_menu:settings_button", 
-        at=Position.LEFT_DOWN, 
-        size=Vector2d(210, 70), 
-        surface_margin=Vector2d(10, 10), 
-        color=ColorComponent.BLUE, 
-        shape=Shape.RECT
-    )
-    create_label(
-        parent=settings_button, 
-        tags="join_menu:settings_button:label", 
-        text="Settings", 
-        color=ColorComponent.WHITE
-    )
-
-    settings_button.add_component(OnClickComponent([1, 0, 0], 0, 1, lambda *_: launchers.launch_settings_menu()))
-
     label_obj = create_label(
         parent=scene, 
         tags="join_menu:main_label", 

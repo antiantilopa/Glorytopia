@@ -36,6 +36,8 @@ class GameManager:
 
         self._synchronized = []
         self._mapping = {}
+        with open("log.txt", "w") as f:
+            f.write(f"GameManager initialized at {time.ctime()}\n")
 
     def add_connection(self, conn: socket.socket, addr: Address):
         self.conns[addr] = conn
@@ -45,6 +47,8 @@ class GameManager:
         sock = self.conns[addr]
         serverLogger.debug("Server -> %s Route: %s", tp.name, route)
         self.serializer.encode(sock, (tp.value, route, data))
+        with open("log.txt", "a") as f:
+            f.write(f"Server -> {addr} Route: {tp.name} {route} {data}\n")
 
     def send_sync(self, addr: Address, data: tuple):
         self.send_message(addr, MessageType.SYNCHRONIZE, "", data)
@@ -76,6 +80,8 @@ class GameManager:
         self._synchronized.remove(obj)
 
     def handle_message(self, addr: Address, tp: int, route: str, data: tuple):
+        with open("log.txt", "a") as f:
+            f.write(f"Server <- {addr} Route: {MessageType(tp).name} {route} {data}\n")
         match(tp):
             case MessageType.EVENT:
                 serverLogger.event("Route: %s", route)

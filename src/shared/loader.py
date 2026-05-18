@@ -104,7 +104,8 @@ def load_mains():
         try:
             __import__(str(path / "main").replace("\\", "."), fromlist=str(path).split("\\")).load_mod()
         except Exception as e:
-            print(f"Error loading mod {path.name}: {e}")
+            print(f"Error loading main.py from mod {path.name}: {e}")
+            raise e
 
 def load_texture_assignments():
     for path in MODS_PATH.iterdir():
@@ -114,32 +115,36 @@ def load_texture_assignments():
             try:
                 __import__(str(path / "texture_assign" / file.name).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
             except Exception as e:
-                print(f"Error loading mod {path.name}: {e}")
+                print(f"Error loading texture assignment {file.name} from mod {path.name}: {e}")
+                raise e
 
 def load_complex_types_full():
     for path in MODS_PATH.iterdir():
-        try:
-            effects = json.load(open(path / "effects" / "config.json"))
-            for effect in effects:
-                __import__(str(path / "effects" / effect["file_name"]).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
-            abilities = json.load(open(path / "abilities" / "config.json"))
-            for ability in abilities:
-                __import__(str(path / "abilities" / ability["file_name"]).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
-            modificators = json.load(open(path / "tile_modificators" / "config.json"))
-            for modificator_json in modificators:
-                __import__(str(path / "tile_modificators" / modificator_json["file_name"]).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
-        except Exception as e:
-            print(f"Error loading mod {path.name}: {e}")
-            raise e
+        for complex_name in ("effects", "abilities", "tile_modificators"):
+            if (path / complex_name / "config.json").exists():
+                complices = json.load(open(path / complex_name / "config.json"))
+                for complex in complices:
+                    if "file_name" not in complex:
+                        print(f"Error loading {complex_name} from mod {path.name}: {e}")
+                        raise KeyError(f"file_name keyword not found in {complex_name}:{complex}")
+                    try:
+                        __import__(str(path / complex_name / complex["file_name"]).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
+                    except Exception as e:
+                        print(f"Error loading {complex_name} {complex["file_name"]} from mod {path.name}: {e}")
+                        raise e
 
 def load_complex_type_names():
     for path in MODS_PATH.iterdir():
-        effects = json.load(open(path / "effects" / "config.json"))
-        for effect_json in effects:
-            EffectType.add(EffectType(effect_json["name"]))
-        modificators = json.load(open(path / "tile_modificators" / "config.json"))
-        for modificator_json in modificators:
-            TileModificatorType.add(TileModificatorType(modificator_json["name"]))
+        try:
+            effects = json.load(open(path / "effects" / "config.json"))
+            for effect_json in effects:
+                EffectType.add(EffectType(effect_json["name"]))
+            modificators = json.load(open(path / "tile_modificators" / "config.json"))
+            for modificator_json in modificators:
+                TileModificatorType.add(TileModificatorType(modificator_json["name"]))
+        except Exception as e:
+            print(f"Error loading complex's name from mod {path.name}: {e}")
+            raise e
 
 def load_assets():
     for mod_path in MODS_PATH.iterdir():

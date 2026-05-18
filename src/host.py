@@ -1,4 +1,4 @@
-from netio.serialization.serializer import Serializable
+from netio.serialization.serializer import Serializable, get_class_id
 from server.backup import loader
 from server.core import *
 from server.network import game, lobby
@@ -75,6 +75,10 @@ host.router.merge(lobby.router)
 host.router.merge(game.router)
 
 BackupSettings.save_folder_name = name
+
+classes = getattr(Serializable, "_Serializable__classes")
+for cls in classes:
+    print(f"Registered class: {cls},\t id: {get_class_id(cls)}")
 
 @host.router.on_connect()
 def at_connect(conn_data: ConnectionData) -> bool:

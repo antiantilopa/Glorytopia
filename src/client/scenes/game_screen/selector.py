@@ -38,16 +38,21 @@ def select(coords: Pos):
 
 def selector_info_update():
     selector_info_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_info_section")
+    selector_mods_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_mods_section")
     selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
 
     while len(selector_info_section.childs) != 0:
         selector_info_section.childs[0].destroy()
+
+    while len(selector_mods_section.childs) != 0:
+        selector_mods_section.childs[0].destroy()
 
     while len(selector_image_section.childs) != 0:
         selector_image_section.childs[0].destroy()
 
     selector_image_section.need_draw = True
     selector_info_section.need_draw = True
+    selector_mods_section.need_draw = True
 
     if SelectComponent.selected is None:
         return
@@ -57,15 +62,15 @@ def selector_info_update():
     text = ""
     
     if SelectComponent.selected.contains_component(components.TileComponent):
-        text, buttons = _selected_tile()
+        text, buttons, modificators = _selected_tile()
     elif SelectComponent.selected.contains_component(components.UnitComponent):
-        text, buttons = _selected_unit()
+        text, buttons, modificators = _selected_unit()
     elif SelectComponent.selected.contains_component(components.TechComponent):
-        text, buttons = _selected_tech()
+        text, buttons, modificators = _selected_tech()
         
-    create_selector_objects(selector_info_section, text, buttons)
+    create_selector_objects(selector_info_section, selector_mods_section, text, buttons, modificators)
 
-def create_selector_objects(selector_info_section: GameObject, text: str, buttons: list[tuple[str, Callable]]):
+def create_selector_objects(selector_info_section: GameObject, selector_mods_section: GameObject, text: str, buttons: list[tuple[str, Callable]], modificators: str = ""):
     create_label_block(
         parent=selector_info_section, 
         tags="game_screen:info_section:selector_section:selector_info_section:label_block", 
@@ -90,7 +95,17 @@ def create_selector_objects(selector_info_section: GameObject, text: str, button
             color=ColorComponent.RED, 
             tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_sec:label"
         )
-
+    if modificators == "":
+        return
+    create_label_block(
+        parent=selector_mods_section, 
+        tags="game_screen:info_section:selector_section:selector_mods_section:modificators_label_block", 
+        text=modificators, 
+        font=pg.font.SysFont("consolas", WindowSize.get_block_size().inty() // 5),  
+        at=Position.RIGHT_UP, 
+        text_pos=Position.RIGHT, 
+        color=ColorComponent.RED,
+    )
 def _selected_tile():
     selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
     tile_data = SelectComponent.selected.get_component(components.TileComponent).tile_data
@@ -100,9 +115,11 @@ def _selected_tile():
 
     buttons = []
     text = ""
+    modificators = ""
 
     TextureAssignSystem.assign_texture(tile_data, selector_image_section, flags=["selector"])
 
+    # Presume City tile has no resources and no buildings (!)
     if (tile_data.resource is None) and (tile_data.building is None):
         for city in game_classes.City.cities:
             if city.pos == tile_data.pos:
@@ -111,6 +128,11 @@ def _selected_tile():
                 city_data = city
                 break
     
+    if len(tile_data.modificators) > 0:
+        modificators = "modificators:\n"
+        for mod in tile_data.modificators:
+            modificators += f"{mod.tmtype.name}<{', '.join([str(a) for a in mod.args])}>\n"
+
     if not is_there_city:
         text = "\n".join((
             f"type: {tile_data.type.name}", 
@@ -154,13 +176,13 @@ def _selected_tile():
                 for tech in GameClient.object.me.techs:
                     for utype in tech.units:
                         buttons.append((f"{utype.name}:{utype.cost}", lambda g, p, k, *args: ui.click_create_unit(tile_data.pos, args[0]), utype.id))
-    return text, buttons
+    return text, buttons, modificators
 
 def _selected_unit():
     selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
     unit_data = SelectComponent.selected.get_component(components.UnitComponent).unit_data
     buttons = []
-
+    effects = ""
     TextureAssignSystem.assign_texture(unit_data, selector_image_section, flags=["selector"])
 
     if unit_data.attached_city_id == -1:
@@ -193,8 +215,11 @@ def _selected_unit():
                     break
         if city_found:
             buttons.append(("Conquer city", lambda *_: ui.click_conquer_city(unit_data.pos)))
-
-    return text, buttons
+    if len(unit_data.effects) > 0:
+        effects = "effects:\n"
+        for eff in unit_data.effects:
+            effects += f"{eff.type.name}<{', '.join([str(a) for a in eff.args])}> {eff.duration}\n"
+    return text, buttons, effects
 
 def _selected_tech():
     selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
@@ -223,4 +248,4 @@ def _selected_tech():
     if (tech.parent is not None) and (tech.parent in GameClient.object.me.techs) and (tech not in GameClient.object.me.techs):
         buttons.append((f"buy:{tech.cost + tech.tier * my_cities_count}", lambda *_: ui.click_buy_tech(tech.id)))
 
-    return text, buttons
+    return text, buttons, ""

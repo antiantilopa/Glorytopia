@@ -12,16 +12,18 @@ class SoundComponent(Component):
     volume: float
     tone_offset: float
     on_end: Callable
+    is_music: bool
     _event_type: int
 
     downloaded: dict[str, pg.mixer.Sound] = {}
 
     instances: list["SoundComponent"] = []
 
-    def __init__(self, path: str = "", nickname: str = "", volume: float = 1, tone_offset: int = 0, on_end: Callable = lambda: None):
+    def __init__(self, path: str = "", nickname: str = "", volume: float = 1, tone_offset: int = 0, on_end: Callable = lambda: None, is_music: bool = False):
         prenickname = ":"
         self.channels = []
         self.on_end = on_end
+        self.is_music = is_music
         self._event_type = pg.event.custom_type()
         print(f"creating sound with nickname: {nickname}")
         if path != "" and path in SoundComponent.downloaded:

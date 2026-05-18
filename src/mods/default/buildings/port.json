@@ -2,5 +2,8 @@
     "name": "port",
     "ttypes": ["water"],
     "cost": 7,
-    "population": 1
+    "population": 1,
+    "modificators": [
+        ["port", []]
+    ]
 }
