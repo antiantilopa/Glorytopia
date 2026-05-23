@@ -72,7 +72,7 @@ class TileModificatorType(GenericType):
         pass
 
     @staticmethod
-    def on_end_turn(modificator: "TileModificator", tile: "Tile.TileData", ):
+    def on_end_turn(modificator: "TileModificator", tile: "Tile.TileData", player_id: int):
         pass
 
     @staticmethod

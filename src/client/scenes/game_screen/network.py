@@ -6,6 +6,7 @@ from . import selector
 from . import ui
 from . import game_classes
 from . import fog_of_war
+from . import tech_tree
 
 def main():
 
@@ -20,6 +21,7 @@ def main():
     def tech(data: list[TechNode]):
         GameClient.object.me.techs = data
         selector.selector_info_update()
+        tech_tree.update_tech_tree()
 
     @router.event("VISION", datatype=list[int])
     def vision(data: list[int]):
@@ -38,6 +40,7 @@ def main():
         GameClient.object.me.techs.append(data)
         SoundManager.new_music("buy_tech", 0)
         selector.selector_info_update()
+        tech_tree.update_tech_tree()
 
     @router.event("UPDATE_VISION", datatype=list[int])
     def update_vision(data: list[int]):

@@ -21,5 +21,7 @@ class Port(TileModificatorType):
     
     @staticmethod
     def on_unit_enter(modificator, tile, unit):
+        if unit.type.water:
+            return
         unit.effects.append(Effect(EffectType.get("embarked"), -1, [unit.type.id]))
         unit.type = UnitType.get("raft")

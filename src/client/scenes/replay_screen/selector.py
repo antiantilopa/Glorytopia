@@ -1,5 +1,7 @@
 from typing import Callable
 from engine_antiantilopa import *
+from client.actions.action import ActionSystem
+from client.texture_assign.texture_assign import TextureAssignSystem
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.select import SelectComponent
 from client.globals.window_size import WindowSize
@@ -15,16 +17,23 @@ from . import replay
 
 def select(coords: Pos):
     for unit in replay.Replay.units:
-        if unit.udata.pos == coords:
+        if unit.pos == coords:
             if unit.obj.get_component(SelectComponent).is_selected:
                 unit.obj.get_component(SelectComponent).deselect()
                 break
             else:
                 unit.obj.get_component(SelectComponent).select()
                 return
-            
+    for city in replay.Replay.cities:
+        if city.pos == coords:
+            if city.obj.get_component(SelectComponent).is_selected:
+                city.obj.get_component(SelectComponent).deselect()
+                break
+            else:
+                city.obj.get_component(SelectComponent).select()
+                return
     for tile in replay.Replay.tiles:
-        if tile.tdata.pos == coords:
+        if tile.pos == coords:
             if tile.obj.get_component(SelectComponent).is_selected:
                 tile.obj.get_component(SelectComponent).deselect()
                 break
@@ -34,15 +43,20 @@ def select(coords: Pos):
 
 def selector_info_update():
     selector_info_section = GameObject.get_game_object_by_tags("replay_screen:info_section:selector_section:selector_info_section")
+    selector_mods_section = GameObject.get_game_object_by_tags("replay_screen:info_section:selector_section:selector_mods_section")
     selector_image_section = GameObject.get_game_object_by_tags("replay_screen:info_section:selector_section:selector_image_section")
 
     while len(selector_info_section.childs) != 0:
         selector_info_section.childs[0].destroy()
 
+    while len(selector_mods_section.childs) != 0:
+        selector_mods_section.childs[0].destroy()
+
     while len(selector_image_section.childs) != 0:
         selector_image_section.childs[0].destroy()
 
     selector_image_section.need_draw = True
+    selector_mods_section.need_draw = True
     selector_info_section.need_draw = True
 
     if SelectComponent.selected is None:
@@ -51,17 +65,20 @@ def selector_info_update():
     # default
     buttons = []
     text = ""
+    modificators = ""
     
     if SelectComponent.selected.contains_component(components.TileComponent):
-        text, buttons = _selected_tile()
+        text, buttons, modificators = _selected_tile()
     elif SelectComponent.selected.contains_component(components.UnitComponent):
-        text, buttons = _selected_unit()
+        text, buttons, modificators = _selected_unit()
     elif SelectComponent.selected.contains_component(components.TechComponent):
-        text, buttons = _selected_tech()
+        text, buttons, modificators = _selected_tech()
+    elif SelectComponent.selected.contains_component(components.CityComponent):
+        text, buttons, modificators = _selected_city()
         
-    create_selector_objects(selector_info_section, text, buttons)
+    create_selector_objects(selector_info_section, selector_mods_section, text, buttons, modificators)
 
-def create_selector_objects(selector_info_section: GameObject, text: str, buttons: list[tuple[str, Callable]]):
+def create_selector_objects(selector_info_section: GameObject, selector_mods_section: GameObject, text: str, buttons: list[tuple[str, Callable]], modificators: str = ""):
     create_label_block(
         parent=selector_info_section, 
         tags="replay_screen:info_section:selector_section:selector_info_section:label_block", 
@@ -76,7 +93,6 @@ def create_selector_objects(selector_info_section: GameObject, text: str, button
     for i in range(len(buttons)):
         button_sec = create_game_object(selector_info_buttons_section, at=InGrid((1, 5), (0, i), (1, 1)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4), tags="replay_screen:info_section:selector_section:selector_info_section:buttons_section:button_section")
         button = create_game_object(button_sec, at=InGrid((10, 1), (0, 0), (1, 1)), color=ColorComponent.GREEN, shape=Shape.RECT, tags="replay_screen:info_section:selector_section:selector_info_section:buttons_section:button_section:button")
-        button.add_component(OnClickComponent((1, 0, 0), 0, 1, buttons[i][1], (buttons[i][2] if len(buttons[i]) > 2 else ())))
         create_label(
             parent=button_sec, 
             text=buttons[i][0], 
@@ -86,124 +102,153 @@ def create_selector_objects(selector_info_section: GameObject, text: str, button
             color=ColorComponent.RED, 
             tags="replay_screen:info_section:selector_section:selector_info_section:buttons_section:button_sec:label"
         )
-
+    if modificators == "":
+        return
+    create_label_block(
+        parent=selector_mods_section, 
+        tags="replay_screen:info_section:selector_section:selector_mods_section:modificators_label_block", 
+        text=modificators, 
+        font=pg.font.SysFont("consolas", WindowSize.get_block_size().inty() // 5),  
+        at=Position.RIGHT_UP, 
+        text_pos=Position.RIGHT, 
+        color=ColorComponent.RED,
+    )
 def _selected_tile():
     selector_image_section = GameObject.get_game_object_by_tags("replay_screen:info_section:selector_section:selector_image_section")
     tile_data = SelectComponent.selected.get_component(components.TileComponent).tile_data
 
-    img = create_game_object(selector_image_section, tags="replay_screen:info_section:selector_section:selector_image_section:tile_image", at=InGrid((1, 1), (0, 0)), layer=0)
-    img.add_component(SpriteComponent(nickname=tile_data.type.name, size=WindowSize.get_block_size()))
+    buttons = ActionSystem.assign_action(tile_data, replay.Replay.get_player_by_id(replay.Replay.watch_as))
+    modificators = ""
+
+    TextureAssignSystem.assign_texture(tile_data, selector_image_section, flags=["selector"], args=(replay.Replay.get_tile, replay.Replay.game_data.world_size))
     
-    is_there_city = False
-    city_data = None
+    if len(tile_data.modificators) > 0:
+        modificators = "modificators:\n"
+        for mod in tile_data.modificators:
+            modificators += f"{mod.tmtype.name}<{', '.join([str(a) for a in mod.args])}>\n"
 
-    buttons = []
-    text = ""
+    player_data = replay.Replay.get_player_data_by_id(tile_data.owner) if tile_data.owner != -1 else None
+    player = replay.Replay.get_player_by_id(tile_data.owner) if tile_data.owner != -1 else None
+    text = "\n".join((
+        f"type: {tile_data.type.name}", 
+        f"owner: {player_data.nickname if tile_data.owner != -1 else None}", 
+        f"resorce: {tile_data.resource.name if tile_data.resource is not None else None}", 
+        f"building: {tile_data.building.name if tile_data.building is not None else None}",
+        f"pos: {tile_data.pos}", 
+    ))
+    if tile_data.owner == -1:
+        pass
+    elif tile_data.owner == player.id:
+        if tile_data.resource is not None:
+            for tech in player.techs:
+                if tile_data.resource in tech.harvestables:
+                    buttons.append(("harvest:2", None))
+        if tile_data.building is None:
+            for tech in player.techs:
+                for btype in tech.buildings:
+                    if (tile_data.type in btype.ttypes) and ((btype.required_resource is None) or (btype.required_resource == tile_data.resource)):
+                        buttons.append((f"{btype.name}:{btype.cost}", None))
+            for tech in player.techs:
+                for terraform in tech.terraforms:
+                    if (tile_data.type == terraform.from_ttype) and ((terraform.from_resource is None) or (terraform.from_resource == tile_data.resource)):
+                        buttons.append((f"{terraform.name}:{terraform.cost}", None))
+    return text, buttons, modificators
 
-    if tile_data.resource is not None:
-        r_img = create_game_object(
-            parent=selector_image_section, 
-            tags="replay_screen:info_section:selector_section:selector_image_section:resource_image", 
-            at=InGrid((1, 1), (0, 0)), 
-            layer=1
-        )
-        r_img.add_component(SpriteComponent(nickname=tile_data.resource.name, size=WindowSize.get_block_size()))
-    if tile_data.building is not None:
-        r_img = create_game_object(
-            parent=selector_image_section, 
-            tags="replay_screen:info_section:selector_section:selector_image_section:building_image", 
-            at=InGrid((1, 1), (0, 0)), 
-            layer=1
-        )
-        if tile_data.building.adjacent_bonus == None:
-            r_img.add_component(SpriteComponent(nickname=tile_data.building.name, size=WindowSize.get_block_size()))
-        else:
-            r_img.add_component(SpriteComponent(nickname=tile_data.building.name, size=WindowSize.get_block_size(), frame=0, frames_number=8, frame_direction=Vector2d(0, 1)))
-    if (tile_data.resource is None) and (tile_data.building is None):
-        for city in replay.Replay.cities:
-            if city.cdata.pos == tile_data.pos:
-                r_img = create_game_object(
-                    parent=selector_image_section, 
-                    tags="replay_screen:info_section:selector_section:selector_image_section:city_image", 
-                    at=InGrid((1, 1), (0, 0)), 
-                    layer=1
-                )
-                r_img.add_component(SpriteComponent(nickname="city", size=WindowSize.get_block_size()))
-                is_there_city = True
-                city_data = city.cdata
-                break
+def _selected_city():
+    selector_image_section = GameObject.get_game_object_by_tags("replay_screen:info_section:selector_section:selector_image_section")
+    city_data = SelectComponent.selected.get_component(components.CityComponent).city_data
+
+    buttons = ActionSystem.assign_action(city_data, replay.Replay.get_player_by_id(replay.Replay.watch_as))
+    modificators = ""
+
+    TextureAssignSystem.assign_texture(city_data, selector_image_section, flags=["selector"], args=(replay.Replay.get_tile, replay.Replay.game_data.world_size))
+
+    player_data = replay.Replay.get_player_data_by_id(city_data.owner) if city_data.owner != -1 else None
+    player = replay.Replay.get_player_by_id(city_data.owner) if city_data.owner != -1 else None
+
+    text = "\n".join((
+        f"city: {city_data.name}",
+        f"owner: {player_data.nickname if city_data.owner != -1 else None}", 
+        f"level: {city_data.level}",
+        f"population: {city_data.population}/{city_data.level + 1}",
+        f"fullness: {city_data.fullness}/{city_data.level + 1}",
+        f"income: +{city_data.level + city_data.is_capital + city_data.forge}",
+        f"pos: {city_data.pos}",
+        f"Capital" if city_data.is_capital else ""
+    ))
+    found = 0
+    for unit in replay.Replay.units:
+        if unit.pos == city_data.pos:
+            found = 1
+            break
+    if city_data.owner == -1:
+        pass
+    elif city_data.fullness != city_data.level + 1 and not found:
+        for tech in player.techs:
+            for utype in tech.units:
+                buttons.append((f"{utype.name}:{utype.cost}", None))
+    return text, buttons, modificators
     
-    if not is_there_city:
-        text = "\n".join((
-            f"type: {tile_data.type.name}", 
-            f"owner: {replay.Replay.get_player_data_by_id(tile_data.owner).nickname if tile_data.owner != -1 else None}", 
-            f"resorce: {tile_data.resource.name if tile_data.resource is not None else None}", 
-            f"building: {tile_data.building.name if tile_data.building is not None else None}",
-            f"pos: {tile_data.pos}", 
-        ))
-
-    else:
-        text = "\n".join((
-            f"city: {city_data.name}",
-            f"owner: {replay.Replay.get_player_data_by_id(city_data.owner).nickname if city_data.owner != -1 else None}", 
-            f"level: {city_data.level}",
-            f"population: {city_data.population}/{city_data.level + 1}",
-            f"fullness: {city_data.fullness}/{city_data.level + 1}",
-            f"income: +{city_data.level + city_data.is_capital + city_data.forge}",
-            f"pos: {city_data.pos}",
-            f"Capital" if city_data.is_capital else ""
-        ))
-    return text, buttons
-
 def _selected_unit():
     selector_image_section = GameObject.get_game_object_by_tags("replay_screen:info_section:selector_section:selector_image_section")
     unit_data = SelectComponent.selected.get_component(components.UnitComponent).unit_data
-    buttons = []
-
-    img = create_game_object(
-        parent=selector_image_section, 
-        tags="replay_screen:info_section:selector_section:selector_image_section:image", 
-        at=InGrid((1, 1), (0, 0))
-    )
-    img.add_component(SpriteComponent(nickname=unit_data.type.name, size=WindowSize.get_block_size()))
-
-
+    buttons = ActionSystem.assign_action(unit_data, replay.Replay.get_player_by_id(replay.Replay.watch_as))
+    effects = ""
+    TextureAssignSystem.assign_texture(unit_data, selector_image_section, flags=["selector"], args=(replay.Replay.get_tile, replay.Replay.game_data.world_size))
+    player_data = replay.Replay.get_player_data_by_id(unit_data.owner)
+    player = replay.Replay.get_player_by_id(unit_data.owner)
     if unit_data.attached_city_id == -1:
-        attached_city_name = "(bug!)"
+        attached_city_name = "???"
     else:
         attached_city_name = "None"
-        for city in replay.Replay.cities:
-            if city.cdata._id == unit_data.attached_city_id:
-                attached_city_name = city.cdata.name
+        for obj in replay.Replay.cities:
+            if obj._id == unit_data.attached_city_id:
+                assert isinstance(obj, CityData)
+                attached_city_name = obj.name
                 break
 
     text = "\n".join((
         f"type: {unit_data.type.name}",
-        f"owner: {replay.Replay.get_player_data_by_id(unit_data.owner).nickname if unit_data.owner != -1 else None}", 
+        f"owner: {player_data.nickname if unit_data.owner != -1 else None}", 
         f"health: {unit_data.health}",
         f"can_move?: {"no" if unit_data.moved else "yes"}",
         f"can_attack?: {"no" if unit_data.attacked else "yes"}",
         f"pos: {unit_data.pos}",
         f"attached_city: {attached_city_name}"
     ))
-    return text, buttons
+    if not (unit_data.moved or unit_data.attacked):
+        city_found = False
+        for city in replay.Replay.cities:
+            if city.pos == unit_data.pos:
+                if city.owner == unit_data.owner:
+                    break
+                else:
+                    city_found = True
+                    break
+        if city_found:
+            buttons.append(("Conquer city", None))
+    if len(unit_data.effects) > 0:
+        effects = "effects:\n"
+        for eff in unit_data.effects:
+            effects += f"{eff.type.name}<{', '.join([str(a) for a in eff.args])}> {eff.duration}\n"
+    return text, buttons, effects
 
 def _selected_tech():
     selector_image_section = GameObject.get_game_object_by_tags("replay_screen:info_section:selector_section:selector_image_section")
-    buttons = []
+    tech = SelectComponent.selected.get_component(components.TechComponent).tech
+    buttons = ActionSystem.assign_action(tech, replay.Replay.get_player_by_id(replay.Replay.watch_as))
     text = ""
 
-    tech = SelectComponent.selected.get_component(components.TechComponent).tech
 
     img = create_game_object(selector_image_section, "replay_screen:info_section:selector_section:selector_image_section:image", at=InGrid((1, 1), (0, 0)))
-    img.add_component(SpriteComponent(nickname=tech.name, size=WindowSize.get_block_size()))
-
+    TextureAssignSystem.assign_texture(tech, img, flags=["selector"])
+    player = replay.Replay.get_player_by_id(replay.Replay.game_data.now_playing_player_id)
     my_cities_count = 0
     for city in replay.Replay.cities:
-        if city.cdata.owner != -1 and city.cdata.owner == replay.Replay.watch_as:
+        if city.owner != -1 and city.owner == player.id:
             my_cities_count += 1
     text = "\n".join((
-        f"name: {tech.name}    " + (f"owned" if tech in replay.Replay.get_player_by_id(replay.Replay.watch_as).techs else "not owned"),
+        f"name: {tech.name}    " + (f"owned" if tech in player.techs else "not owned"),
         f"cost: {tech.cost + tech.tier * my_cities_count}    " + f"tier: {tech.tier}",
         (f"buildings: {', '.join([b.name for b in tech.buildings])}\n" if len(tech.buildings) > 0 else "") +
         (f"units: {', '.join([u.name for u in tech.units])}\n" if len(tech.units) > 0 else "") +
@@ -213,5 +258,7 @@ def _selected_tech():
         (f"terraforms: {', '.join([t.name for t in tech.terraforms])}\n" if len(tech.terraforms) > 0 else "") + 
         (f"achievements: {', '.join([a for a in tech.achievements])}\n" if len(tech.achievements) > 0 else "")
     ))
+    if (tech.parent is not None) and (tech.parent in player.techs) and (tech not in player.techs):
+        buttons.append((f"buy:{tech.cost + tech.tier * my_cities_count}", None))
 
-    return text, buttons
+    return text, buttons, ""

@@ -1,0 +1,30 @@
+{
+    "parties":
+    [
+        {
+            "name": "raw0",
+            "wave": "sin",
+            "volume": 0.4
+        },
+        {
+            "name": "raw1",
+            "wave": "pia",
+            "volume": 0.4,
+            "tone_shift": -12
+        },
+        {
+            "name": "raw3",
+            "wave": "bia",
+            "volume": 1.0,
+            "tone_shift": 24
+        },
+        {
+            "name": "raw3",
+            "wave": "bom",
+            "volume": 0.3,
+            "tone_shift": -12
+        }
+    ],
+    "spn": 0.1,
+    "name": "horse archers"
+}

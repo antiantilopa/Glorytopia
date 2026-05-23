@@ -88,7 +88,8 @@ def reconnect(pdata: GamePlayer, data: int):
     
     pdata.recovery_code = None
     pdata.copy_from(savedata)
-
+    GamePlayer.need_reconnect.remove(savedata)
+    
     GamePlayer.joined_players.append(pdata)
     Player.by_id(pdata.id).pdata = pdata
     router.host.synchronize()

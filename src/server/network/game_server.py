@@ -1,4 +1,3 @@
-from engine_antiantilopa import Vector2d
 from netio import Host
 from netio.datatypes import ConnectionData
 from netio.router import ServerRouter
@@ -10,6 +9,7 @@ from server.core.game import Game
 from server.core.tile import Tile
 from server.core.unit import Unit
 from shared.player import PlayerData_
+from shared.util.position import Pos
 
 
 class GamePlayer(PlayerData_):
@@ -80,7 +80,7 @@ class GameServer(Host):
             self.create_object(unit)
         for x in range(self.game.world.size.x):
             for y in range(self.game.world.size.y):
-                tile = self.game.world.get(Vector2d(x, y))
+                tile = self.game.world.get(Pos(x, y))
                 self.create_object(tile)
 
     def synchronize(self):

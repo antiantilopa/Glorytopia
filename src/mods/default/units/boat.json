@@ -1,0 +1,14 @@
+{
+  "name": "boat",
+  "health": 10,
+  "attack": 2,
+  "defense": 1,
+  "movement": 3,
+  "attack_range": 2,
+  "cost": 5,
+  "water": true,
+  "abilities": [
+    "dash",
+    "scout"
+  ]
+}

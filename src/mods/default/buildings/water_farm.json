@@ -1,0 +1,6 @@
+{
+    "name": "water_farm",
+    "ttypes": ["ocean", "water"],
+    "cost": 7,
+    "population": 2
+}

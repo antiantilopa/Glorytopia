@@ -1,5 +1,4 @@
 from client.globals.window_size import WindowSize
-from client.scenes.game_screen.game_classes import City
 from shared.city import CityData
 from engine_antiantilopa import GameObject
 from client.widgets.fastgameobjectcreator import *
@@ -7,7 +6,7 @@ from client.network.client import GamePlayer
 from client.texture_assign.texture_assign import TextureAssignSystem
 
 @TextureAssignSystem.register_assign_default(CityData)
-def assign_city_texture(city: City, city_obj: GameObject, flags: set[str] = set()):
+def assign_city_texture(city: CityData, city_obj: GameObject, flags: set[str] = set(), args: None = None):
     city_sprite = create_game_object(
         parent=city_obj, 
         tags="texture:city:sprite", 
@@ -21,11 +20,11 @@ def assign_city_texture(city: City, city_obj: GameObject, flags: set[str] = set(
     _update_city_upgrades(city, city_obj)
 
 @TextureAssignSystem.register_update_default(CityData)
-def update_city_texture(city: City, city_obj: GameObject, flags: set[str] = set()):
+def update_city_texture(city: CityData, city_obj: GameObject, flags: set[str] = set(), args: None = None):
     _update_city_name_label(city, city_obj)
     _update_city_upgrades(city, city_obj)
 
-def _update_city_name_label(city: City, city_obj: GameObject):
+def _update_city_name_label(city: CityData, city_obj: GameObject):
     city_owner = city.owner
     if city_owner == -1:
         return
@@ -60,7 +59,7 @@ def _update_city_name_label(city: City, city_obj: GameObject):
         crop=0
     )
 
-def _update_city_upgrades(city: City, city_obj: GameObject):
+def _update_city_upgrades(city: CityData, city_obj: GameObject):
     found_forge = any("texture:city:forge_sprite" in child.tags for child in city_obj.childs)
     found_walls = any("texture:city:walls_sprite" in child.tags for child in city_obj.childs)
     

@@ -131,28 +131,28 @@ class Player:
     def create_unit(self, pos: Pos, utype: UnitType):
         if World.World.object.is_in(pos) == False:
             return ErrorCodes.ERR_NOT_IN_WORLD
-        if World.World.object.unit_mask[pos.inty()][pos.intx()] != 0:
+        if World.World.object.get_unit(pos) is not None:
             return ErrorCodes.ERR_NOT_EMPTY_TILE
+        city = World.World.object.get_city(pos)
+        if city is None or city.owner != self.id:
+            return ErrorCodes.ERR_NOT_YOUR_CITY
         if self.money < utype.cost:
             return ErrorCodes.ERR_NOT_ENOUGH_MONEY
         for tech in self.techs:
             if utype in tech.units:
-                for city in self.cities:
-                    if pos == city.pos:
-                        unit = city.create_unit(utype)
-                        if unit is not None:
-                            self.units.append(unit)
-                            self.money -= utype.cost
-                            return ErrorCodes.SUCCESS
-                        return ErrorCodes.ERR_CITY_IS_FULL
-                return ErrorCodes.ERR_NOT_YOUR_CITY
+                unit = city.create_unit(utype)
+                if unit is not None:
+                    self.units.append(unit)
+                    self.money -= utype.cost
+                    return ErrorCodes.SUCCESS
+                return ErrorCodes.ERR_CITY_IS_FULL
         return ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH
 
     def move_unit(self, unit: "Unit.Unit", pos: Pos):
         if unit.owner != self.id:
             return ErrorCodes.ERR_NOT_YOUR_UNIT
         if pos in unit.get_possible_moves():
-            unit.action(pos)
+            unit.move_and_attack(pos)
             return ErrorCodes.SUCCESS
         return ErrorCodes.ERR_DEFAULT
 
@@ -168,31 +168,37 @@ class Player:
         return ErrorCodes.SUCCESS
 
     def conquer_city(self, pos: Pos):
-        for unit in self.units:
-            if unit.pos == pos:
-                if unit.attacked or unit.moved:
-                    return ErrorCodes.ERR_UNIT_HAS_ALREADY_MOVED_OR_ATTACKED
-                for city in City.City.cities:
-                    if city.pos == pos:
-                        if city.owner == unit.owner:
-                            return ErrorCodes.ERR_DEFAULT
-                        if city.owner >= 0:
-                            Player.players[city.owner].cities.remove(city)
-                        else:
-                            city.init_domain()
-                        city.owner = self.id
-                        for pos in city.domain:
-                            World.World.object.get(pos).owner = city.owner
-                        self.cities.append(city)
-                        if unit.attached_city is not None and unit.attached_city.owner == self.id:
-                            unit.attached_city.fullness -= 1
-                        unit.attached_city = city
-                        city.fullness = 1
-                        unit.attacked = True
-                        unit.moved = True
-                        return ErrorCodes.SUCCESS
-                return ErrorCodes.ERR_NOT_A_CITY
-        return ErrorCodes.ERR_NOT_YOUR_UNIT
+        unit = World.World.object.get_unit(pos)
+        city = World.World.object.get_city(pos)
+        if unit is None:
+            return ErrorCodes.ERR_NOT_YOUR_UNIT
+        if city is None:
+            return ErrorCodes.ERR_NOT_A_CITY
+        if unit.attacked or unit.moved:
+            return ErrorCodes.ERR_UNIT_HAS_ALREADY_MOVED_OR_ATTACKED
+        if city.owner == unit.owner:
+            return ErrorCodes.ERR_DEFAULT
+        if city.owner >= 0:
+            Player.players[city.owner].cities.remove(city)
+        else:
+            city.init_domain()
+        city.owner = self.id
+        for pos in city.domain:
+            World.World.object.get(pos).owner = city.owner
+        self.cities.append(city)
+        if unit.attached_city is not None and unit.attached_city.owner == self.id:
+            unit.attached_city.fullness -= 1
+        unit.attached_city = city
+        city.fullness = 1
+        unit.attacked = True
+        unit.moved = True
+        return ErrorCodes.SUCCESS
+    
+    def act(self, unit: "Unit.Unit", action_id: int):
+        if unit.owner != self.id:
+            return ErrorCodes.ERR_NOT_YOUR_UNIT
+        unit.act(action_id)
+        return ErrorCodes.SUCCESS
 
     def update_vision(self):
         self.vision = [[0 for _ in range(World.World.object.size.x)] for _ in range(World.World.object.size.y)]
@@ -224,6 +230,12 @@ class Player:
             unit.end_turn()
         return ErrorCodes.SUCCESS
     
+    def calc_is_dead(self):
+        self.is_dead = False
+        if len(self.units) + len(self.cities) == 0:
+            self.is_dead = True
+        return self.is_dead
+
     @staticmethod
     def by_id(id: int) -> "Player":
         for player in Player.players:

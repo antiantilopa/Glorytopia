@@ -3,6 +3,8 @@ from shared.util.position import Pos
 from shared.asset_types import TileType
 from .random_map import pangea
 
+from . import city
+from . import unit
 from .tile import Tile
 
 def get_by_height(number: int):
@@ -17,14 +19,14 @@ def get_by_height(number: int):
     
 class World:
     world: list[list[Tile]]
-    cities_mask: list[list[bool]]
-    unit_mask: list[list[bool]]
+    city_mask: list[list["city.City|None"]]
+    unit_mask: list[list["unit.Unit|None"]]
     size: Pos
     object: "World|None" = None
 
     def __init__(self, width: int, height: int, empty: bool = False) -> None:
-        self.cities_mask = [[0] * width for _ in range(height)]
-        self.unit_mask = [[0] * width for _ in range(height)]
+        self.city_mask = [[None] * width for _ in range(height)]
+        self.unit_mask = [[None] * width for _ in range(height)]
         self.size = Pos(width, height)
         if empty:
             self.world = [[None for i in range(width)] for j in range(height)]
@@ -43,7 +45,25 @@ class World:
         return self.world[index]
     
     def get(self, pos: Pos) -> Tile:
+        if not isinstance(pos, Pos):
+            pos = Pos(pos)
+        if pos.y < 0 or pos.y >= self.size.y or pos.x < 0 or pos.x >= self.size.x:
+            return None
         return self.world[pos.inty()][pos.intx()]
+    
+    def get_unit(self, pos: Pos) -> "unit.Unit":
+        if not isinstance(pos, Pos):
+            pos = Pos(pos)
+        if pos.y < 0 or pos.y >= self.size.y or pos.x < 0 or pos.x >= self.size.x:
+            return None
+        return self.unit_mask[pos.inty()][pos.intx()]
+    
+    def get_city(self, pos: Pos) -> "city.City":
+        if not isinstance(pos, Pos):
+            pos = Pos(pos)
+        if pos.y < 0 or pos.y >= self.size.y or pos.x < 0 or pos.x >= self.size.x:
+            return None
+        return self.city_mask[pos.inty()][pos.intx()]
 
     def is_in(self, pos: Pos) -> bool:
         return pos.is_in_box(Pos(0, 0), self.size - Pos(1, 1))

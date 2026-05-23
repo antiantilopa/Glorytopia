@@ -42,9 +42,9 @@ class Client:
     
     def send_message(self, tp: MessageType, route: str, data: tuple|Serializable):
         if isinstance(data, Serializable):
-            data = data.serialize()
+            data = data.serialize(serializable_by_id=1)
         clientLogger.debug("%s -> Route: %s", tp.name, route)
-        self.serializer.encode(self.sock, (tp.value, route, data))
+        self.serializer.encode(self.sock, (tp.value, route, data), True)
 
     def await_message(self):
         try:

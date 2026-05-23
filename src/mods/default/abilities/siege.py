@@ -9,11 +9,9 @@ class Siege(Ability):
     
     @staticmethod
     def additional_attack(unit: Unit, other: Unit) -> int:
-        if World.object.cities_mask[other.pos.y][other.pos.y] == 0:
+        if World.object.get_city(other.pos) is None:
             return 0
-        for city in City.cities:
-            if city.pos == other.pos:
-                if city.owner == unit.owner:
-                    return 0
-                break
+        city = World.object.get_city(other.pos)
+        if city.owner == unit.owner:
+            return 0
         return 2

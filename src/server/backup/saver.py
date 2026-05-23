@@ -43,7 +43,7 @@ class Saver:
         saves_folder = BackupSettings.saves_path / f"{BackupSettings.save_folder_name}"
         saves = os.listdir(saves_folder)
         if len(saves) > BackupSettings.backup_number.value:
-            saves.sort()
+            saves.sort(key = lambda x: int(x.removeprefix("turn").removesuffix(".save").split("-")[0] * 256 + x.removeprefix("turn").removesuffix(".save").split("-")[1]))
             num_to_delete = len(saves) - BackupSettings.backup_number.value
             for i in range(num_to_delete):
                 os.remove(saves_folder / saves[i])

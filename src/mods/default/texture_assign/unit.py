@@ -8,7 +8,7 @@ from engine_antiantilopa import GameObject
 from client.widgets.fastgameobjectcreator import *
 
 @TextureAssignSystem.register_assign_default(UnitData)
-def assign_unit_texture(unit: UnitData, game_object: GameObject, flags: set[str] = set()):
+def assign_unit_texture(unit: UnitData, game_object: GameObject, flags: set[str] = set(), args: None = None):
     sprite = create_game_object(
         parent=game_object,
         tags="texture:unit:sprite",
@@ -40,7 +40,7 @@ def assign_unit_texture(unit: UnitData, game_object: GameObject, flags: set[str]
     sprite.need_blit_set_true()
 
 @TextureAssignSystem.register_update_default(UnitData)
-def update_unit_texture(unit: UnitData, game_object: GameObject, flags: set[str] = set()):
+def update_unit_texture(unit: UnitData, game_object: GameObject, flags: set[str] = set(), args: None = None):
     for child in game_object.childs:
         if "texture:unit:health" in child.tags:
             child.childs[0].destroy()

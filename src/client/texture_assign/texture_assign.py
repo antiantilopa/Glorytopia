@@ -1,9 +1,4 @@
-
-
-
-
-
-from typing import Callable
+from typing import Any, Callable
 from netio.util.generic_type import GenericType
 from shared.generic_object import GenericObject
 from engine_antiantilopa import GameObject
@@ -19,36 +14,45 @@ class TextureAssignSystem:
     _update_default: dict[type, Callable[[GenericObject|GenericType, GameObject, set[str]], None]] = {}
 
     @staticmethod
-    def assign_texture(obj: GenericObject|GenericType, game_object: GameObject, flags: set[str] = set()):
+    def assign_texture(obj: GenericObject|GenericType, game_object: GameObject, flags: set[str] = set(), args: Any = None, as_cls: type[GenericObject|GenericType] = None):
         for checker, assigner in TextureAssignSystem._assign_checker.items():
             if checker(obj):
-                if assigner(obj, game_object, flags):
+                if assigner(obj, game_object, flags, args):
                     return
         if isinstance(obj, GenericType) and obj.name in TextureAssignSystem._assign_spec:
-            return TextureAssignSystem._assign_spec[obj.name](obj, game_object, flags)
-        if type(obj) in TextureAssignSystem._assign_default:
-            return TextureAssignSystem._assign_default[type(obj)](obj, game_object, flags)
+            return TextureAssignSystem._assign_spec[obj.name](obj, game_object, flags, args)
 
-        for t in TextureAssignSystem._assign_default:
-            if isinstance(obj, t):
-                return TextureAssignSystem._assign_default[t](obj, game_object, flags)
+        if as_cls is None:
+            if type(obj) in TextureAssignSystem._assign_default:
+                return TextureAssignSystem._assign_default[type(obj)](obj, game_object, flags, args)
+            for t in TextureAssignSystem._assign_default:
+                if isinstance(obj, t):
+                    return TextureAssignSystem._assign_default[t](obj, game_object, flags, args)
+        else:
+            for t in TextureAssignSystem._assign_default:
+                if issubclass(as_cls, t):
+                    return TextureAssignSystem._assign_default[t](obj, game_object, flags, args)
         
         raise Exception(f"Cannot assign texture for object {obj} of type {type(obj)}")
     
     @staticmethod
-    def update_texture(obj: GenericObject|GenericType, game_object: GameObject, flags: set[str] = set()):
+    def update_texture(obj: GenericObject|GenericType, game_object: GameObject, flags: set[str] = set(), args: Any = None, as_cls: type[GenericObject|GenericType] = None):
         for checker, assigner in TextureAssignSystem._update_checker.items():
             if checker(obj):
-                if assigner(obj, game_object, flags):
+                if assigner(obj, game_object, flags, args):
                     return
         if isinstance(obj, GenericType) and obj.name in TextureAssignSystem._update_spec:
-            return TextureAssignSystem._update_spec[obj.name](obj, game_object, flags)
-        if type(obj) in TextureAssignSystem._update_default:
-            return TextureAssignSystem._update_default[type(obj)](obj, game_object, flags)
-
-        for t in TextureAssignSystem._update_default:
-            if isinstance(obj, t):
-                return TextureAssignSystem._update_default[t](obj, game_object, flags)
+            return TextureAssignSystem._update_spec[obj.name](obj, game_object, flags, args)
+        if as_cls is None:
+            if type(obj) in TextureAssignSystem._update_default:
+                return TextureAssignSystem._update_default[type(obj)](obj, game_object, flags, args)
+            for t in TextureAssignSystem._update_default:
+                if isinstance(obj, t):
+                    return TextureAssignSystem._update_default[t](obj, game_object, flags, args)
+        else:
+            for t in TextureAssignSystem._update_default:
+                if issubclass(as_cls, t):
+                    return TextureAssignSystem._update_default[t](obj, game_object, flags, args)
         
         raise Exception(f"Cannot update texture for object {obj} of type {type(obj)}")
 

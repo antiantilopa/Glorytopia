@@ -59,12 +59,12 @@ class Game:
         self.players[self.now_playing_player_index].start_turn()
 
     def update_world_masks(self):
-        self.world.cities_mask = [[0] * self.world.size.x for _ in range(self.world.size.y)]
-        self.world.unit_mask = [[0] * self.world.size.x for _ in range(self.world.size.y)]
+        self.world.city_mask = [[None] * self.world.size.x for _ in range(self.world.size.y)]
+        self.world.unit_mask = [[None] * self.world.size.x for _ in range(self.world.size.y)]
         for city in City.cities:
-            self.world.cities_mask[city.pos.y][city.pos.x] = 1
+            self.world.city_mask[city.pos.y][city.pos.x] = city
         for unit in Unit.units:
-            self.world.unit_mask[unit.pos.y][unit.pos.x] = 1
+            self.world.unit_mask[unit.pos.y][unit.pos.x] = unit
 
     def place_random_city(self):
         # another algorithm would be better. For example, we could:
@@ -80,8 +80,8 @@ class Game:
                         break
                 if is_far_enough:
                     World.object.get(Pos(x, y)).type = TileType.get("plain")
-                    City(Pos(x, y), -1)
-                    World.object.cities_mask[y][x] = 1
+                    new_city = City(Pos(x, y), -1)
+                    World.object.city_mask[y][x] = new_city
                     return
 
     def place_resources(self):
@@ -90,7 +90,7 @@ class Game:
                 for i in range(2 * distance + 1):
                     for j in range(2 * distance + 1):
                         if World.object.is_in(Pos(i - distance, j - distance) + pos):
-                            if World.object.cities_mask[pos.y + j - distance][pos.x + i - distance] == 1:
+                            if World.object.city_mask[pos.y + j - distance][pos.x + i - distance] is not None:
                                 return distance
             return -1
 
@@ -127,7 +127,7 @@ class Game:
             place.y = round(place.y)
             World.object.get(place).type = TileType.get("plain")
             city = City(place, player.id)
-            World.object.cities_mask[place.y][place.x] = 1
+            World.object.city_mask[place.y][place.x] = city
             player.cities.append(city)
             city.init_domain()
             city.is_capital = True
@@ -142,30 +142,27 @@ class Game:
                 i -= 1
             i += 1
     
-    def next_player_turn(self):
+    def end_turn(self):
         for tiles in self.world:
             for tile in tiles:
                 for tile_mod in tile.modificators:
                     tile_mod.tmtype.on_end_turn(tile_mod.tmtype, tile, self.now_playing_player_index)
         self.players[self.now_playing_player_index].end_turn()
 
+    def set_next_player_turn(self):
         prev = self.now_playing_player_index
+
         self.now_playing_player_index += 1
         self.now_playing_player_index %= len(self.players)
-        while len(self.players[self.now_playing_player_index].cities) + len(self.players[self.now_playing_player_index].units) == 0:
-            if self.players[self.now_playing_player_index].is_dead == True:
-                self.now_playing_player_index += 1
-                self.now_playing_player_index %= len(self.players)
-            else:
-                for i in range((World.object.size.x)):
-                    for j in range((World.object.size.y)):
-                        self.players[self.now_playing_player_index].vision[j][i] = 1
-                self.now_playing_player_index += 1
-                self.now_playing_player_index %= len(self.players)
+
+        while self.players[self.now_playing_player_index].calc_is_dead():
+            self.now_playing_player_index += 1
+            self.now_playing_player_index %= len(self.players)
 
         if prev >= self.now_playing_player_index:
             self.turn_number += 1
 
+    def start_turn(self):
         for tiles in self.world:
             for tile in tiles:
                 for tile_mod in tile.modificators:

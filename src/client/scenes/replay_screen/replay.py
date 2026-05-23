@@ -1,5 +1,6 @@
 from pathlib import Path
-
+from client.network.client import GamePlayer
+from client.texture_assign.texture_assign import TextureAssignSystem
 from netio.serialization.serializer import BaseReader, Serializable, SpecialTypes
 from shared.asset_types import TechNode
 from shared.city import CityData
@@ -12,6 +13,7 @@ from shared.util.position import Pos
 from engine_antiantilopa import Vector2d
 
 from . import game_classes
+from . import tech_tree
 from . import ui
 
 b = BaseReader()
@@ -89,9 +91,9 @@ class Replay:
 
     world: list[list[TileData]] = []
 
-    tiles: list[game_classes.Tile] = []
-    units: list[game_classes.Unit] = []
-    cities: list[game_classes.City] = []
+    tiles: list["game_classes.Tile_R"] = []
+    units: list["game_classes.Unit_R"] = []
+    cities: list["game_classes.City_R"] = []
     players: list[Player] = []
     player_datas: list[PlayerData_] = []
 
@@ -103,16 +105,16 @@ class Replay:
     def init(mods: list[ModConfig], 
             game_data: GameData,
             player_datas: list[PlayerData_], 
-            tiles: list[TileData], 
-            units: list[UnitData], 
-            cities: list[CityData], 
+            tiles: list["game_classes.Tile_R"], 
+            units: list["game_classes.Unit_R"], 
+            cities: list["game_classes.City_R"], 
             players: list[Player]):
         # TODO check mods
 
         Replay.game_data = game_data
-        Replay.tiles = [game_classes.Tile(tile) for tile in tiles]
-        Replay.units = [game_classes.Unit(unit) for unit in units]
-        Replay.cities = [game_classes.City(city) for city in cities]
+        Replay.tiles = tiles
+        Replay.units = units
+        Replay.cities = cities
         Replay.players = players
         Replay.player_datas = player_datas
         Replay.world = [[0] * game_data.world_size.x for _ in range(game_data.world_size.y)]
@@ -155,24 +157,24 @@ class Replay:
             ui.update_now_playing_label(Replay.get_player_data_by_id(Replay.game_data.now_playing_player_id).nickname)
         for tile_data in tile_changes:
             tile = Replay.get_tile_by_id(tile_data[1])
-            tile.tdata.deserialize_updates(tile_data)
+            tile.deserialize_updates(tile_data)
             tile.on_update()
         for unit_data in unit_changes:
             unit = Replay.get_unit(unit_data[1])
             if unit is None:
-                new_unit = game_classes.Unit(UnitData.deserialize(unit_data, 1))
+                new_unit = game_classes.Unit_R.deserialize(unit_data, 1)
                 new_unit.on_create()
                 Replay.units.append(new_unit)
             else:
-                unit.udata.deserialize_updates(unit_data)
-                if unit.udata.health <= 0:
+                unit.deserialize_updates(unit_data)
+                if unit.health <= 0:
                     unit.on_destroy()
                     Replay.units.remove(unit)
                 else:
                     unit.on_update()
         for city_data in city_changes:
             city = Replay.get_city(city_data[1])
-            city.cdata.deserialize_updates(city_data)
+            city.deserialize_updates(city_data)
             city.on_update()
         for player in player_changes:
             p = Replay.get_player_by_id(player[0])
@@ -181,36 +183,37 @@ class Replay:
             p.vision = player[3] # TODO!
             ui.update_money_label(Replay.get_player_by_id(Replay.watch_as).money)
             game_classes.update_fog_of_war()
+        tech_tree.update_tech_tree()
 
     @staticmethod
     def get_tile_data(pos: Pos) -> TileData | None:
         return Replay.world[pos.inty()][pos.intx()]
     
     @staticmethod
-    def get_tile(pos: Pos) -> "game_classes.Tile":
+    def get_tile(pos: Pos) -> "game_classes.Tile_R":
         for tile in Replay.tiles:
-            if tile.tdata.pos == pos:
+            if tile.pos == pos:
                 return tile
         return None
     
     @staticmethod
-    def get_tile_by_id(id: int) -> "game_classes.Tile":
+    def get_tile_by_id(id: int) -> "game_classes.Tile_R":
         for tile in Replay.tiles:
-            if tile.tdata._id == id:
+            if tile._id == id:
                 return tile
         return None
     
     @staticmethod
-    def get_city(id: int) -> "game_classes.City":
+    def get_city(id: int) -> "game_classes.City_R":
         for city in Replay.cities:
-            if city.cdata._id == id:
+            if city._id == id:
                 return city
         return None
     
     @staticmethod
-    def get_unit(id: int) -> "game_classes.Unit|None":
+    def get_unit(id: int) -> "game_classes.Unit_R|None":
         for unit in Replay.units:
-            if unit.udata._id == id:
+            if unit._id == id:
                 return unit
         return None
 
@@ -244,12 +247,13 @@ def load(path: Path):
 
     mods = Serializable.parse(initial_data[0], list[ModConfig], 1)
     game_data = GameData(*Serializable.parse(initial_data[1], tuple[Pos, int, int], 1))
-    player_datas = Serializable.parse(initial_data[2], list[PlayerData_], 1)
-    tiles = Serializable.parse(initial_data[3], list[TileData], 1)
-    units = Serializable.parse(initial_data[4], list[UnitData], 1) 
-    cities = Serializable.parse(initial_data[5], list[CityData], 1)
+    player_datas = Serializable.parse(initial_data[2], list[GamePlayer], 1)
+    tiles = Serializable.parse(initial_data[3], list[game_classes.Tile_R], 1)
+    units = Serializable.parse(initial_data[4], list[game_classes.Unit_R], 1) 
+    cities = Serializable.parse(initial_data[5], list[game_classes.City_R], 1)
     players = [Player(*Serializable.parse(i, tuple[int, int, list[TechNode], list[int]], 1)) for i in initial_data[6]]
 
+    GamePlayer.joined_players = player_datas
     Replay.init(mods, game_data, player_datas, tiles, units, cities, players)
     Replay.frames_data = frames
 

@@ -14,7 +14,7 @@ class City(CityData):
     def __init__(self, pos: Pos, owner: int):
         CityData.__init__(self, pos, owner, random_name(), 1, 0, 0, False, False, False, [pos])
         City.cities.append(self)
-        World.object.cities_mask[self.pos.inty()][self.pos.intx()] = 1
+        World.object.city_mask[self.pos.inty()][self.pos.intx()] = self
 
     def init_domain(self):
         for dx in (-1, 0, 1):
@@ -44,10 +44,10 @@ class City(CityData):
 
     def create_unit(self, utype: UnitType):
         if self.fullness < self.level + 1:
-            if World.object.unit_mask[self.pos.inty()][self.pos.intx()]:
+            if World.object.get_unit(self.pos) is not None:
                 return None
-            World.object.unit_mask[self.pos.inty()][self.pos.intx()] = True
             unit = Unit.Unit(utype, self.owner, self.pos, self)
+            World.object.unit_mask[self.pos.inty()][self.pos.intx()] = unit
             self.fullness += 1
             return unit
         return None
@@ -82,13 +82,15 @@ class City(CityData):
     def destroy(self):
         for pos in self.domain:
             World.object.get(pos).owner = -1
-        World.object.cities_mask[self.pos.inty()][self.pos.intx()] = 0
+        World.object.city_mask[self.pos.inty()][self.pos.intx()] = None
         City.cities.remove(self)
         Player.Player.players[self.owner].cities.remove(self)
         del self
 
     def validate(self, player_data: PlayerData_):
         if not player_data.joined:
-            return
+            return False
         player = Player.Player.by_id(player_data.id)
+        if player.is_dead:
+            return True
         return player.vision[self.pos.y][self.pos.x]

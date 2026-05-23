@@ -21,6 +21,7 @@
         },
         "buildings": {
             "farm": "farm.png",
+            "water_farm": "water_farm.png",
             "mine": "mine.png",
             "hut": "hut.png",
             "sawmill": "sawmill.png",
@@ -72,8 +73,8 @@
             "dagger": "dagger.png",
             "raft": "raft.png",
             "boat": "boat.png",
-            "rammer": "rammer.png",
-            "bombarda": "bombarda.png",
+            "galley": "galley.png",
+            "bomber": "bomber.png",
             "ballista": "ballista.png",
             "giant": "giant.png"
         },

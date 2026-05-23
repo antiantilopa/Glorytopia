@@ -71,7 +71,7 @@ def create_game_object(
         parent = GameObject.root,
         tags: list[str] = [],
         at: Vector2d|tuple[int, int]|Position|InGrid = Vector2d(0, 0),
-        size: Vector2d|tuple[int, int] = Vector2d(0, 0),
+        size: Vector2d|tuple[int, int] = None,
         color: tuple[int, int, int]|None = None,
         shape: Shape|None = None,
         width: int|None = None,
@@ -79,23 +79,31 @@ def create_game_object(
         margin: Vector2d = Vector2d(0, 0),
         layer: int = 1,
         surface_margin: Vector2d = Vector2d(0, 0),
+        size_margin: Vector2d = Vector2d(0, 0),
         crop: bool = True) -> GameObject:
     t = GameObject(tags)
     t.disable()
     parent.add_child(t)
     if not isinstance(size, Vector2d):
-        size = Vector2d.from_tuple(size)
+        if size is not None:
+            size = Vector2d.from_tuple(size)
     if color is not None:
         t.add_component(ColorComponent(color))
     if isinstance(at, Position):
-        pos = Position.get_vector_pos(at, size, parent.get_component(SurfaceComponent).size - 2 * surface_margin)
+        if size is None:
+            raise ValueError("size have to be specified")
+        pos = Position.get_vector_pos(at, size - 2 * size_margin, parent.get_component(SurfaceComponent).size - 2 * surface_margin)
     elif isinstance(at, Vector2d):
         pos = at
     elif isinstance(at, InGrid):
         pos = at.get_pos(t, surface_margin)
-        size = at.get_size(t, surface_margin)
+        if size is None:
+            size = at.get_size(t, surface_margin)
     else:
         pos = Vector2d.from_tuple(at)
+    if size is None:
+        raise ValueError("size have to be specified")
+    size = size - 2 * size_margin
     if shape is not None:
         if color is None: need_draw = False
         else: need_draw = True

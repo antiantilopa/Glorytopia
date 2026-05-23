@@ -3,30 +3,30 @@
     [
         {
             "name": "raw0",
-            "wave": "sqr",
+            "wave": "bia",
             "volume": 0.4
         },
         {
             "name": "raw1",
-            "wave": "tri",
+            "wave": "pia",
             "volume": 0.4
         },
         {
             "name": "raw2",
-            "wave": "sin",
+            "wave": "pia",
+            "volume": 0.4
+        },
+        {
+            "name": "raw3",
+            "wave": "bia",
             "volume": 0.4
         },
         {
             "name": "raw3",
             "wave": "bom",
             "volume": 0.4
-        },
-        {
-            "name": "raw3",
-            "wave": "sin",
-            "volume": 0.7
         }
     ],
     "spn": 0.1,
-    "name": "horse archers"
+    "name": "knighty_knight"
 }

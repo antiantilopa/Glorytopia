@@ -73,7 +73,11 @@ class Tile(TileData):
         selector.selector_info_update()
 
     def client_on_destroy(self):
-        pass
+        if self.owner == GameClient.object.me.id:
+            self.owner = -1
+        self.obj.destroy()
+        self.obj = _create_tile_obj(self)
+        selector.selector_info_update()
 
 class City(CityData):
     obj: GameObject
@@ -106,7 +110,10 @@ class City(CityData):
         selector.selector_info_update()
 
     def client_on_destroy(self):
-        pass
+        if self.owner == GameClient.object.me.id:
+            self.owner = -1
+        TextureAssignSystem.update_texture(self, self.obj)
+        selector.selector_info_update()
 
 class Unit(UnitData):
     obj: GameObject
@@ -131,8 +138,19 @@ class Unit(UnitData):
     def client_on_destroy(self):
         if self.owner == GameClient.object.me.id:
             SoundManager.new_music("unit_kill", 0)
+        if self.health <= 0:
+            raise Exception("DEBUG: wow!")
         _remove_unit_obj(self)
         Unit.units.remove(self)
+
+class TechNodeObj:
+    technodeobjs: dict[str, GameObject] = {}
+
+    @staticmethod
+    def get_obj_by_technode(tech: TechNode) -> GameObject:
+        if tech.name in TechNodeObj.technodeobjs:
+            return TechNodeObj.technodeobjs[tech.name]
+        raise KeyError(f"Tech {tech.name} not found in TechNodeObj technodeobjs.")
 
 def _create_tile_obj(tile: Tile) -> GameObject:
     world = GameObject.get_game_object_by_tags("game_screen:world_section:world")
@@ -148,7 +166,7 @@ def _create_tile_obj(tile: Tile) -> GameObject:
     new_tile.add_component(components.TileComponent(tile, vector_pos))
     new_tile.add_component(SelectComponent())
 
-    TextureAssignSystem.assign_texture(tile, new_tile)
+    TextureAssignSystem.assign_texture(tile, new_tile, args=(GameRules.get_tile, GameRules.world_size))
 
     new_tile.need_draw = True
     new_tile.need_blit_set_true()
@@ -194,7 +212,7 @@ def _create_city_obj(city: City) -> GameObject:
     )
     city_obj.add_component(SelectComponent())
     city_obj.add_component(components.CityComponent(city, city.pos))
-    TextureAssignSystem.assign_texture(city, city_obj)
+    TextureAssignSystem.assign_texture(city, city_obj, args=(GameRules.get_tile, GameRules.world_size))
     return city_obj
 
 def __create_fog(pos: Pos):

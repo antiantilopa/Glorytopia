@@ -4,7 +4,7 @@ import random
 
 class BackgroundMusic:
     current_music_ind: int = 0
-    track_list: list[str] = ["track1", "track2", "track3", "track4"]
+    track_list: list[str] = ["track1.1", "track2.1", "track3.1", "track4.1", "track1.2", "track2.2", "track3.2", "track4.2"]
 
     @staticmethod
     def start():

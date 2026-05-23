@@ -37,16 +37,16 @@ class SpecialTypes(enum.Enum):
 class BaseWriter:
     writer_lock = threading.Lock()
 
-    def encode(self, conn: socket.socket, message: tuple[int, str, tuple]):
+    def encode(self, conn: socket.socket, message: tuple[int, str, tuple], serializable_by_id: bool = False):
         tp, route, data = message
         if isinstance(data, Serializable):
-            data = data.serialize()
+            data = data.serialize(serializable_by_id=serializable_by_id)
         elif not (isinstance(data, tuple) or isinstance(data, list)):
             data = (data, ) 
         serialized_message = bytearray()
         serialized_message.extend(self._int_to_bytes(tp, 2))
         serialized_message.extend(self._string_to_bytes(route))
-        serialized_message.extend(self._object_to_bytes(data))
+        serialized_message.extend(self._object_to_bytes(data, serializable_by_id))
         with BaseWriter.writer_lock:
             conn.sendall(bytes(serialized_message))
 
@@ -82,14 +82,14 @@ class BaseWriter:
 
         return ser_exp + bytes(data)
 
-    def _object_to_bytes(self, obj: tuple|list) -> bytes:
+    def _object_to_bytes(self, obj: tuple|list, serializable_by_id: bool = False) -> bytes:
         data = bytearray()
         for field in obj:
-            data.extend(self._any_to_bytes(field))
+            data.extend(self._any_to_bytes(field, serializable_by_id))
         end = bytes([SerializationTypes.END_OF_OBJECT.value])
         return bytes(data) + end
 
-    def _any_to_bytes(self, obj: "int|float|str|bool|None|tuple|list|Serializable") -> bytes:
+    def _any_to_bytes(self, obj: "int|float|str|bool|None|tuple|list|Serializable", serializable_by_id: bool = False) -> bytes:
         start = bytes([0])
         data = bytes()
         if isinstance(obj, bool):
@@ -116,13 +116,13 @@ class BaseWriter:
                 data = self._int_to_bytes(obj, 4)
         elif isinstance(obj, tuple):
             start = (bytes([SerializationTypes.OBJECT.value]))
-            data = self._object_to_bytes(obj)
+            data = self._object_to_bytes(obj, serializable_by_id)
         elif isinstance(obj, list):
             start = (bytes([SerializationTypes.LIST.value]))
-            data = self._object_to_bytes(obj)
+            data = self._object_to_bytes(obj, serializable_by_id)
         elif isinstance(obj, Serializable):
             start = (bytes([SerializationTypes.OBJECT.value]))
-            data = self._object_to_bytes(obj.serialize())
+            data = self._object_to_bytes(obj.serialize(serializable_by_id=serializable_by_id), serializable_by_id)
         elif obj == None:
             start = (bytes([SerializationTypes.NONE.value]))
         elif obj == SpecialTypes.NOTHING:
@@ -342,7 +342,7 @@ class Serializable:
         raise ValueError("No class with id: ", tid)
 
     @staticmethod 
-    def parse(data, cls: type[T], ignore_class_id: bool = False, init_for_serializables: bool = False) -> T:
+    def parse(data, cls: type[T], ignore_class_id: bool = False, init_for_serializables: bool = False, handle_serializables: typing.Callable[[tuple, type[T], bool, bool], "Serializable"] = None) -> T:
         if cls is None:
             return data
         
@@ -383,12 +383,15 @@ class Serializable:
             if cls._primitive:
                 return cls(*data)
             else:
-                return cls.deserialize(data, ignore_class_id, init_for_serializables)
+                if handle_serializables is None:
+                    return cls.deserialize(data, ignore_class_id, init_for_serializables)
+                else:
+                    return handle_serializables(data, cls, ignore_class_id, init_for_serializables)
 
         if issubclass(cls, list) and generic is not None:
             tp = typing.get_args(generic)[0]
 
-            return ObservableList([Serializable.parse(i, tp, ignore_class_id, init_for_serializables) for i in data])
+            return ObservableList([Serializable.parse(i, tp, ignore_class_id, init_for_serializables, handle_serializables) for i in data])
 
         if issubclass(cls, list) and generic is None:
 
@@ -399,7 +402,7 @@ class Serializable:
 
             assert len(data) == len(tps), f"Invalid data {data} length for {generic}"
 
-            return tuple(Serializable.parse(data[i], tps[i], ignore_class_id, init_for_serializables) for i in range(len(tps)))
+            return tuple(Serializable.parse(data[i], tps[i], ignore_class_id, init_for_serializables, handle_serializables) for i in range(len(tps)))
 
         raise ValueError(f"Wrong type was passed: got {type(data)} of {data}, expected {cls if generic is None else generic}")
         
@@ -458,13 +461,15 @@ class Serializable:
 
         self._clear_updates()
 
-    def serialize(self, as_cls: type["Serializable"] = None) -> tuple:
+    def serialize(self, as_cls: type["Serializable"] = None, serializable_by_id: bool = False) -> tuple:
         if self._primitive:
             return self.__tuple__()
         if self._serialize_by_id:
             if as_cls is not None:
                 return (get_class_id(as_cls), self.id)
             return (get_class_id(type(self)), self.id)
+        if serializable_by_id:
+            return [self._class_id, self._id]
         data = []
         for key, cls in get_all_annotations(self).items():
             if _is_annotated(cls):
@@ -635,7 +640,16 @@ def _resolve(value, base: type):
     if isinstance(value, typing.ForwardRef):
         value = value._evaluate(sys.modules[base.__module__].__dict__, {}, recursive_guard=set())
     if isinstance(value, str):
-        value = eval(value, sys.modules[base.__module__].__dict__, {})
+        value_base = value.split(".")[0]
+        for another_base in base.__mro__:
+            if value_base in sys.modules[another_base.__module__].__dict__:
+                value = eval(value, sys.modules[another_base.__module__].__dict__, {})
+                break
+            try:
+                value = eval(value, sys.modules[base.__module__].__dict__, {})
+                break
+            except:
+                pass
     if len(typing.get_args(value)) > 0:
         args = typing.get_args(value)
         origin = typing.get_origin(value)
@@ -662,7 +676,7 @@ def get_class_id(cls):
     name = cls.__qualname__
     return _hash(name, int(1e9 + 7))
     
-def _hash(s: str, mod: int) -> int:
+def _hash(s: str, mod: int = int(1e9 + 7)) -> int:
     hash_sum = 0
     for i, c in enumerate(s):
         hash_sum += pow(ord(c), i, mod)

@@ -2,6 +2,7 @@ from typing import Callable
 from engine_antiantilopa import *
 from client.network.client import GameClient, GamePlayer
 from client.texture_assign.texture_assign import TextureAssignSystem
+from client.actions.action import ActionSystem
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.select import SelectComponent
 from client.globals.window_size import WindowSize
@@ -26,7 +27,14 @@ def select(coords: Pos):
             else:
                 unit.obj.get_component(SelectComponent).select()
                 return
-            
+    for city in game_classes.City.cities:
+        if city.pos == coords:
+            if city.obj.get_component(SelectComponent).is_selected:
+                city.obj.get_component(SelectComponent).deselect()
+                break
+            else:
+                city.obj.get_component(SelectComponent).select()
+                return
     for tile in game_classes.Tile.tiles:
         if tile.pos == coords:
             if tile.obj.get_component(SelectComponent).is_selected:
@@ -60,6 +68,7 @@ def selector_info_update():
     # default
     buttons = []
     text = ""
+    modificators = ""
     
     if SelectComponent.selected.contains_component(components.TileComponent):
         text, buttons, modificators = _selected_tile()
@@ -67,6 +76,8 @@ def selector_info_update():
         text, buttons, modificators = _selected_unit()
     elif SelectComponent.selected.contains_component(components.TechComponent):
         text, buttons, modificators = _selected_tech()
+    elif SelectComponent.selected.contains_component(components.CityComponent):
+        text, buttons, modificators = _selected_city()
         
     create_selector_objects(selector_info_section, selector_mods_section, text, buttons, modificators)
 
@@ -85,7 +96,7 @@ def create_selector_objects(selector_info_section: GameObject, selector_mods_sec
     for i in range(len(buttons)):
         button_sec = create_game_object(selector_info_buttons_section, at=InGrid((1, 5), (0, i), (1, 1)), color=ColorComponent.WHITE, shape=Shape.RECTBORDER, width=2, surface_margin=Vector2d(4, 4), tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_section")
         button = create_game_object(button_sec, at=InGrid((10, 1), (0, 0), (1, 1)), color=ColorComponent.GREEN, shape=Shape.RECT, tags="game_screen:info_section:selector_section:selector_info_section:buttons_section:button_section:button")
-        button.add_component(OnClickComponent((1, 0, 0), 0, 1, buttons[i][1], (buttons[i][2] if len(buttons[i]) > 2 else ())))
+        button.add_component(OnClickComponent((1, 0, 0), 0, 1, lambda g, k, p, *args: buttons[args[0]][1](*(args[1:])), i, buttons[i][2] if len(buttons[i]) > 2 else ()))
         create_label(
             parent=button_sec, 
             text=buttons[i][0], 
@@ -110,80 +121,78 @@ def _selected_tile():
     selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
     tile_data = SelectComponent.selected.get_component(components.TileComponent).tile_data
 
-    is_there_city = False
-    city_data = None
-
-    buttons = []
-    text = ""
+    buttons = ActionSystem.assign_action(tile_data, GameClient.object.me)
     modificators = ""
 
-    TextureAssignSystem.assign_texture(tile_data, selector_image_section, flags=["selector"])
-
-    # Presume City tile has no resources and no buildings (!)
-    if (tile_data.resource is None) and (tile_data.building is None):
-        for city in game_classes.City.cities:
-            if city.pos == tile_data.pos:
-                TextureAssignSystem.assign_texture(city, selector_image_section, flags=["selector"])
-                is_there_city = True
-                city_data = city
-                break
+    TextureAssignSystem.assign_texture(tile_data, selector_image_section, flags=["selector"], args=(game_classes.GameRules.get_tile, game_classes.GameRules.world_size))
     
     if len(tile_data.modificators) > 0:
         modificators = "modificators:\n"
         for mod in tile_data.modificators:
             modificators += f"{mod.tmtype.name}<{', '.join([str(a) for a in mod.args])}>\n"
 
-    if not is_there_city:
-        text = "\n".join((
-            f"type: {tile_data.type.name}", 
-            f"owner: {GamePlayer.by_id(tile_data.owner).nickname if tile_data.owner != -1 else None}", 
-            f"resorce: {tile_data.resource.name if tile_data.resource is not None else None}", 
-            f"building: {tile_data.building.name if tile_data.building is not None else None}",
-            f"pos: {tile_data.pos}", 
-        ))
-        if tile_data.owner == GameClient.object.me.id:
-            if tile_data.resource is not None:
-                for tech in GameClient.object.me.techs:
-                    if tile_data.resource in tech.harvestables:
-                        buttons.append(("harvest:2", lambda*_: ui.click_harvest(tile_data.pos)))
-            if tile_data.building is None:
-                for tech in GameClient.object.me.techs:
-                    for btype in tech.buildings:
-                        if (tile_data.type in btype.ttypes) and ((btype.required_resource is None) or (btype.required_resource == tile_data.resource)):
-                            buttons.append((f"{btype.name}:{btype.cost}", lambda g, k, p, *args: ui.click_build(tile_data.pos, args[0]), btype.id))
-                for tech in GameClient.object.me.techs:
-                    for terraform in tech.terraforms:
-                        if (tile_data.type == terraform.from_ttype) and ((terraform.from_resource is None) or (terraform.from_resource == tile_data.resource)):
-                            buttons.append((f"{terraform.name}:{terraform.cost}", lambda g, k, p, *args: ui.click_terraform(tile_data.pos, args[0]), terraform.id))
-    else:
-        text = "\n".join((
-            f"city: {city_data.name}",
-            f"owner: {GamePlayer.by_id(city_data.owner).nickname if city_data.owner != -1 else None}", 
-            f"level: {city_data.level}",
-            f"population: {city_data.population}/{city_data.level + 1}",
-            f"fullness: {city_data.fullness}/{city_data.level + 1}",
-            f"income: +{city_data.level + city_data.is_capital + city_data.forge}",
-            f"pos: {city_data.pos}",
-            f"Capital" if city_data.is_capital else ""
-        ))
-        if city_data.owner == GameClient.object.me.id:
-            found = 0
-            for unit in game_classes.Unit.units:
-                if unit.pos == city_data.pos:
-                    found = 1
-                    break
-            if city_data.fullness != city_data.level + 1 and not found:
-                for tech in GameClient.object.me.techs:
-                    for utype in tech.units:
-                        buttons.append((f"{utype.name}:{utype.cost}", lambda g, p, k, *args: ui.click_create_unit(tile_data.pos, args[0]), utype.id))
+    text = "\n".join((
+        f"type: {tile_data.type.name}", 
+        f"owner: {GamePlayer.by_id(tile_data.owner).nickname if tile_data.owner != -1 else None}", 
+        f"resorce: {tile_data.resource.name if tile_data.resource is not None else None}", 
+        f"building: {tile_data.building.name if tile_data.building is not None else None}",
+        f"pos: {tile_data.pos}", 
+    ))
+    if tile_data.owner == GameClient.object.me.id:
+        if tile_data.resource is not None:
+            for tech in GameClient.object.me.techs:
+                if tile_data.resource in tech.harvestables:
+                    buttons.append(("harvest:2", lambda*_: ui.click_harvest(tile_data.pos)))
+        if tile_data.building is None:
+            for tech in GameClient.object.me.techs:
+                for btype in tech.buildings:
+                    if (tile_data.type in btype.ttypes) and ((btype.required_resource is None) or (btype.required_resource == tile_data.resource)):
+                        buttons.append((f"{btype.name}:{btype.cost}", lambda *args: ui.click_build(tile_data.pos, args[0]), btype.id))
+            for tech in GameClient.object.me.techs:
+                for terraform in tech.terraforms:
+                    if (tile_data.type == terraform.from_ttype) and ((terraform.from_resource is None) or (terraform.from_resource == tile_data.resource)):
+                        buttons.append((f"{terraform.name}:{terraform.cost}", lambda *args: ui.click_terraform(tile_data.pos, args[0]), terraform.id))
     return text, buttons, modificators
+
+def _selected_city():
+    selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
+    city_data = SelectComponent.selected.get_component(components.CityComponent).city_data
+
+    buttons = ActionSystem.assign_action(city_data, GameClient.object.me)
+    modificators = ""
+
+    TextureAssignSystem.assign_texture(city_data, selector_image_section, flags=["selector"], args=(game_classes.GameRules.get_tile, game_classes.GameRules.world_size))
+
+    text = "\n".join((
+        f"city: {city_data.name}",
+        f"owner: {GamePlayer.by_id(city_data.owner).nickname if city_data.owner != -1 else None}", 
+        f"level: {city_data.level}",
+        f"population: {city_data.population}/{city_data.level + 1}",
+        f"fullness: {city_data.fullness}/{city_data.level + 1}",
+        f"income: +{city_data.level + city_data.is_capital + city_data.forge}",
+        f"pos: {city_data.pos}",
+        f"Capital" if city_data.is_capital else ""
+    ))
+    if city_data.owner == GameClient.object.me.id:
+        found = 0
+        for unit in game_classes.Unit.units:
+            if unit.pos == city_data.pos:
+                found = 1
+                break
+        if city_data.fullness != city_data.level + 1 and not found:
+            for tech in GameClient.object.me.techs:
+                for utype in tech.units:
+                    buttons.append((f"{utype.name}:{utype.cost}", lambda *args: ui.click_create_unit(city_data.pos, args[0]), utype.id))
+    return text, buttons, modificators
+    
 
 def _selected_unit():
     selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
     unit_data = SelectComponent.selected.get_component(components.UnitComponent).unit_data
-    buttons = []
+
+    buttons = ActionSystem.assign_action(unit_data, GameClient.object.me)
     effects = ""
-    TextureAssignSystem.assign_texture(unit_data, selector_image_section, flags=["selector"])
+    TextureAssignSystem.assign_texture(unit_data, selector_image_section, flags=["selector"], args=(game_classes.GameRules.get_tile, game_classes.GameRules.world_size))
 
     if unit_data.attached_city_id == -1:
         attached_city_name = "???"
@@ -223,10 +232,11 @@ def _selected_unit():
 
 def _selected_tech():
     selector_image_section = GameObject.get_game_object_by_tags("game_screen:info_section:selector_section:selector_image_section")
-    buttons = []
+    tech = SelectComponent.selected.get_component(components.TechComponent).tech
+    
+    buttons = ActionSystem.assign_action(tech, GameClient.object.me)
     text = ""
 
-    tech = SelectComponent.selected.get_component(components.TechComponent).tech
 
     img = create_game_object(selector_image_section, "game_screen:info_section:selector_section:selector_image_section:image", at=InGrid((1, 1), (0, 0)))
     TextureAssignSystem.assign_texture(tech, img, flags=["selector"])

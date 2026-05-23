@@ -4,8 +4,11 @@ from client.globals.music import SoundManager
 from client.network.client import GameClient
 from client.scenes.lobby_screen import main as lobby_main
 from client.scenes.game_screen import main as game_main
+from client.scenes.main_menu import main as main_main
 from netio.serialization.routing import MessageType
 from shared.util.position import Pos
+
+from . import state
 
 def launch_game_screen(now_playing_player_id: int, world_size: Pos):
     GameClient.object.me.money = 0
@@ -24,3 +27,10 @@ def launch_lobby():
     scene.destroy()
     lobbby_scene = lobby_main.load()
     lobbby_scene.enable()
+
+def launch_main_menu():
+    SoundManager.stop_music("melody2")
+    scene = GameObject.get_game_object_by_tags("join_menu")
+    scene.disable()
+    main_menu_scene = main_main.load()
+    main_menu_scene.enable()

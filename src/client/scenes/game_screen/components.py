@@ -25,8 +25,10 @@ class CityComponent(PositionComponent):
         self.city_data = city_data
 
 class TechComponent(Component):
+    lines: list[GameObject]
     tech: TechNode
     def __init__(self, tech: TechNode):
         super().__init__()
+        self.lines = []
         self.tech = tech
 

@@ -208,6 +208,38 @@ class Synths:
         arr = arr1 + arr2 + arr3
         Synths.cache[("get_str_arr", freq, duration)] = arr
         return arr
+    
+    @staticmethod
+    def get_pia_arr(freq, duration = 1.5, t0 = 0):
+        if ("get_pia_arr", freq, duration) in Synths.cache:
+            return Synths.cache[("get_pia_arr", freq, duration)]
+        rate = Synths.rate
+        t = np.linspace(t0, t0 + duration, round(rate * duration), endpoint=False)
+        arr = np.sin(2 * np.pi * freq * t)
+        a = 5
+        for i in range(2, 30):
+            arr += np.sin(2 * np.pi * freq * t * i) / (a * i)
+        arr *= Synths.get_attack_arr(duration)
+        arr /= max(1, np.max(arr))
+        arr /= min(-1, np.min(arr))
+        Synths.cache[("get_pia_arr", freq, duration)] = arr
+        return arr
+    
+    @staticmethod
+    def get_bia_arr(freq, duration = 1.5, t0 = 0):
+        if ("get_bia_arr", freq, duration) in Synths.cache:
+            return Synths.cache[("get_bia_arr", freq, duration)]
+        rate = Synths.rate
+        t = np.linspace(t0, t0 + duration, round(rate * duration), endpoint=False)
+        arr = np.sin(2 * np.pi * freq * t)
+        a = 2
+        for i in range(2, 30):
+            arr += np.sin(2 * np.pi * freq * t * i) / (a ** (i-1))
+        arr *= Synths.get_attack_arr(duration)
+        arr /= max(1, np.max(arr))
+        arr /= min(-1, np.min(arr))
+        Synths.cache[("get_bia_arr", freq, duration)] = arr
+        return arr
 
     @staticmethod
     def get_tri_arr(freq, duration = 1.5, t0 = 0):
@@ -324,7 +356,7 @@ class Synths:
             wf.writeframes(sound.get_raw())
 
     @staticmethod
-    def get_party(notes: list[Note], wave: str = "sin"):
+    def get_party(notes: list[Note], wave: str = "sin", tone_shift = 0):
         sum_duration = sum([note.duration for note in notes])
         t = np.linspace(0, sum_duration * Synths.seconds_per_note, round(sum_duration * Synths.rate * Synths.seconds_per_note), endpoint=False)
         res = np.empty(sum([round(Synths.rate * note.duration * Synths.seconds_per_note) for note in notes]))
@@ -333,6 +365,8 @@ class Synths:
             if note.pause:
                 arr = Synths.get_non_arr(freq=0, duration=note.duration * Synths.seconds_per_note)
             else:
+                note.tone += tone_shift
+                note.freq = 440 * (Note.half_tone ** note.tone)
                 arr = wave_names[wave](note.freq, note.duration * Synths.seconds_per_note, (i) / Synths.rate)
                 # arr = np.flip(arr)
             res[i : i + round(Synths.rate * note.duration * Synths.seconds_per_note)] = arr
@@ -362,6 +396,8 @@ wave_names: dict[str, Callable[[int, int, int], np.ndarray]] = {
         "saw": Synths.get_saw_arr, 
         "sqr": Synths.get_sqr_arr,
         "str": Synths.get_str_arr,
+        "pia": Synths.get_pia_arr,
+        "bia": Synths.get_bia_arr,
         "org": Synths.get_org_arr,
         "ovr": Synths.get_ovr_arr,
         "wig": Synths.get_wig_arr,

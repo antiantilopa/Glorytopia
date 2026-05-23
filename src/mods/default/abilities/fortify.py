@@ -9,15 +9,12 @@ class Fortify(Ability):
     name = "fortify"
     
     @staticmethod
-    def defense_bonus(unit):
+    def defense_bonus(unit, attacker):
         res = 1
-        if World.object.cities_mask[unit.pos.y][unit.pos.x]:
-            res = 1.5
-            for city in City.cities:
-                if city.pos == unit.pos:
-                    if city.walls == True:
-                        res = 4
-                        break
-                    else:
-                        break
+        city = World.object.get_city(unit.pos)
+        if city is not None:
+            if city.walls == True:
+                res = 4
+            else:
+                res = 1.5
         return res

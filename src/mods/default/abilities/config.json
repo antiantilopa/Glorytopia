@@ -56,6 +56,10 @@
     "file_name": "siege.py"
   },
   {
+    "name": "splash",
+    "file_name": "splash.py"
+  },
+  {
     "name": "stiff",
     "file_name": "stiff.py"
   },
@@ -66,5 +70,9 @@
   {
     "name": "tunneling",
     "file_name": "tunneling.py"
+  },
+  {
+    "name": "upgrades",
+    "file_name": "upgrades.py"
   }
 ]

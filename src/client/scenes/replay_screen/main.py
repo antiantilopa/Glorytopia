@@ -87,6 +87,12 @@ def load() -> GameObject:
         at=InGrid((4, 5), (0, 1), (4, 4)), 
         surface_margin=Vector2d(7, 2), 
     )
+    selector_mods_section = create_game_object(
+        parent=selector_section, 
+        tags="replay_screen:info_section:selector_section:selector_mods_section",
+        at=InGrid((4, 5), (1, 0), (3, 5)), 
+        surface_margin=Vector2d(7, 2), 
+    )
     
     end_turn_button = create_game_object(
         parent=info_section, 
@@ -104,6 +110,7 @@ def load() -> GameObject:
         color=ColorComponent.WHITE
     )
     end_turn_button.add_component(OnClickComponent([1, 0, 0], 0, 1, lambda*_: ui.click_end_turn_button()))
+    end_turn_button.add_component(KeyBindComponent([pg.K_SPACE], 1, 0, lambda*_: ui.click_end_turn_button()))
     now_playing_label = create_label_block(
         parent=info_section, 
         tags="replay_screen:info_section:now_playing_label", 

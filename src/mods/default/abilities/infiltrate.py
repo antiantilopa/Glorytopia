@@ -12,7 +12,7 @@ class Infiltrate(Ability):
 
     def infiltrate(unit: Unit, city: City):
         queue: list[Pos] = []
-        if World.object.unit_mask[city.pos.y][city.pos.x] == 0:
+        if World.object.get_unit(city.pos) is None:
             queue.append(city.pos)
         
         for pos in city.domain:
@@ -20,48 +20,41 @@ class Infiltrate(Ability):
                 continue
             if World.object.get(pos).type.is_water:
                 continue
-            if World.object.unit_mask[pos.y][pos.x] == 0:
+            if World.object.get_unit(pos) is None:
                 queue.append(pos)
         for i in range(3):
             if len(queue) <= i:
                 return
-            if World.object.unit_mask[queue[i].y][queue[i].x] == 1:
+            if World.object.get_unit(queue[i]) is not None:
                 continue
             new_unit = Unit(UnitType.get("dagger"), unit.owner, queue[i], None)
-            World.object.unit_mask[new_unit.pos.y][new_unit.pos.x] = 1
+            World.object.unit_mask[new_unit.pos.y][new_unit.pos.x] = new_unit
             Player.players[unit.owner].units.append(new_unit)
 
     @staticmethod
     def after_movement(unit):
-        if World.object.cities_mask[unit.pos.y][unit.pos.x]:
-            for city in City.cities:
-                if city.pos == unit.pos:
-                    if city.owner == -1:
-                        return
-                    if city.owner != unit.owner:
-                        unit.health = 0
-                        World.object.unit_mask[unit.pos.y][unit.pos.x] = 0
-                        Infiltrate.infiltrate(unit, city)
-                        break
-                    else:
-                        break
+        city = World.object.get_city(unit.pos)
+        if city is None:
+            return
+        if city.owner == -1:
+            return
+        if city.owner != unit.owner:
+            unit.health = 0
+            World.object.unit_mask[unit.pos.y][unit.pos.x] = None
+            Infiltrate.infiltrate(unit, city)
     
     @staticmethod
     def after_attack(unit, other):
-        if World.object.cities_mask[other.pos.y][other.pos.x]:
-            for city in City.cities:
-                if city.pos == other.pos:
-                    if city.owner == -1:
-                        return
-                    if city.owner != unit.owner:
-                        unit.health = 0
-                        Infiltrate.infiltrate(unit, city)
-                        break
-                    else:
-                        break
-        else:
+        city = World.object.get_city(other.pos)
+        if city is None:
             unit.attacked = False
-
+            return
+        if city.owner == -1:
+            return
+        if city.owner != unit.owner:
+            unit.health = 0
+            Infiltrate.infiltrate(unit, city)
+            
     @staticmethod
     def save_moved(unit):
         return 1

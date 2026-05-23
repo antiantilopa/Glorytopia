@@ -1,3 +1,5 @@
+from typing import Callable
+
 from netio import GenericType
 from . import tile as Tile
 from . import unit as Unit
@@ -5,6 +7,7 @@ from . import unit as Unit
 class Ability(GenericType):
     # Never should be serialized.
     name: str
+    actions: dict[int, Callable[["Unit.Unit"], None]] = {}
 
     ID = 0
 
@@ -30,11 +33,11 @@ class Ability(GenericType):
         pass
 
     @staticmethod
-    def defense_bonus(unit: "Unit.Unit") -> float:
+    def defense_bonus(unit: "Unit.Unit", other: "Unit.Unit") -> float:
         return 1
 
     @staticmethod
-    def attack_bonus(unit: "Unit.Unit") -> float:
+    def attack_bonus(unit: "Unit.Unit", other: "Unit.Unit") -> float:
         return 1
 
     @staticmethod

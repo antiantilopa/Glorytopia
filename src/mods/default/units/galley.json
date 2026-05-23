@@ -1,0 +1,13 @@
+{
+  "name": "galley",
+  "health": 20,
+  "attack": 3,
+  "defense": 3,
+  "movement": 3,
+  "attack_range": 1,
+  "cost": 5,
+  "water": true,
+  "abilities": [
+    "dash"
+  ]
+}

@@ -50,17 +50,13 @@ def eve_game_mov_unit(pdata: GamePlayer, data: tuple[Pos, Pos]):
     if pdata.id != router.host.game.now_playing_player_index:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/MOVE_UNIT", f"Not your move right now.")
         return
-    if World.object.unit_mask[data[0].inty()][data[0].intx()] == 0:
+    moving_unit = World.object.get_unit(data[0])
+    if unit is None:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/MOVE_UNIT", f"There is no unit on the given position")
         return
 
     pos1 = data[0]
     pos2 = data[1]
-    moving_unit: Unit = None
-    for unit in Unit.units:
-        if unit.pos == pos1:
-            moving_unit = unit
-            break
 
     result = player.move_unit(moving_unit, pos2)
     if result != ErrorCodes.SUCCESS:
@@ -89,16 +85,11 @@ def eve_game_conquer_city(pdata: GamePlayer, pos: Pos):
     if pdata.id != router.host.game.now_playing_player_index:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/CONQUER_CITY", (f"Not your move right now."))
         return
-    unit = None
-    for u in Unit.units:
-        if u.pos == pos:
-            unit = u
-    city = None
-    for c in City.cities:
-        if c.pos == pos:
-            city = c
-            break
+    unit = World.object.get_unit(pos)
+    city = World.object.get_city(pos)
     if unit is None:
+        return ErrorCodes.ERR_NOT_YOUR_UNIT
+    if unit.owner != player.id:
         return ErrorCodes.ERR_NOT_YOUR_UNIT
     if city is None:
         return ErrorCodes.ERR_NOT_A_CITY
@@ -110,6 +101,20 @@ def eve_game_conquer_city(pdata: GamePlayer, pos: Pos):
     
     update_updating_objects()
         
+
+@router.event("ACTION", datatype=tuple[Unit, int])
+def eve_game_conquer_city(pdata: GamePlayer, data: tuple[Unit, int]):
+    player = Player.by_id(pdata.id)
+    if pdata.id != router.host.game.now_playing_player_index:
+        router.host.send_message(pdata.address, MessageType.ERROR, "GAME/ACTION", (f"Not your move right now."))
+        return ErrorCodes.ERR_DEFAULT
+    unit, action_id = data
+    result = player.act(unit, action_id)
+    if result != ErrorCodes.SUCCESS:
+        router.host.send_message(pdata.address, MessageType.ERROR, "GAME/ACTION", (f"Cannot conquer city: {result.name}"))
+        return
+    
+    update_updating_objects()
 
 @router.event("BUY_TECH", datatype=int)
 def eve_game_buy_tech(pdata: GamePlayer, tech_id: int):
@@ -182,14 +187,15 @@ def game_end_turn(pdata: GamePlayer, data: None):
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/END_TURN", (f"Not your move right now."))
         return
 
+    router.host.game.end_turn()
     Saver.save_current_state()
 
     dead = []
     for player in Player.players:
         if player.is_dead:
             dead.append(player)
-
-    router.host.game.next_player_turn()
+    router.host.game.set_next_player_turn()
+    router.host.game.start_turn()
     
     for player in Player.players:
         if player.is_dead:

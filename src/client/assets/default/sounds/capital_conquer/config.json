@@ -1,0 +1,32 @@
+{
+    "parties":
+    [
+        {
+            "name": "raw0",
+            "wave": "bia",
+            "volume": 0.8
+        },
+        {
+            "name": "raw1",
+            "wave": "bia",
+            "volume": 0.8
+        },
+        {
+            "name": "raw2",
+            "wave": "sin",
+            "volume": 0.8
+        },
+        {
+            "name": "raw2",
+            "wave": "bia",
+            "volume": 0.8
+        },
+        {
+            "name": "raw2",
+            "wave": "bom",
+            "volume": 0.8,
+            "tone_shift": -24
+        }
+    ],
+    "spn": 0.1
+}

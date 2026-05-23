@@ -1,7 +1,8 @@
+from client.globals.music import SoundManager
 from client.scenes.main_menu.main import launch
 from client.globals.settings import Settings
 from client.globals.window_size import WindowSize
-from shared.loader import load_complex_type_names, load_texture_assignments
+from shared.loader import load_complex_type_names, load_texture_assignments, load_actions
 from engine_antiantilopa import Vector2d
 import pygame as pg
 
@@ -10,6 +11,8 @@ from client.widgets.texture_load import load_textures
 
 load_complex_type_names()
 load_texture_assignments()
+load_actions()
+
 resolutions = [
     (1680, 1120),
     (1440, 960),
@@ -47,7 +50,8 @@ except Exception as e:
     Settings.save_to_file_()
 
 WindowSize.value = Vector2d.from_tuple(Settings.resolution.variants[Settings.resolution.chosen])
-
+SoundManager.music_volume = int(Settings.music_volume.var) / 100
+SoundManager.sound_volume = int(Settings.sound_volume.var) / 100
 load_textures(Settings.texture_packs.order)
 load_sounds(Settings.texture_packs.order)
 

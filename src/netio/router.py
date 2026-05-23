@@ -2,7 +2,7 @@ import socket
 import logging
 from typing import Callable, Any, get_origin
 
-from .serialization.serializer import Serializable, SerializeField
+from .serialization.serializer import Serializable, SerializationTypes, SerializeField
 from .datatypes import PlayerData, Address, ConnectionData
 from .logger import serverLogger, clientLogger
 
@@ -150,20 +150,17 @@ class ServerRouter(BaseRouter):
         
         handler, cls = self._event_handlers[route]
 
-        handler(player_data, parse_data(data, cls))
+        handler(player_data, parse_data_from(player_data.address, data, cls, self.host))
 
     def handle_request(self, route: str, player_data: Serializable, data: tuple) -> tuple | Serializable:
         handler, cls = self._request_handlers[route]
         
-        return handler(player_data, parse_data(data, cls))
+        return handler(player_data, parse_data_from(player_data.address, data, cls, self.host))
 
     def handle_response(self, route: str, player_data: Serializable, data: tuple):
         handler, cls = self._response_handlers[route]
         
-        handler(player_data, parse_data(data, cls))
-
-    def handle_response(self, route, data):
-        raise NotImplementedError("Are you sure this should be called?")
+        handler(player_data, parse_data_from(player_data.address, data, cls, self.host))
     
 def check_datatype(datatype: type = None) -> bool:
     return 1 
@@ -180,3 +177,33 @@ def parse_data(data: tuple|Serializable, cls: type):
         result = Serializable.parse(data[0], cls)
         # assert len(result) == 1, f"datatype is {cls}, got {data}"
         return result
+    
+def parse_data_from(address: Address, data: tuple|Serializable, cls: type, host: "Server.Host"):
+    origin = get_origin(cls)
+    if origin is None: origin = cls
+    if cls is None:
+        assert (len(data) == 0) or (len(data) == 1 and data[0] is None), f"datatype is {cls}, got {data}"
+        return None
+    if issubclass(origin, tuple) or issubclass(origin, list) or issubclass(origin, Serializable):
+        return Serializable.parse(data, cls, handle_serializables=get_secured_serializable_parse_handle(host, address))
+    else:
+        return Serializable.parse(data[0], cls, handle_serializables=get_secured_serializable_parse_handle(host, address))
+        # assert len(result) == 1, f"datatype is {cls}, got {data}"
+
+def get_secured_serializable_parse_handle(host: "Server.Host", address: Address):
+    def secured_serializable_parse_handle(data, cls: type[Serializable], ignore_class_id: bool, init_for_serializables: bool):
+        _class_id = data[0]
+        _id = data[1]
+        if _class_id != cls._class_id:
+            raise ValueError(f"expected cls: {cls} with id {cls._class_id}. Got id {data[0]}")
+        if _id not in host.game_manager._mapping[address]:
+            serverLogger.error(f"got object of type {cls} with Oid {_id} from {address} that does not exist")
+            return SerializationTypes.NOTHING
+        if not host.game_manager._mapping[address][_id]:
+            serverLogger.error(f"got object of type {cls} with Oid {_id} from {address} that player does not see")
+            return SerializationTypes.NOTHING
+        for obj in host.game_manager._synchronized:
+            if obj._id == _id and obj._class_id == _class_id:
+                return obj
+                
+    return secured_serializable_parse_handle

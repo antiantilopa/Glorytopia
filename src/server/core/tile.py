@@ -43,8 +43,10 @@ class Tile(TileData):
 
     def validate(self, player_data: PlayerData_):
         if not player_data.joined:
-            return
+            return False
         player = Player.Player.by_id(player_data.id)
+        if player.is_dead:
+            return True
         return player.vision[self.pos.y][self.pos.x]
     
     def change_owner(self, new_owner: int):

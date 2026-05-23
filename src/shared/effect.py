@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Callable
 from netio import GenericType, Serializable, SerializeField
 from shared.generic_object import GenericObject
 from . import unit as Unit
@@ -8,7 +8,7 @@ class EffectType(GenericType):
     stackable = True
 
     name: str
-
+    actions: dict[int, Callable[["Effect", "Unit.UnitData"], None]] = {}
     ID = 0
     
     def __init_subclass__(cls):
@@ -33,7 +33,7 @@ class EffectType(GenericType):
         pass
 
     @staticmethod
-    def defense_bonus(effect: "Effect", unit: "Unit.UnitData") -> float:
+    def defense_bonus(effect: "Effect", unit: "Unit.UnitData", other: "Unit.UnitData") -> float:
         return 1
 
     @staticmethod
@@ -41,16 +41,16 @@ class EffectType(GenericType):
         pass
 
     @staticmethod
-    def retaliation_bonus(effect: "Effect", unit: "Unit.UnitData", defense_result: int) -> int:
-        return defense_result
+    def retaliation_bonus(effect: "Effect", unit: "Unit.UnitData", other: "Unit.UnitData") -> int:
+        return 1
 
     @staticmethod
     def retaliation_mitigate(effect: "Effect", unit: "Unit.UnitData", defense_result: int) -> int:
         return defense_result
 
     @staticmethod
-    def attack_bonus(effect: "Effect", unit: "Unit.UnitData", attack_result: int) -> int:
-        return attack_result
+    def attack_bonus(effect: "Effect", unit: "Unit.UnitData", other: "Unit.UnitData") -> int:
+        return 1
     
     @staticmethod
     def on_terrain_movement(effect: "Effect", unit: "Unit.UnitData", tile: "Tile.TileData", movement: int) -> int:

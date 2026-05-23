@@ -18,10 +18,15 @@ network.main()
 
 def load():
     if len(GameObject.get_group_by_tag("join_menu")) > 0:
+        if GameClient.object is not None:
+            GameClient.object.close()
+            GameClient.object = None
+        State.change_state(0)
         return GameObject.get_game_object_by_tags("join_menu")
 
     scene = create_game_object(tags="join_menu", size=WindowSize.value)
-    SoundManager.new_music("melody1", loop=True, is_music=True)
+    scene.add_component(KeyBindComponent([pg.K_ESCAPE], 0, 1, lambda *_: launchers.launch_main_menu()))
+    SoundManager.new_music("melody2", loop=True, is_music=True)
     
     label_obj = create_label(
         parent=scene, 

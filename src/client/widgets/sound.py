@@ -25,13 +25,15 @@ class SoundComponent(Component):
         self.on_end = on_end
         self.is_music = is_music
         self._event_type = pg.event.custom_type()
-        print(f"creating sound with nickname: {nickname}")
         if path != "" and path in SoundComponent.downloaded:
             self.sound = SoundComponent.downloaded[path]
         elif nickname != "" and (prenickname + nickname) in SoundComponent.downloaded:
             self.sound = SoundComponent.downloaded[(prenickname + nickname)]
         else:
+            print(f"creating sound with nickname: {nickname}")
             if nickname != "":
+                if path == "":
+                    raise KeyError(f"tried play sound '{nickname}' that was not preloaded")
                 SoundComponent.downloaded[(prenickname + nickname)] = SoundComponent.load(path)
                 self.sound = SoundComponent.downloaded[(prenickname + nickname)]
             else:
@@ -53,11 +55,15 @@ class SoundComponent(Component):
         assert os.path.exists(path + "/config.json"), f"Sound config not found at path: {path}"
         config = json.load(open(path + "/config.json"))
         parties = []
-        Synths.seconds_per_note = config["spn"]
+        Synths.seconds_per_note = config["spn"] if "spn" in config else 0.1
         for party_conf in config["parties"]:
             notes = Note.load_notes_new(path + "/" + party_conf["name"])
-            party = Synths.get_party(notes, party_conf["wave"])
-            party *= party_conf["volume"]
+            tone_shift = 0
+            if "tone_shift" in party_conf:
+                tone_shift = party_conf["tone_shift"]
+            party = Synths.get_party(notes, party_conf["wave"] if "wave" in party_conf else "sin", tone_shift)
+            if "volume" in party_conf:
+                party *= party_conf["volume"]
             parties.append(party)
         arr = Synths.merge_parties(*parties)
         sound = np.asarray([32767 * arr, 32767 * arr]).T.astype(np.int16)
@@ -86,6 +92,8 @@ class SoundComponent(Component):
         
     def play_once(self) -> pg.mixer.Channel:
         channel = self.sound.play()
+        if channel is None:
+            return None
         channel.set_volume(self.volume)
         self.channels.append(channel)
         print(f"{self.nickname}: playing once thing with etype: {self._event_type}")
@@ -94,6 +102,8 @@ class SoundComponent(Component):
 
     def play_in_loop(self) -> pg.mixer.Channel:
         channel = self.sound.play(loops=-1)
+        if channel is None:
+            return None
         channel.set_volume(self.volume)
         self.channels.append(channel)
         channel.set_endevent(self._event_type)

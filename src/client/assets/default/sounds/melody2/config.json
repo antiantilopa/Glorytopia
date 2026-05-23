@@ -3,18 +3,23 @@
     [
         {
             "name": "raw0",
-            "wave": "tri",
+            "wave": "bia",
             "volume": 0.4
         },
         {
             "name": "raw1",
-            "wave": "tri",
+            "wave": "bom",
+            "volume": 0.02
+        },
+        {
+            "name": "raw1",
+            "wave": "pia",
             "volume": 0.3
         },
         {
             "name": "raw2",
-            "wave": "sqr",
-            "volume": 0.3
+            "wave": "bia",
+            "volume": 0.5
         }
     ],
     "spn": 0.1
