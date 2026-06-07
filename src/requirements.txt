@@ -1,3 +1,4 @@
 pygame
 numpy
 primitive-engine-antiantilopa
+netio-game

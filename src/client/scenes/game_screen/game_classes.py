@@ -5,6 +5,7 @@ from client.texture_assign.texture_assign import TextureAssignSystem
 from client.widgets.fastgameobjectcreator import *
 from client.widgets.select import SelectComponent
 from client.globals.window_size import WindowSize
+from netio.serialization.serializer import sync_key
 from shared import *
 import pygame as pg
 
@@ -40,6 +41,7 @@ class GameRules:
     def set_tile(tile: "Tile"):
         GameRules.world[tile.pos.inty()][tile.pos.intx()] = tile
 
+@sync_key("tile")
 class Tile(TileData):
     obj: GameObject
 
@@ -79,6 +81,7 @@ class Tile(TileData):
         self.obj = _create_tile_obj(self)
         selector.selector_info_update()
 
+@sync_key("city")
 class City(CityData):
     obj: GameObject
 
@@ -115,6 +118,7 @@ class City(CityData):
         TextureAssignSystem.update_texture(self, self.obj)
         selector.selector_info_update()
 
+@sync_key("unit")
 class Unit(UnitData):
     obj: GameObject
 

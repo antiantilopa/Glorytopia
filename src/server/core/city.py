@@ -1,3 +1,4 @@
+from netio.serialization.serializer import sync_key
 from shared.player import PlayerData_
 from .random_names import random_funny_name as random_name
 from shared.util.position import Pos
@@ -8,6 +9,7 @@ from .world import World
 from . import unit as Unit
 from . import player as Player
 
+@sync_key("city")
 class City(CityData):
     cities: list["City"] = []
 

@@ -1,3 +1,4 @@
+from netio.serialization.serializer import sync_key
 from shared.asset_types import UnitType, TileType
 from shared.effect import Effect, EffectType
 from shared.player import PlayerData_
@@ -11,6 +12,7 @@ from . import city as City
 from . import player as Player
 from .ability import Ability
 
+@sync_key("unit")
 class Unit(UnitData):
     _attached_city: "City.City|None"
 

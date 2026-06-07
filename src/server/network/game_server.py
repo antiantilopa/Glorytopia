@@ -1,7 +1,7 @@
 from netio import Host
 from netio.datatypes import ConnectionData
 from netio.router import ServerRouter
-from netio.serialization.serializer import Serializable
+from netio.serialization.serializer import Serializable, sync_key
 from netio.server import GameManager
 
 from server.core.city import City
@@ -12,6 +12,7 @@ from shared.player import PlayerData_
 from shared.util.position import Pos
 
 
+@sync_key("game_player")
 class GamePlayer(PlayerData_):
     joined_players: list["GamePlayer"] = []
     need_reconnect: list["GamePlayer"] = []

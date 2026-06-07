@@ -1,3 +1,4 @@
+from netio.serialization.serializer import sync_key
 from shared.modificator import TileModificator, TileModificatorType
 from shared.player import PlayerData_
 from shared.tile import TileData
@@ -7,6 +8,7 @@ from shared.util.position import Pos
 from . import world as World
 from . import player as Player
 
+@sync_key("tile")
 class Tile(TileData):
     
     def __init__(self, pos: Pos, tile_type: TileType, resources: ResourceType):

@@ -8,6 +8,7 @@ from shared.util.position import Pos
 
 respond = ClientRouter()
 
+@sync_key("game_player")
 class GamePlayer(PlayerData_):
     money: int
     techs: list[TechNode]
