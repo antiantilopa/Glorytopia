@@ -1,6 +1,6 @@
 from enum import Enum
 
-class ErrorCodes(Enum):
+class ErrorCode(Enum):
     """
     This class contains error codes for various game-related errors.
     Each error code is represented as a class variable with a unique integer value.

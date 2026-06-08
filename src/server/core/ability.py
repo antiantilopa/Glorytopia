@@ -1,13 +1,13 @@
 from typing import Callable
 
 from netio import GenericType
-from . import tile as Tile
-from . import unit as Unit
+from . import tile as tilemodule
+from . import unit as unit
 
 class Ability(GenericType):
     # Never should be serialized.
     name: str
-    actions: dict[int, Callable[["Unit.Unit"], None]] = {}
+    actions: dict[int, Callable[["unit.Unit"], None]] = {}
 
     ID = 0
 
@@ -21,98 +21,98 @@ class Ability(GenericType):
         Ability.ID += 1
 
     @staticmethod
-    def after_movement(unit: "Unit.Unit"):
+    def after_movement(unit: "unit.Unit"):
         pass
 
     @staticmethod
-    def after_attack(unit: "Unit.Unit", other: "Unit.Unit"):
+    def after_attack(unit: "unit.Unit", other: "unit.Unit"):
         pass
 
     @staticmethod
-    def after_kill(unit: "Unit.Unit", other: "Unit.Unit"):
+    def after_kill(unit: "unit.Unit", other: "unit.Unit"):
         pass
 
     @staticmethod
-    def defense_bonus(unit: "Unit.Unit", other: "Unit.Unit") -> float:
+    def defense_bonus(unit: "unit.Unit", other: "unit.Unit") -> float:
         return 1
 
     @staticmethod
-    def attack_bonus(unit: "Unit.Unit", other: "Unit.Unit") -> float:
+    def attack_bonus(unit: "unit.Unit", other: "unit.Unit") -> float:
         return 1
 
     @staticmethod
-    def additional_move(unit: "Unit.Unit"):
+    def additional_move(unit: "unit.Unit"):
         pass
 
     @staticmethod
-    def retaliation_bonus(unit: "Unit.Unit", defense_result: int) -> int:
+    def retaliation_bonus(unit: "unit.Unit", defense_result: int) -> int:
         return defense_result
 
     @staticmethod
-    def retaliation_mitigate(unit: "Unit.Unit", defense_result: int) -> int:
+    def retaliation_mitigate(unit: "unit.Unit", defense_result: int) -> int:
         return defense_result
 
     @staticmethod
-    def on_terrain_movement(unit: "Unit.Unit", tile: "Tile.Tile", movement: int) -> int:
+    def on_terrain_movement(unit: "unit.Unit", tile: "tilemodule.Tile", movement: int) -> int:
         return 0
     
     @staticmethod
-    def ignore_water(unit: "Unit.Unit", tile: "Tile.Tile") -> int:
+    def ignore_water(unit: "unit.Unit", tile: "tilemodule.Tile") -> int:
         return 0
     
     @staticmethod
-    def ignore_stop_movement(unit: "Unit.Unit", tile: "Tile.Tile") -> int:
+    def ignore_stop_movement(unit: "unit.Unit", tile: "tilemodule.Tile") -> int:
         return 0
     
     @staticmethod
-    def stop_movement(unit: "Unit.Unit", tile: "Tile.Tile") -> bool:
+    def stop_movement(unit: "unit.Unit", tile: "tilemodule.Tile") -> bool:
         return 0
 
     @staticmethod
-    def save_moved(unit: "Unit.Unit") -> bool:
+    def save_moved(unit: "unit.Unit") -> bool:
         return False
     
     @staticmethod
-    def save_attacked(unit: "Unit.Unit") -> bool:
+    def save_attacked(unit: "unit.Unit") -> bool:
         return False
 
     @staticmethod
-    def get_vision_range(unit: "Unit.Unit") -> int:
+    def get_vision_range(unit: "unit.Unit") -> int:
         return 0
     
     @staticmethod
-    def get_visibility(unit: "Unit.Unit", player_id: int) -> bool:
+    def get_visibility(unit: "unit.Unit", player_id: int) -> bool:
         return 1
 
     @staticmethod
-    def additional_attack(unit: "Unit.Unit", other: "Unit.Unit") -> int:
+    def additional_attack(unit: "unit.Unit", other: "unit.Unit") -> int:
         return 0
 
     @staticmethod
-    def additional_defense(unit: "Unit.Unit", other: "Unit.Unit") -> int:
+    def additional_defense(unit: "unit.Unit", other: "unit.Unit") -> int:
         return 0
 
     @staticmethod
-    def on_start_turn(unit: "Unit.Unit"):
+    def on_start_turn(unit: "unit.Unit"):
         pass
 
     @staticmethod
-    def after_heal(unit: "Unit.Unit"):
+    def after_heal(unit: "unit.Unit"):
         pass
 
     @staticmethod
-    def additional_heal(unit: "Unit.Unit"):
+    def additional_heal(unit: "unit.Unit"):
         return 0
     
     @staticmethod
-    def on_death(unit: "Unit.Unit"):
+    def on_death(unit: "unit.Unit"):
         pass
 
     @staticmethod
-    def on_spawn(unit: "Unit.Unit"):
+    def on_spawn(unit: "unit.Unit"):
         pass
 
     @staticmethod
-    def on_end_turn(unit: "Unit.Unit"):
+    def on_end_turn(unit: "unit.Unit"):
         pass
     

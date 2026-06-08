@@ -3,7 +3,7 @@ from .sound import SoundComponent
 import os
 
 def load_sounds(texture_packs: list[str] = ["default"]):
-    path = str.join("/", [*(__file__).split("\\")[:-2], "assets"]) + "/"
+    path = str.join("/", [*(__file__).split(os.sep)[:-2], "assets"]) + "/"
     for texture_pack in texture_packs:
         if texture_pack not in os.listdir(path):
             continue

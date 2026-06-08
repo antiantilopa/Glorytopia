@@ -5,7 +5,7 @@ from netio.serialization.serializer import BaseReader, Serializable, SpecialType
 from shared.asset_types import TechNode
 from shared.city import CityData
 from shared.globals.mod_versions import ModConfig
-from shared.player import PlayerData_
+from shared.player import SharedPlayerData
 from shared.tile import TileData
 from shared.unit import UnitData
 from shared.util.position import Pos
@@ -95,7 +95,7 @@ class Replay:
     units: list["game_classes.Unit_R"] = []
     cities: list["game_classes.City_R"] = []
     players: list[Player] = []
-    player_datas: list[PlayerData_] = []
+    player_datas: list[SharedPlayerData] = []
 
     frame: int = 0
 
@@ -104,7 +104,7 @@ class Replay:
     @staticmethod
     def init(mods: list[ModConfig], 
             game_data: GameData,
-            player_datas: list[PlayerData_], 
+            player_datas: list[SharedPlayerData], 
             tiles: list["game_classes.Tile_R"], 
             units: list["game_classes.Unit_R"], 
             cities: list["game_classes.City_R"], 
@@ -225,7 +225,7 @@ class Replay:
         raise KeyError(f"Player with id {id} not found in replay players.")
     
     @staticmethod
-    def get_player_data_by_id(id: int) -> PlayerData_:
+    def get_player_data_by_id(id: int) -> SharedPlayerData:
         for player in Replay.player_datas:
             if player.id == id:
                 return player

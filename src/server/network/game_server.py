@@ -8,12 +8,12 @@ from server.core.city import City
 from server.core.game import Game
 from server.core.tile import Tile
 from server.core.unit import Unit
-from shared.player import PlayerData_
+from shared.player import SharedPlayerData
 from shared.util.position import Pos
 
 
 @sync_key("game_player")
-class GamePlayer(PlayerData_):
+class GamePlayer(SharedPlayerData):
     joined_players: list["GamePlayer"] = []
     need_reconnect: list["GamePlayer"] = []
 

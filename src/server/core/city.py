@@ -1,12 +1,12 @@
 from netio.serialization.serializer import sync_key
-from shared.player import PlayerData_
+from shared.player import SharedPlayerData
 from .random_names import random_funny_name as random_name
 from shared.util.position import Pos
 from shared.asset_types import UnitType, BuildingType
 from shared.city import CityData
 
 from .world import World
-from . import unit as Unit
+from . import unit as unit
 from . import player as Player
 
 @sync_key("city")
@@ -48,10 +48,10 @@ class City(CityData):
         if self.fullness < self.level + 1:
             if World.object.get_unit(self.pos) is not None:
                 return None
-            unit = Unit.Unit(utype, self.owner, self.pos, self)
-            World.object.unit_mask[self.pos.inty()][self.pos.intx()] = unit
+            new_unit = unit.Unit(utype, self.owner, self.pos, self)
+            World.object.unit_mask[self.pos.inty()][self.pos.intx()] = new_unit
             self.fullness += 1
-            return unit
+            return new_unit
         return None
 
     def harvest(self, pos: Pos):
@@ -89,7 +89,7 @@ class City(CityData):
         Player.Player.players[self.owner].cities.remove(self)
         del self
 
-    def validate(self, player_data: PlayerData_):
+    def validate(self, player_data: SharedPlayerData):
         if not player_data.joined:
             return False
         player = Player.Player.by_id(player_data.id)

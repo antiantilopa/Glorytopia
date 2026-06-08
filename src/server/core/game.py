@@ -1,4 +1,6 @@
 import os
+from server.bot.bot import Bot
+from server.core.tile import Tile
 from server.globals.backup import BackupSettings
 from shared.asset_types import Nation, TileType, ResourceType, UnitType
 from shared.city import CityData
@@ -17,17 +19,21 @@ def abs(x):
 
 class Game:
     now_playing_player_index: int
-    players: list[Player]
+    players: list[Player|Bot]
     world: World
     turn_number: int
     obj: "Game" = None
 
-    def __init__(self, size: Pos, player_number: int, start_new_game: bool = True) -> None:
+    def __init__(self, size: Pos, player_number: int, bot_number: int, start_new_game: bool = True) -> None:
         Game.obj = self
         if start_new_game:
             self.world = World(size.x, size.y)
             self.now_playing_player_index = 0
             self.players = [Player() for i in range(player_number)]
+            bots = [Bot(f"bot_{i}")  for i in range(bot_number)]
+            for bot in bots:
+                bot.memory.world = World.object
+            self.players += bots
             self.place_players()
             for _ in range(((size.x - 2) * (size.y - 2)) // 16):
                 self.place_random_city()
@@ -50,6 +56,7 @@ class Game:
                 self.players = [Player() for i in range(player_number)]
             else:
                 self.players = Player.players
+            self.players += [Bot(f"bot_{i}")  for i in range(bot_number)]
     
     def start(self):
         for tiles in self.world:
@@ -168,3 +175,11 @@ class Game:
                 for tile_mod in tile.modificators:
                     tile_mod.tmtype.on_start_turn(tile_mod.tmtype, tile, self.now_playing_player_index)
         self.players[self.now_playing_player_index].start_turn()
+        if isinstance(self.players[self.now_playing_player_index], Bot):
+            bot = self.players[self.now_playing_player_index]
+            stops = False
+            while not stops:
+                stops = bot.execute_moves(bot.get_moves(), bot.pdata)
+            self.end_turn()
+            self.set_next_player_turn()
+            self.start_turn()

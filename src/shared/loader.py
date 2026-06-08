@@ -6,7 +6,7 @@ from .modificator import TileModificatorType
 from .globals.mod_versions import ModConfig, ModVersions
 from .asset_types import BuildingType, Nation, ResourceType, TechNode, UnitType, TileType, TerraForm
 from .util.json import from_file
-import json
+import json, os
 from typing import TypeVar
 
 T = TypeVar("T")
@@ -110,7 +110,7 @@ def load_mains():
         if not (path / "main.py").exists():
             continue
         try:
-            __import__(str(path / "main").replace("\\", "."), fromlist=str(path).split("\\")).load_mod()
+            __import__(str(path / "main").replace(os.sep, "."), fromlist=str(path).split(os.sep)).load_mod()
         except Exception as e:
             print(f"Error loading main.py from mod {path.name}: {e}")
             raise e
@@ -123,7 +123,7 @@ def load_texture_assignments():
             if file.suffix != ".py":
                 continue
             try:
-                __import__(str(path / "texture_assign" / file.name).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
+                __import__(str(path / "texture_assign" / file.name).removesuffix(".py").replace(os.sep, "."), fromlist=str(path).split(os.sep))
             except Exception as e:
                 print(f"Error loading texture assignment {file.name} from mod {path.name}: {e}")
                 raise e
@@ -139,7 +139,7 @@ def load_complex_types_full():
                     print(f"Error loading {complex_name} from mod {path.name}: {e}")
                     raise KeyError(f"file_name keyword not found in {complex_name}:{complex}")
                 try:
-                    __import__(str(path / complex_name / complex["file_name"]).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
+                    __import__(str(path / complex_name / complex["file_name"]).removesuffix(".py").replace(os.sep, "."), fromlist=str(path).split(os.sep))
                 except Exception as e:
                     print(f"Error loading {complex_name} {complex["file_name"]} from mod {path.name}: {e}")
                     raise e
@@ -167,7 +167,7 @@ def load_actions():
             if file.suffix != ".py":
                 continue
             try:
-                __import__(str(path / "actions" / file.name).removesuffix(".py").replace("\\", "."), fromlist=str(path).split("\\"))
+                __import__(str(path / "actions" / file.name).removesuffix(".py").replace(os.sep, "."), fromlist=str(path).split(os.sep))
             except Exception as e:
                 print(f"Error loading actions assignment {file.name} from mod {path.name}: {e}")
                 raise e

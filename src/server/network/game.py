@@ -1,10 +1,11 @@
 from netio.serialization.routing import MessageType
+from server.bot.bot import Bot
 from server.core import *
 from server.recorder.replay_recorder import ReplayRecorder
 from server.network.game_server import GameServerRouter, GamePlayer
 from server.backup.saver import Saver
 from shared.asset_types import BuildingType, TechNode, TerraForm, UnitType
-from shared.error_codes import ErrorCodes
+from shared.error_codes import ErrorCode
 from shared.unit import UnitData
 from shared.util.position import Pos
 from datetime import datetime
@@ -36,6 +37,8 @@ def get_now_playing_player_index(pdata: GamePlayer, data: tuple):
 def update_updating_objects():
     for player in Player.players:
         player.update_vision()
+        if isinstance(player, Bot):
+            continue
         router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/UPDATE_MONEY", player.money)
         flat_vision = [item for sublist in player.vision for item in sublist]
         router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/UPDATE_VISION", list_bool_to_list_int32(flat_vision))
@@ -59,7 +62,7 @@ def eve_game_mov_unit(pdata: GamePlayer, data: tuple[Pos, Pos]):
     pos2 = data[1]
 
     result = player.move_unit(moving_unit, pos2)
-    if result != ErrorCodes.SUCCESS:
+    if result != ErrorCode.SUCCESS:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/MOVE_UNIT", f"Cannot move unit: {result.name}")
         return
 
@@ -73,7 +76,7 @@ def eve_game_create_unit(pdata: GamePlayer, data: tuple[Pos, int]):
         return
     pos, utype_id = data
     result = player.create_unit(pos, UnitType.by_id(utype_id))
-    if result != ErrorCodes.SUCCESS:
+    if result != ErrorCode.SUCCESS:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/CREATE_UNIT", (f"Cannot create unit: {result.name}"))
         return
 
@@ -88,29 +91,28 @@ def eve_game_conquer_city(pdata: GamePlayer, pos: Pos):
     unit = World.object.get_unit(pos)
     city = World.object.get_city(pos)
     if unit is None:
-        return ErrorCodes.ERR_NOT_YOUR_UNIT
+        return ErrorCode.ERR_NOT_YOUR_UNIT
     if unit.owner != player.id:
-        return ErrorCodes.ERR_NOT_YOUR_UNIT
+        return ErrorCode.ERR_NOT_YOUR_UNIT
     if city is None:
-        return ErrorCodes.ERR_NOT_A_CITY
+        return ErrorCode.ERR_NOT_A_CITY
 
     result = player.conquer_city(pos)
-    if result != ErrorCodes.SUCCESS:
+    if result != ErrorCode.SUCCESS:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/CONQUER_CITY", (f"Cannot conquer city: {result.name}"))
         return
     
     update_updating_objects()
         
-
 @router.event("ACTION", datatype=tuple[Unit, int])
 def eve_game_conquer_city(pdata: GamePlayer, data: tuple[Unit, int]):
     player = Player.by_id(pdata.id)
     if pdata.id != router.host.game.now_playing_player_index:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/ACTION", (f"Not your move right now."))
-        return ErrorCodes.ERR_DEFAULT
+        return ErrorCode.ERR_DEFAULT
     unit, action_id = data
     result = player.act(unit, action_id)
-    if result != ErrorCodes.SUCCESS:
+    if result != ErrorCode.SUCCESS:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/ACTION", (f"Cannot conquer city: {result.name}"))
         return
     
@@ -123,12 +125,12 @@ def eve_game_buy_tech(pdata: GamePlayer, tech_id: int):
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/BUY_TECH", (f"Not your move right now."))
         return
     if tech_id < 0 or tech_id >= len(TechNode.values()):
-        router.host.send_message(pdata.address, MessageType.ERROR, "GAME/BUY_TECH", (f"Cannot buy tech: {ErrorCodes.ERR_THERE_IS_NO_SUITABLE_TECH.name}"))
+        router.host.send_message(pdata.address, MessageType.ERROR, "GAME/BUY_TECH", (f"Cannot buy tech: {ErrorCode.ERR_THERE_IS_NO_SUITABLE_TECH.name}"))
         return 
 
     tech = TechNode.by_id(tech_id)
     result = player.buy_tech(tech)
-    if result != ErrorCodes.SUCCESS:
+    if result != ErrorCode.SUCCESS:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/BUY_TECH", (f"Cannot buy tech: {result.name}"))
         return
     
@@ -143,7 +145,7 @@ def eve_game_harvest(pdata: GamePlayer, pos: Pos):
         return
 
     result = player.harvest(pos)
-    if result != ErrorCodes.SUCCESS:
+    if result != ErrorCode.SUCCESS:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/HARVEST", (f"Cannot harvest: {result.name}"))
         return
     
@@ -158,7 +160,7 @@ def eve_game_build(pdata: GamePlayer, data: tuple[Pos, int]):
 
     pos, btype_id = data
     result = player.build(pos, BuildingType.by_id(btype_id))
-    if result != ErrorCodes.SUCCESS:
+    if result != ErrorCode.SUCCESS:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/BUILD", (f"Cannot build: {result.name}"))
         return
     
@@ -174,7 +176,7 @@ def eve_game_terraform(pdata: GamePlayer, data: tuple):
     pos, terraform_id = data
     terraform = TerraForm.by_id(terraform_id)
     result = player.terraform(pos, terraform)
-    if result != ErrorCodes.SUCCESS:
+    if result != ErrorCode.SUCCESS:
         router.host.send_message(pdata.address, MessageType.ERROR, "GAME/TERRAFORM", (f"Cannot terraform: {result.name}"))
         return
     
@@ -202,10 +204,14 @@ def game_end_turn(pdata: GamePlayer, data: None):
             if player in dead:
                 continue
             else:
-                for others in Player.players:
-                    router.host.send_message(others.pdata.address, MessageType.EVENT, "GAME/GAME_OVER", player.pdata.nickname)
+                for other in Player.players:
+                    if isinstance(other, Bot):
+                        continue
+                    router.host.send_message(other.pdata.address, MessageType.EVENT, "GAME/GAME_OVER", player.pdata.nickname)
 
     for player in Player.players:
+        if isinstance(player, Bot):
+            continue
         router.host.send_message(player.pdata.address, MessageType.EVENT, "GAME/END_TURN", router.host.game.now_playing_player_index)
     update_updating_objects()
     

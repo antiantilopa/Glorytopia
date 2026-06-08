@@ -4,7 +4,7 @@ from netio.serialization.serializer import SpecialTypes, SerializationTypes
 from server.core.city import City
 from server.core.game import Game
 from server.core.unit import Unit
-from shared.player import PlayerData_
+from shared.player import SharedPlayerData
 from server.core.player import Player
 from shared.globals.mod_versions import ModVersions
 from shared.globals.replay import RecordReplaySettings
@@ -44,7 +44,7 @@ class ReplayRecorder:
             f.write(data)
 
     @staticmethod
-    def record_player_datas(player_datas: list[PlayerData_]):
+    def record_player_datas(player_datas: list[SharedPlayerData]):
         data = to_bytes(player_datas)
         with open(RecordReplaySettings.replay_path / f"{RecordReplaySettings.replay_file_name}.replay", "ab") as f:
             f.write(data)

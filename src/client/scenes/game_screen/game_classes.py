@@ -147,6 +147,31 @@ class Unit(UnitData):
         _remove_unit_obj(self)
         Unit.units.remove(self)
 
+@sync_key("bot_data")
+class BotData(SharedPlayerData):
+    bots: list["BotData"] = []
+
+
+    def client_on_create(self):
+        BotData.bots.append(self)
+        GamePlayer.joined_players.append(self) # TODO that line is FUCKERY!!!!
+
+    colors = [ # Should be in resource pack or smth TODO
+        ((255, 0, 0), (255, 255, 255)),   # Red - White
+        ((0, 255, 0), (0, 0, 0)),   # Green
+        ((0, 0, 255), (255, 255, 255)),   # Blue - White
+        ((255, 255, 0), (0, 0, 0)),   # Yellow - Black
+        ((255, 165, 0), (0, 0, 0)),   # Orange - Black
+        ((128, 0, 128), (255, 255, 255)),   # Purple - White
+        ((192, 192, 192), (0, 0, 0)),   # Silver - Black
+        ((0, 128, 128), (255, 255, 255)),   # Teal - White
+    ]
+    def get_main_color(self):
+        return BotData.colors[self.color][1]
+
+    def get_secondary_color(self):
+        return BotData.colors[self.color][0]
+
 class TechNodeObj:
     technodeobjs: dict[str, GameObject] = {}
 

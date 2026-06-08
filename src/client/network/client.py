@@ -1,5 +1,5 @@
 from netio import *
-from shared import UnitData, CityData, TileData, TechNode, PlayerData_
+from shared import UnitData, CityData, TileData, TechNode, SharedPlayerData
 from enum import Enum
 from typing import Callable
 from copy import copy
@@ -9,7 +9,7 @@ from shared.util.position import Pos
 respond = ClientRouter()
 
 @sync_key("game_player")
-class GamePlayer(PlayerData_):
+class GamePlayer(SharedPlayerData):
     money: int
     techs: list[TechNode]
     vision: list[list[bool]]

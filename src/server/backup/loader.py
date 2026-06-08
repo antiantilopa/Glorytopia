@@ -7,7 +7,7 @@ from server.core.player import Player
 from server.core.tile import Tile
 from server.core.unit import Unit
 from shared.asset_types import TechNode
-from shared.player import PlayerData_
+from shared.player import SharedPlayerData
 from shared.globals.mod_versions import ModConfig
 from shared.util.position import Pos
 
@@ -37,7 +37,7 @@ class GameData:
         self.now_playing_player_id = now_plaing_player_id
         self.turn_number = turn_number
 
-def load(path: Path) -> list[PlayerData_]:
+def load(path: Path) -> list[SharedPlayerData]:
     with open(path, "rb") as f:
         data = f.read()
 
@@ -58,7 +58,7 @@ def load(path: Path) -> list[PlayerData_]:
     Game.obj.now_playing_player_index = game_data.now_playing_player_id
     Game.obj.turn_number = game_data.turn_number
 
-    player_datas = Serializable.parse(initial_data[2], list[PlayerData_], 1)
+    player_datas = Serializable.parse(initial_data[2], list[SharedPlayerData], 1)
     players = [Player_dummy(*Serializable.parse(i, tuple[int, int, list[TechNode], list[int]], 1)) for i in initial_data[6]]
     for player_dummy in players:
         player = Player.by_id(player_dummy.id)

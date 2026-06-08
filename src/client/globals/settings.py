@@ -60,6 +60,6 @@ class Settings:
         Settings.preffered_color.chosen = settings_json["preffered_color"]
         Settings.music_volume.var = str(settings_json["music_volume"])
         Settings.sound_volume.var = str(settings_json["sound_volume"])
-        for texture_pack in os.listdir("\\".join(p.split("\\")[:-1] + ["assets"])):
+        for texture_pack in os.listdir(os.sep.join(p.split(os.sep)[:-1] + ["assets"])):
             if texture_pack not in Settings.texture_packs.order:
                 Settings.texture_packs.order.append(texture_pack)

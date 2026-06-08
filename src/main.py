@@ -2,13 +2,14 @@ from client.globals.music import SoundManager
 from client.scenes.main_menu.main import launch
 from client.globals.settings import Settings
 from client.globals.window_size import WindowSize
-from shared.loader import load_complex_type_names, load_texture_assignments, load_actions
+from shared.loader import load_complex_type_names, load_texture_assignments, load_actions, load_assets
 from engine_antiantilopa import Vector2d
 import pygame as pg
 
 from client.widgets.sounds_load import load_sounds
 from client.widgets.texture_load import load_textures
 
+load_assets()
 load_complex_type_names()
 load_texture_assignments()
 load_actions()

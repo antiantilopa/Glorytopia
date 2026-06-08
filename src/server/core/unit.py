@@ -1,41 +1,41 @@
 from netio.serialization.serializer import sync_key
 from shared.asset_types import UnitType, TileType
 from shared.effect import Effect, EffectType
-from shared.player import PlayerData_
+from shared.player import SharedPlayerData
 from shared.unit import UnitData
 from shared.util.position import Pos
 from math import floor, ceil
 
-from . import world as World
-from . import tile as Tile
-from . import city as City
+from . import world as world
+from . import tile as tilemodule
+from . import city as citymodule
 from . import player as Player
 from .ability import Ability
 
 @sync_key("unit")
 class Unit(UnitData):
-    _attached_city: "City.City|None"
+    _attached_city: "citymodule.City|None"
 
     units: list["Unit"] = []
 
-    def __init__(self, unit_type: UnitType, owner: int, pos: Pos, attached_city: "City.City"):
+    def __init__(self, unit_type: UnitType, owner: int, pos: Pos, attached_city: "citymodule.City"):
         UnitData.__init__(self, unit_type, owner, pos)
         self.attached_city = attached_city
         Unit.units.append(self)
-        World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = self
+        world.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = self
         for ability in self.type.abilities:
             Ability.get(ability).on_spawn(self)
         for effect in self.effects:
             effect.type.on_spawn(effect, self)
 
     def set_pos(self, pos: Pos):
-        World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = None
-        for m in World.World.object.get(self.pos).modificators:
-            m.tmtype.on_unit_exit(m, World.World.object.get(self.pos), self)
+        world.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = None
+        for m in world.World.object.get(self.pos).modificators:
+            m.tmtype.on_unit_exit(m, world.World.object.get(self.pos), self)
         self.pos = pos
-        World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = self
-        for m in World.World.object.get(self.pos).modificators:
-            m.tmtype.on_unit_enter(m, World.World.object.get(self.pos), self)
+        world.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = self
+        for m in world.World.object.get(self.pos).modificators:
+            m.tmtype.on_unit_enter(m, world.World.object.get(self.pos), self)
 
     def refresh(self):
         for ability in self.type.abilities:
@@ -45,9 +45,9 @@ class Unit(UnitData):
         self.moved = False
         self.attacked = False
 
-    def get_movements(self) -> list[Pos, int]:
+    def get_movements(self) -> list[tuple[Pos, int|float]]:
         s_poses: list[tuple[Pos, float]] = [(self.pos, self.type.movement)]
-        e_poses = []
+        e_poses: list[tuple[Pos, float]] = []
 
         def is_in(pos: Pos, array: list[tuple[Pos, any]]) -> int:
             for poss in array:
@@ -55,7 +55,7 @@ class Unit(UnitData):
                     return array.index(poss)
             return -1
 
-        def get_mv(movement: float, tile: "Tile.Tile") -> float:
+        def get_mv(movement: float, tile: "tilemodule.Tile") -> float:
             if not self.get_stop_movement_ignore(tile):
                 if tile.type.stops_movement:
                     return 0
@@ -83,31 +83,31 @@ class Unit(UnitData):
         while len(s_poses) != 0:
             s_pos = s_poses.pop(0)
             if s_pos[1] <= 0:
-                if World.World.object.get_unit(s_pos[0]) is None:
+                if world.World.object.get_unit(s_pos[0]) is None:
                     e_poses.append(s_pos)
                 continue
             for (dx, dy) in ((-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1)):
                 n_pos = s_pos[0] + Pos(dx, dy)
-                if not World.World.object.is_in(n_pos):
+                if not world.World.object.is_in(n_pos):
                     continue
                 tmp = False
-                unit = World.World.object.get_unit(n_pos)
+                unit = world.World.object.get_unit(n_pos)
                 if unit is not None:
                     if unit.owner != self.owner:
                         tmp = True
                 if tmp is True:
                     continue
-                if not self.get_water_ignore(World.World.object.get(n_pos)):
-                    if World.World.object.get(n_pos).type.is_water != self.type.water:
+                if not self.get_water_ignore(world.World.object.get(n_pos)):
+                    if world.World.object.get(n_pos).type.is_water != self.type.water:
                         continue
                 available = False
                 for tech in Player.Player.players[self.owner].techs:
-                    if World.World.object.get(n_pos).type in tech.accessable:
+                    if world.World.object.get(n_pos).type in tech.accessable:
                         available = True
                         break
                 if not available:
                     continue
-                next_mv = get_mv(s_pos[1], World.World.object.get(n_pos))
+                next_mv = get_mv(s_pos[1], world.World.object.get(n_pos))
                 if next_mv < 0:
                     continue
                 r = is_in(n_pos, s_poses)
@@ -121,11 +121,11 @@ class Unit(UnitData):
                         s_poses.append([n_pos, next_mv])
                     continue
                 s_poses.append([n_pos, next_mv])
-            if World.World.object.get_unit(s_pos[0]) is None:
+            if world.World.object.get_unit(s_pos[0]) is None:
                 e_poses.append(s_pos)
         return e_poses
     
-    def get_water_ignore(self, tile: "Tile.Tile") -> bool:
+    def get_water_ignore(self, tile: "tilemodule.Tile") -> bool:
         result = 0
         for ability in self.type.abilities:
             result += Ability.get(ability).ignore_water(self, tile)
@@ -135,7 +135,7 @@ class Unit(UnitData):
             result += m.tmtype.ignore_water(m, tile, self)
         return result > 0
     
-    def get_stop_movement_ignore(self, tile: "Tile.Tile") -> bool:
+    def get_stop_movement_ignore(self, tile: "tilemodule.Tile") -> bool:
         result = 0
         for ability in self.type.abilities:
             result += Ability.get(ability).ignore_stop_movement(self, tile)
@@ -168,7 +168,7 @@ class Unit(UnitData):
     def calc_attack(self, other: "Unit") -> tuple[int, int]:
         defense_bonus = 1
         for tech in Player.Player.players[other.owner].techs:
-            if World.World.object.get(other.pos).type in tech.defence:
+            if world.World.object.get(other.pos).type in tech.defence:
                 defense_bonus = 1.5
                 break
         for ability in other.type.abilities:
@@ -233,7 +233,7 @@ class Unit(UnitData):
     def move_and_attack(self, pos: Pos):
         if not (pos in self.get_possible_moves()):
             return 
-        if World.World.object.get_unit(pos) is not None:
+        if world.World.object.get_unit(pos) is not None:
             self.attack(pos)
         else:
             self.move_to(pos)
@@ -241,7 +241,7 @@ class Unit(UnitData):
     def attack(self, pos: Pos):
         if not (pos in self.get_possible_moves()):
             raise Exception("Invalid attack was given.")
-        unit = World.World.object.get_unit(pos)
+        unit = world.World.object.get_unit(pos)
         if unit is None:
             raise Exception("Invalid attack was given.")
         self.attacked = True
@@ -258,12 +258,12 @@ class Unit(UnitData):
         self.recv_damage(defense)
         if unit.health <= 0 and self.type.attack_range == 1:
             can_take_place = True
-            if not self.get_water_ignore(World.World.object.get(unit.pos)):
-                if World.World.object.get(unit.pos).type.is_water != self.type.water:
+            if not self.get_water_ignore(world.World.object.get(unit.pos)):
+                if world.World.object.get(unit.pos).type.is_water != self.type.water:
                     can_take_place = False
             available = False
             for tech in Player.Player.players[self.owner].techs:
-                if World.World.object.get(unit.pos).type in tech.accessable:
+                if world.World.object.get(unit.pos).type in tech.accessable:
                     available = True
                     break
             if can_take_place and available:
@@ -281,7 +281,7 @@ class Unit(UnitData):
     def move_to(self, pos: Pos):
         if not (pos in self.get_possible_moves()):
             raise Exception("Invalid move without attack was given.")
-        if World.World.object.get_unit(pos) is not None:
+        if world.World.object.get_unit(pos) is not None:
             raise Exception("Invalid move without attack was given.")
         self.moved = True
         save = False
@@ -299,7 +299,7 @@ class Unit(UnitData):
 
     def heal(self):
         heal_value = 0
-        if World.World.object.get(self.pos).owner == self.owner:
+        if world.World.object.get(self.pos).owner == self.owner:
             heal_value = 4
         else:
             heal_value = 2
@@ -323,18 +323,18 @@ class Unit(UnitData):
                 ability.actions[action_id](self)
                 
     @property
-    def attached_city(self) -> "City.City|None":
+    def attached_city(self) -> "citymodule.City|None":
         if self.attached_city_id == -1:
             self._attached_city = None  
         else:
-            for city in City.City.cities:
+            for city in citymodule.City.cities:
                 if city._id == self.attached_city_id:
                     self._attached_city = city
                     break
         return self._attached_city
 
     @attached_city.setter
-    def attached_city(self, city: "City.City|None"):
+    def attached_city(self, city: "citymodule.City|None"):
         self._attached_city = city
         self.attached_city_id = city._id if city is not None else -1
 
@@ -345,13 +345,13 @@ class Unit(UnitData):
         if self.attached_city_id == -1:
             self._attached_city = None  
         else:
-            for city in City.City.cities:
+            for city in citymodule.City.cities:
                 if city._id == self.attached_city_id:
                     self._attached_city = city
                     break
 
     def get_vision_range(self) -> int:
-        vision = World.World.object.get(self.pos).type.vision_range
+        vision = world.World.object.get(self.pos).type.vision_range
         for ability in self.type.abilities:
             vision = max(vision, Ability.get(ability).get_vision_range(self))
         for effect in self.effects:
@@ -383,7 +383,7 @@ class Unit(UnitData):
                 effect.duration -= 1
         self.update_effects()
 
-    def validate(self, player_data: PlayerData_):
+    def validate(self, player_data: SharedPlayerData):
         if not player_data.joined:
             return False
         player = Player.Player.by_id(player_data.id)
@@ -398,10 +398,10 @@ class Unit(UnitData):
             effect.type.on_death(effect, self)
         if self.attached_city is not None:
             self.attached_city.fullness -= 1
-        World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = None
+        world.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = None
         for unit in Unit.units:
             if unit.pos == self.pos and unit != self:
-                World.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = unit
+                world.World.object.unit_mask[self.pos.inty()][self.pos.intx()] = unit
                 print("\n\n\n\n(!!!) SOME BULLSHIT JUST HAPPENED? THIS IS JUST BULLSHIT CODE\n\n")
                 break
         Unit.units.remove(self)

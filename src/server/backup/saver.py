@@ -5,7 +5,7 @@ from netio.serialization.serializer import SerializationTypes
 from server.core.city import City
 from server.core.game import Game
 from server.core.unit import Unit
-from shared.player import PlayerData_
+from shared.player import SharedPlayerData
 from server.core.player import Player
 from shared.globals.mod_versions import ModVersions
 from server.globals.backup import BackupSettings
@@ -55,7 +55,7 @@ class Saver:
             f.write(data)
 
     @staticmethod
-    def record_player_datas(player_datas: list[PlayerData_]):
+    def record_player_datas(player_datas: list[SharedPlayerData]):
         data = to_bytes(player_datas)
         with open(Saver.get_save_file_path(), "ab") as f:
             f.write(data)

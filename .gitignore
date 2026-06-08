@@ -1,4 +1,7 @@
 *__pycache__/
 replays/
-*log*
+*.log*
 *settings.json*
+*deleteme*
+saves/*
+.*

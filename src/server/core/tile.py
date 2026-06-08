@@ -1,11 +1,11 @@
 from netio.serialization.serializer import sync_key
 from shared.modificator import TileModificator, TileModificatorType
-from shared.player import PlayerData_
+from shared.player import SharedPlayerData
 from shared.tile import TileData
 from shared.asset_types import TileType, BuildingType, ResourceType, TerraForm
 from shared.util.position import Pos
 
-from . import world as World
+from . import world as world
 from . import player as Player
 
 @sync_key("tile")
@@ -43,7 +43,7 @@ class Tile(TileData):
         self.type = terraform.to_ttype
         self.resource = terraform.to_resource
 
-    def validate(self, player_data: PlayerData_):
+    def validate(self, player_data: SharedPlayerData):
         if not player_data.joined:
             return False
         player = Player.Player.by_id(player_data.id)

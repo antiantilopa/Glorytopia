@@ -1,9 +1,9 @@
 from typing import Annotated
-from netio import SerializeField, PlayerData
+from netio import SerializeField, ABCPlayerData
 from shared.asset_types import Nation, TechNode
 from netio import ConnectionData
 
-class PlayerData_(PlayerData):
+class SharedPlayerData(ABCPlayerData):
     id: Annotated[int, SerializeField()]
     nation: Annotated[Nation, SerializeField()]
     nickname: Annotated[str, SerializeField()]

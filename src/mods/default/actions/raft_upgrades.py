@@ -2,14 +2,14 @@ from client.actions.action import ActionSystem
 from client.network.client import GameClient
 from netio.serialization.routing import MessageType
 from shared.asset_types import TechNode, UnitType
-from shared.player import PlayerData_
+from shared.player import SharedPlayerData
 from shared.unit import UnitData
 
-class __PlayerData(PlayerData_):
+class __DummyPlayerData(SharedPlayerData):
     techs: list[TechNode]
 
 @ActionSystem.register_action_default(UnitData)
-def upgrade(obj: UnitData, player: __PlayerData):
+def upgrade(obj: UnitData, player: __DummyPlayerData):
     def upgrade_to_boat(args: list):
         GameClient.object.send_message(MessageType.EVENT, "GAME/ACTION", [obj, 596349512])
     def upgrade_to_galley(args: list):
